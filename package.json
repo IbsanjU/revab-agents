@@ -1,0 +1,44 @@
+{
+  "name": "revab-agents",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Centralized multi-agent QE automation framework: local MCP servers, async orchestrator, Playwright BDD, Allure.",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "serve:jira": "tsx mcp-servers/jira/index.ts",
+    "serve:confluence": "tsx mcp-servers/confluence/index.ts",
+    "serve:jtmf": "tsx mcp-servers/jtmf/index.ts",
+    "serve:artifacts": "tsx mcp-servers/artifacts/index.ts",
+    "serve:playwright": "npx @playwright/mcp@latest --port 7315",
+    "serve:mcp": "concurrently -n jira,conf,jtmf,art,pw -c blue,green,yellow,magenta,cyan npm:serve:jira npm:serve:confluence npm:serve:jtmf npm:serve:artifacts npm:serve:playwright",
+    "worker": "tsx orchestrator/worker.ts",
+    "task": "tsx orchestrator/cli.ts",
+    "import:agents": "tsx scripts/import-agents.ts",
+    "test:bdd": "cross-env NODE_OPTIONS=--import=tsx cucumber-js",
+    "report:generate": "allure generate reports/allure-results -o reports/allure-report --clean",
+    "report:open": "allure open reports/allure-report"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^10.8.0",
+    "@playwright/test": "^1.45.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.0",
+    "allure-commandline": "^2.29.0",
+    "allure-cucumberjs": "^2.15.1",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "tsx": "^4.15.0",
+    "typescript": "^5.5.0"
+  }
+}

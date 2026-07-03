@@ -1,0 +1,24 @@
+{
+  "servers": {
+    "jira": {
+      "type": "http",
+      "url": "http://localhost:7311/mcp"
+    },
+    "confluence": {
+      "type": "http",
+      "url": "http://localhost:7312/mcp"
+    },
+    "jtmf": {
+      "type": "http",
+      "url": "http://localhost:7313/mcp"
+    },
+    "artifacts": {
+      "type": "http",
+      "url": "http://localhost:7314/mcp"
+    },
+    "playwright": {
+      "type": "http",
+      "url": "http://localhost:7315/mcp"
+    }
+  }
+}

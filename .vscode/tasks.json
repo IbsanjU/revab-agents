@@ -1,0 +1,34 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Serve MCP servers",
+      "type": "shell",
+      "command": "npm run serve:mcp",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always" }
+    },
+    {
+      "label": "Start orchestrator worker",
+      "type": "shell",
+      "command": "npm run worker",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always" }
+    },
+    {
+      "label": "Run BDD suite",
+      "type": "shell",
+      "command": "npm run test:bdd",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Generate Allure report",
+      "type": "shell",
+      "command": "npm run report:generate",
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+    "chat.mcp.serverSampling": {
+        "revab-agents/.vscode/mcp.json: jtmf": {
+            "allowedModels": [
+                "copilotcli/auto",
+                "copilot/auto"
+            ]
+        }
+    }
+}
