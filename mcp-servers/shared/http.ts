@@ -52,6 +52,21 @@ export async function apiPost<T = unknown>(baseUrl: string, path: string, body: 
   return handle<T>(res, url);
 }
 
+/** PUT a JSON body to an authenticated Atlassian API. Many Jira update endpoints return 204 No Content. */
+export async function apiPut(baseUrl: string, path: string, body: unknown): Promise<{ status: number }> {
+  const url = buildUrl(baseUrl, path);
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: { ...authHeaders(), Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const responseBody = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}\n${responseBody.slice(0, 2000)}`);
+  }
+  return { status: res.status };
+}
+
 /** GET a binary resource (attachment download). Returns a Buffer. */
 export async function apiGetBinary(baseUrl: string, path: string, params?: QueryParams): Promise<Buffer> {
   const url = buildUrl(baseUrl, path, params);

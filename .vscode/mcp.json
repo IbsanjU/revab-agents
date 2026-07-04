@@ -19,6 +19,18 @@
     "playwright": {
       "type": "http",
       "url": "http://localhost:7315/mcp"
+    },
+    "playwright-runner": {
+      "type": "http",
+      "url": "http://localhost:7316/mcp"
+    },
+    "allure-report": {
+      "type": "http",
+      "url": "http://localhost:7317/mcp"
+    },
+    "codegen": {
+      "type": "http",
+      "url": "http://localhost:7318/mcp"
     }
   }
 }

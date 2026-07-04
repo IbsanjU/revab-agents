@@ -1,0 +1,21 @@
+{
+  "$schema": "./manifest.schema.json",
+  "projects": [
+    {
+      "name": "sample",
+      "repoPath": "fixtures/sample-target-repo",
+      "repoUrl": null,
+      "branch": null,
+      "testPaths": {
+        "features": "tests/features",
+        "steps": "tests/steps",
+        "pages": "tests/pages",
+        "support": "tests/support"
+      },
+      "jira": { "projectKey": "ABC", "defaultJql": "project = ABC ORDER BY created DESC" },
+      "confluence": { "spaceKey": "ABC" },
+      "jtmf": { "projectId": "ABC", "testPlanId": null },
+      "execution": { "mode": "local" }
+    }
+  ]
+}

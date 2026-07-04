@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { env, intEnv, optionalEnv } from "../shared/config.js";
-import { apiGet } from "../shared/http.js";
+import { apiGet, apiPost, apiPut } from "../shared/http.js";
 
 /**
  * JTMF / test-management MCP server.
@@ -111,6 +111,78 @@ startMcpHttpServer({
             description: issue.fields.description,
             linkedIssues: linked,
           });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jtmf_create_test_case",
+      {
+        description:
+          "Create a new test-case issue (dryRun by default previews the payload without sending it — always dedup-check with jtmf_search_tests first).",
+        inputSchema: {
+          projectKey: z.string().describe("Jira project key, e.g. ABC"),
+          summary: z.string().describe("Test case title"),
+          steps: z.string().optional().describe("Test steps text (written to JTMF_STEPS_FIELD if configured)"),
+          description: z.string().optional(),
+          labels: z.array(z.string()).optional(),
+          dryRun: z.boolean().optional().describe("If true (default), return the payload without creating anything"),
+        },
+      },
+      async ({ projectKey, summary, steps, description, labels, dryRun }) => {
+        try {
+          const testType = optionalEnv("JTMF_TEST_ISSUE_TYPE") ?? "Test";
+          const stepsField = optionalEnv("JTMF_STEPS_FIELD");
+          const fields: Record<string, unknown> = {
+            project: { key: projectKey },
+            issuetype: { name: testType },
+            summary,
+            ...(description ? { description } : {}),
+            ...(labels ? { labels } : {}),
+            ...(stepsField && steps ? { [stepsField]: steps } : {}),
+          };
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, wouldCreate: { fields } });
+          }
+          const data = await apiPost(base(), "/rest/api/2/issue", { fields });
+          return textResult(data);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jtmf_update_test_case",
+      {
+        description:
+          "Update an existing test-case issue's fields (dryRun by default previews the payload without sending it).",
+        inputSchema: {
+          key: z.string().describe("Test issue key, e.g. ABC-321"),
+          summary: z.string().optional(),
+          steps: z.string().optional().describe("Test steps text (written to JTMF_STEPS_FIELD if configured)"),
+          description: z.string().optional(),
+          labels: z.array(z.string()).optional(),
+          dryRun: z.boolean().optional().describe("If true (default), return the payload without updating anything"),
+        },
+      },
+      async ({ key, summary, steps, description, labels, dryRun }) => {
+        try {
+          const stepsField = optionalEnv("JTMF_STEPS_FIELD");
+          const fields: Record<string, unknown> = {
+            ...(summary ? { summary } : {}),
+            ...(description ? { description } : {}),
+            ...(labels ? { labels } : {}),
+            ...(stepsField && steps ? { [stepsField]: steps } : {}),
+          };
+          if (Object.keys(fields).length === 0) throw new Error("No fields provided to update");
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, key, wouldUpdate: { fields } });
+          }
+          const { status } = await apiPut(base(), `/rest/api/2/issue/${encodeURIComponent(key)}`, { fields });
+          return textResult({ updated: key, status });
         } catch (err) {
           return errorResult(err);
         }

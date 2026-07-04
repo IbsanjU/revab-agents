@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { env, intEnv } from "../shared/config.js";
-import { apiGet, apiPost } from "../shared/http.js";
+import { apiGet, apiPost, apiPut } from "../shared/http.js";
 
 const base = () => env("JIRA_BASE_URL");
 const DEFAULT_FIELDS = "summary,status,issuetype,assignee,priority,labels,fixVersions,parent";
@@ -97,6 +97,78 @@ startMcpHttpServer({
             body,
           });
           return textResult(data);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_update_issue",
+      {
+        description:
+          "Update fields on a Jira issue (e.g. summary, description, labels). dryRun (default true) previews the payload without sending it.",
+        inputSchema: {
+          key: z.string().describe("Issue key, e.g. ABC-123"),
+          fields: z.record(z.unknown()).describe("Jira field map to update, e.g. { summary: 'New title' }"),
+          dryRun: z.boolean().optional().describe("If true (default), return the payload without updating anything"),
+        },
+      },
+      async ({ key, fields, dryRun }) => {
+        try {
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, key, wouldUpdate: { fields } });
+          }
+          const { status } = await apiPut(base(), `/rest/api/2/issue/${encodeURIComponent(key)}`, { fields });
+          return textResult({ updated: key, status });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_transition_issue",
+      {
+        description:
+          "Transition a Jira issue to a new workflow status (e.g. 'Done', 'In Progress'). dryRun (default true) lists available transitions and previews without applying.",
+        inputSchema: {
+          key: z.string().describe("Issue key, e.g. ABC-123"),
+          transitionName: z.string().describe("Target status/transition name, e.g. 'Done' (case-insensitive match)"),
+          comment: z.string().optional().describe("Optional comment to add with the transition"),
+          dryRun: z.boolean().optional().describe("If true (default), only list available transitions without applying"),
+        },
+      },
+      async ({ key, transitionName, comment, dryRun }) => {
+        try {
+          const transitionsData = await apiGet<{ transitions: Array<{ id: string; name: string }> }>(
+            base(),
+            `/rest/api/2/issue/${encodeURIComponent(key)}/transitions`
+          );
+          const match = transitionsData.transitions.find(
+            (t) => t.name.toLowerCase() === transitionName.toLowerCase()
+          );
+          if (dryRun ?? true) {
+            return textResult({
+              dryRun: true,
+              key,
+              requestedTransition: transitionName,
+              matched: match ?? null,
+              availableTransitions: transitionsData.transitions.map((t) => t.name),
+            });
+          }
+          if (!match) {
+            throw new Error(
+              `No transition named "${transitionName}" for ${key}. Available: ${transitionsData.transitions
+                .map((t) => t.name)
+                .join(", ")}`
+            );
+          }
+          const data = await apiPost(base(), `/rest/api/2/issue/${encodeURIComponent(key)}/transitions`, {
+            transition: { id: match.id },
+            ...(comment ? { update: { comment: [{ add: { body: comment } }] } } : {}),
+          });
+          return textResult(data ?? { transitioned: key, to: match.name });
         } catch (err) {
           return errorResult(err);
         }

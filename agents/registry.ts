@@ -1,9 +1,16 @@
 import { execCommand } from "../utils/exec.js";
+import { resolveProjectRepoPath } from "../utils/manifest.js";
 
 /**
  * Task type registry: maps orchestrator task types to handlers.
  * Add new capabilities here — keep handlers generic and parameterized.
  * Handlers run whitelisted npm scripts only (no arbitrary shell from payloads).
+ *
+ * IMPORTANT: revab-agents never executes tests against itself. Any handler that runs
+ * Playwright/Cucumber/Allure or writes test code must resolve `cwd` via
+ * `resolveProjectRepoPath(project)` (utils/manifest.ts) — the manifest is the only
+ * trust boundary for which directory a shell command may target. Never accept a raw
+ * `repoPath` from a payload directly.
  */
 export interface TaskHandler {
   description: string;
@@ -12,29 +19,40 @@ export interface TaskHandler {
 
 const TAG_PATTERN = /^[@\w\s()|&-]+$/; // cucumber tag expressions only
 
+function requireProject(payload: Record<string, unknown>): string {
+  const project = typeof payload.project === "string" ? payload.project : undefined;
+  if (!project) throw new Error("payload.project (name from projects.manifest.json) is required");
+  return project;
+}
+
 export const handlers: Record<string, TaskHandler> = {
   "run-bdd": {
-    description: "Run the Cucumber/Playwright BDD suite. Payload: { tags?: '@smoke' }",
+    description:
+      "Run the target project's Cucumber/Playwright BDD suite. Payload: { project: 'sample', tags?: '@smoke' }",
     async run(payload) {
+      const project = requireProject(payload);
+      const cwd = await resolveProjectRepoPath(project);
       const args = ["run", "test:bdd"];
       const tags = typeof payload.tags === "string" ? payload.tags : undefined;
       if (tags) {
         if (!TAG_PATTERN.test(tags)) throw new Error(`Invalid tag expression: ${tags}`);
         args.push("--", "--tags", `"${tags}"`);
       }
-      const result = await execCommand("npm", args);
-      return { exitCode: result.code, stdout: result.stdout.slice(-4000), stderr: result.stderr.slice(-4000) };
+      const result = await execCommand("npm", args, cwd);
+      return { project, exitCode: result.code, stdout: result.stdout.slice(-4000), stderr: result.stderr.slice(-4000) };
     },
   },
   "generate-report": {
-    description: "Generate the Allure report from the latest results.",
-    async run() {
-      const result = await execCommand("npm", ["run", "report:generate"]);
-      return { exitCode: result.code, stdout: result.stdout.slice(-2000) };
+    description: "Generate the Allure report for a target project. Payload: { project: 'sample' }",
+    async run(payload) {
+      const project = requireProject(payload);
+      const cwd = await resolveProjectRepoPath(project);
+      const result = await execCommand("npm", ["run", "report:generate"], cwd);
+      return { project, exitCode: result.code, stdout: result.stdout.slice(-2000) };
     },
   },
   typecheck: {
-    description: "Typecheck the whole repo.",
+    description: "Typecheck the revab-agents framework itself (not a target project).",
     async run() {
       const result = await execCommand("npm", ["run", "typecheck"]);
       return { exitCode: result.code, stdout: result.stdout.slice(-4000), stderr: result.stderr.slice(-4000) };
