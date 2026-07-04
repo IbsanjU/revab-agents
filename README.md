@@ -2,66 +2,107 @@
 
 Centralized multi-agent QE automation framework — works in VS Code **without** org-level MCP enablement, via local MCP servers on `http://localhost`.
 
+**This repo is framework-only.** It holds no `tests/` of its own and never executes Playwright/Cucumber/Allure against itself. All test authoring, execution, and reporting happens in a **target project** — any other repo you point it at — resolved through `projects.manifest.json` and operated on exclusively via MCP tools. See [Known limitations](#known-limitations).
+
 ## What's inside
 
 | Area | Location | Purpose |
 | --- | --- | --- |
-| MCP servers | `mcp-servers/` | Jira, Confluence, JTMF, Artifacts — local Streamable-HTTP servers registered in `.vscode/mcp.json` |
-| Agents | `.github/chatmodes/` | orchestrator, researcher, test-planner, automation, reporter, importer, self-improve |
-| Orchestrator | `orchestrator/` + `agents/registry.ts` | async file-queue + polling worker for long-running tasks |
-| Tests | `tests/` | Playwright + Cucumber BDD with Allure reporting |
-| Knowledge | `knowledge/` | persistent learnings & conventions — the framework's memory |
+| MCP servers | `mcp-servers/` | Jira, Confluence, JTMF, Artifacts, Playwright-runner, Allure-report, Codegen — local Streamable-HTTP servers registered in `.vscode/mcp.json` |
+| Agents | `.github/agents/` | orchestrator, researcher, test-planner, automation, reporter, importer, self-improve |
+| Orchestrator | `orchestrator/` + `agents/registry.ts` | async file-queue + polling worker for long-running, project-scoped tasks |
+| Manifest | `projects.manifest.json` + `utils/manifest.ts` | per-project config (repo location, test paths, Jira/Confluence/JTMF ids, execution mode) — the trust boundary for which repo a tool may touch |
+| Fixture | `fixtures/sample-target-repo/` | minimal Playwright+Cucumber+Allure project used only to smoke-test the MCP tools |
+| Knowledge | `knowledge/` | persistent learnings, conventions, per-project app models, and consolidated reports — the framework's memory |
 | Reusables | `utils/`, `scripts/`, `skills/` | generic modules, CLIs, and agent skills |
 
 ## Quickstart
 
 ```powershell
 npm install
-npx playwright install chromium   # once, for browser tests
 Copy-Item .env.example .env       # then fill in Jira/Confluence auth
-npm run serve:mcp                 # start all 4 MCP servers (keep running)
+npm run serve:mcp                 # start all MCP servers (keep running)
 npm run worker                    # start the async task worker (second terminal)
 ```
 
-Then in VS Code: the servers in `.vscode/mcp.json` become available as MCP tools; pick an agent from the chat-mode dropdown (e.g. **orchestrator**).
+Add your project(s) to `projects.manifest.json` (a `sample` entry pointing at `fixtures/sample-target-repo` is included as a working example). Then in VS Code: the servers in `.vscode/mcp.json` become available as MCP tools; pick an agent from the chat-mode dropdown (e.g. **orchestrator**) and tell it which `project` to work on.
 
 ## Everyday commands
 
 ```powershell
-npm run test:bdd                                    # run BDD suite
-npm run test:bdd -- --tags "@smoke"                 # run tagged scenarios
-npm run report:generate; npm run report:open        # Allure HTML report
-npm run task -- enqueue run-bdd '{"tags":"@smoke"}' # async run via queue
+npm run task -- enqueue run-bdd '{"project":"sample","tags":"@smoke"}'   # async run via queue
+npm run task -- enqueue generate-report '{"project":"sample"}'
 npm run task -- status                              # queue status
 npm run task -- types                               # available task types
-npm run import:agents -- C:\path\to\other-repo --dry-run  # import agents from another repo
-npm run typecheck
+npm run import:agents -- C:\path\to\other-repo --dry-run  # import agents/conventions from another repo
+npm run typecheck                                    # typechecks revab-agents itself only
 ```
+
+Project-scoped work (running BDD suites, generating Allure reports, scaffolding features/steps/pages) goes through the `playwright-runner`, `allure-report`, and `codegen` MCP tools, or the equivalent orchestrator task types — always with a `project` argument.
 
 ## MCP servers & ports
 
-| Server | Port | Tools |
-| --- | --- | --- |
-| jira | 7311 | `jira_search`, `jira_get_issue`, `jira_get_epic_children`, `jira_add_comment` |
-| confluence | 7312 | `confluence_search`, `confluence_get_page`, `confluence_get_children`, `confluence_get_attachments`, `confluence_download_attachment`, `confluence_get_comments`, `confluence_extract_links` |
-| jtmf | 7313 | `jtmf_get_test_case`, `jtmf_search_tests`, `jtmf_get_test_plan`, `jtmf_raw_get` |
-| artifacts | 7314 | `list_files`, `read_repo_file`, `allure_summary`, `knowledge_append` |
-| playwright | 7315 | Official `@playwright/mcp` — browser automation tools (navigate, click, snapshot, etc.) |
+| Server | Port | Scope | Tools |
+| --- | --- | --- | --- |
+| jira | 7311 | repo-agnostic | `jira_search`, `jira_get_issue`, `jira_get_epic_children`, `jira_add_comment`, `jira_update_issue`, `jira_transition_issue` |
+| confluence | 7312 | repo-agnostic | `confluence_search`, `confluence_get_page`, `confluence_get_children`, `confluence_get_attachments`, `confluence_download_attachment`, `confluence_get_comments`, `confluence_extract_links` |
+| jtmf | 7313 | repo-agnostic | `jtmf_get_test_case`, `jtmf_search_tests`, `jtmf_get_test_plan`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_raw_get` |
+| artifacts | 7314 | this repo only | `list_files`, `read_repo_file`, `knowledge_append` |
+| playwright-runner | 7316 | project-scoped | `run_bdd`, `run_playwright`, `get_test_files` |
+| allure-report | 7317 | project-scoped | `generate_report`, `allure_summary`, `get_result_json` |
+| codegen | 7318 | project-scoped | `scaffold_feature`, `scaffold_step`, `scaffold_page`, `detect_conventions` |
+| playwright | 7315 | target-agnostic | Official `@playwright/mcp` — browser automation tools (navigate, click, snapshot, etc.) |
 
-Auth: Cloud = `ATLASSIAN_AUTH_MODE=basic` (email + API token); Server/DC = `bearer` (PAT). See `.env.example`.
+Auth: Cloud = `ATLASSIAN_AUTH_MODE=basic` (email + API token); Server/DC = `bearer` (PAT). See `.env.example`. Write tools (`jira_update_issue`, `jira_transition_issue`, `jtmf_create_test_case`, `jtmf_update_test_case`) default to `dryRun: true` — always preview before confirming a write.
+
+## Project manifest
+
+`projects.manifest.json` declares every target project this framework can operate on:
+
+```json
+{
+  "projects": [
+    {
+      "name": "sample",
+      "repoPath": "fixtures/sample-target-repo",
+      "repoUrl": null,
+      "branch": null,
+      "testPaths": { "features": "tests/features", "steps": "tests/steps", "pages": "tests/pages", "support": "tests/support" },
+      "jira": { "projectKey": "ABC", "defaultJql": "project = ABC ORDER BY created DESC" },
+      "confluence": { "spaceKey": "ABC" },
+      "jtmf": { "projectId": "ABC", "testPlanId": null },
+      "execution": { "mode": "local" }
+    }
+  ]
+}
+```
+
+- Either `repoPath` (a local checkout) or `repoUrl` (cloned on demand into `.workspaces/<name>/`) must be set.
+- `execution.mode` is `"local"` by default; `"browserstack"` is only set if a project already has BrowserStack configured (see the `detect-execution-convention` skill) — never introduced automatically.
+- Loaded and validated by `utils/manifest.ts` (zod); this is the only trust boundary for which directory a tool/task may touch.
 
 ## Agent workflow
 
-1. **orchestrator** decomposes work and delegates.
-2. **researcher** pulls epics/tickets/docs -> research brief.
-3. **test-planner** -> risk-based plan + Gherkin (saved to `knowledge/test-plans/`).
-4. **automation** implements features/steps/pages.
-5. **reporter** runs suites async and classifies failures from Allure results.
+1. **orchestrator** resolves the target `project` and decomposes/delegates work.
+2. **researcher** pulls epics/tickets/docs, plus manual/image/video inputs via extraction skills -> research brief.
+3. **test-planner** -> risk-based plan + Gherkin, every scenario cited, scaffolded into the target project via `codegen`.
+4. **automation** implements features/steps/pages in the target project, running `detect-execution-convention` before execution.
+5. **reporter** runs suites async and classifies failures from Allure results (via `allure-report`); can write back to Jira/JTMF (dry-run first).
 6. **self-improve** persists learnings to `knowledge/` and proposes framework upgrades — every session.
+
+## Skills
+
+`skills/*/SKILL.md` — reusable playbooks composing existing MCP tools: `analyze-test-failures`, `detect-execution-convention`, `upload-to-jtmf`, `update-jira-epic`, `extract-requirements-from-image`, `extract-requirements-from-video`, `consolidate-project-report`, `build-test-plan-interactive`.
 
 ## Extending
 
-- **New MCP tool**: add `server.registerTool(...)` in `mcp-servers/*/index.ts` (reuse `mcp-servers/shared/`).
-- **New MCP server**: new folder + `startMcpHttpServer(...)`, register port in `.vscode/mcp.json` and a `serve:` script.
+- **New MCP tool**: add `server.registerTool(...)` in `mcp-servers/*/index.ts` (reuse `mcp-servers/shared/`); take a `project` argument and resolve via `utils/manifest.ts` if it touches a target repo.
+- **New MCP server**: new folder + `startMcpHttpServer(...)`, register port in `.vscode/mcp.json`, `.env.example`, and a `serve:` script.
 - **New async task type**: add a handler in `agents/registry.ts`.
-- **New agent**: add `.github/chatmodes/<name>.chatmode.md`.
+- **New agent**: add `.github/agents/<name>.agent.md`.
+- **New skill**: add `skills/<name>/SKILL.md` — no new I/O, only composes existing tools.
+
+## Known limitations
+
+- Only Playwright + TypeScript + Cucumber target projects are currently supported for `codegen`/`playwright-runner` scaffolding and execution. Other automation stacks are out of scope until requested.
+- Requirement extraction from images/video currently relies on native vision capability or manually supplied transcripts — no dedicated OCR/speech-to-text MCP tool exists yet (tracked in `knowledge/learnings.md`).
