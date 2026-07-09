@@ -52,7 +52,11 @@ const ManifestSchema = z.object({
 export type Project = z.infer<typeof ProjectSchema>;
 export type Manifest = z.infer<typeof ManifestSchema>;
 
-const MANIFEST_PATH = path.resolve(process.cwd(), "projects.manifest.json");
+// MANIFEST_PATH_OVERRIDE is test-only: lets unit tests point at a throwaway manifest
+// instead of the repo's real projects.manifest.json. Never set in normal operation.
+const MANIFEST_PATH = process.env.MANIFEST_PATH_OVERRIDE
+  ? path.resolve(process.env.MANIFEST_PATH_OVERRIDE)
+  : path.resolve(process.cwd(), "projects.manifest.json");
 const WORKSPACES_ROOT = path.resolve(process.cwd(), ".workspaces");
 
 let cached: Manifest | undefined;

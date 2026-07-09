@@ -1,14 +1,18 @@
-import { claimNext, complete, fail, type Task } from "./queue.js";
+import { claimNext, complete, fail, reclaimStale, type Task } from "./queue.js";
 import { handlers } from "../agents/registry.js";
 import { intEnv } from "../mcp-servers/shared/config.js";
 import { log, logError } from "../utils/logger.js";
 
 /**
  * Async worker: polls the file queue and runs tasks concurrently (up to WORKER_CONCURRENCY).
+ * Also periodically sweeps for stale "running" tasks left behind by a crashed worker
+ * and requeues (or eventually fails) them — see orchestrator/queue.ts reclaimStale().
  * Start with: npm run worker
  */
 const CONCURRENCY = intEnv("WORKER_CONCURRENCY", 2);
 const POLL_MS = intEnv("WORKER_POLL_MS", 2000);
+const STALE_MS = intEnv("WORKER_STALE_MS", 10 * 60 * 1000);
+const STALE_SWEEP_MS = intEnv("WORKER_STALE_SWEEP_MS", 60 * 1000);
 
 let active = 0;
 
@@ -41,3 +45,12 @@ log("worker", `started (concurrency=${CONCURRENCY}, poll=${POLL_MS}ms). Task typ
 setInterval(() => {
   tick().catch((err) => logError("worker", "poll failed", err));
 }, POLL_MS);
+
+setInterval(() => {
+  reclaimStale(STALE_MS)
+    .then(({ requeued, failed }) => {
+      if (requeued.length) log("worker", `reclaimed stale tasks: ${requeued.join(", ")}`);
+      if (failed.length) log("worker", `abandoned stale tasks (max reclaims exceeded): ${failed.join(", ")}`);
+    })
+    .catch((err) => logError("worker", "stale reclaim sweep failed", err));
+}, STALE_SWEEP_MS);

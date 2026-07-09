@@ -1,4 +1,4 @@
-import { enqueue, status } from "./queue.js";
+import { enqueue, status, reclaimStale } from "./queue.js";
 import { listTaskTypes } from "../agents/registry.js";
 
 /**
@@ -6,6 +6,7 @@ import { listTaskTypes } from "../agents/registry.js";
  *   npm run task -- enqueue run-bdd '{"tags":"@smoke"}'
  *   npm run task -- status
  *   npm run task -- types
+ *   npm run task -- reclaim [staleMs]
  */
 async function main(): Promise<void> {
   const [command, ...rest] = process.argv.slice(2);
@@ -33,8 +34,14 @@ async function main(): Promise<void> {
       }
       break;
     }
+    case "reclaim": {
+      const staleMs = rest[0] ? parseInt(rest[0], 10) : undefined;
+      const result = await reclaimStale(staleMs);
+      console.log(JSON.stringify(result, null, 2));
+      break;
+    }
     default:
-      console.log("Commands:\n  enqueue <type> [jsonPayload]  add a task\n  status                        queue overview\n  types                         list task types");
+      console.log("Commands:\n  enqueue <type> [jsonPayload]  add a task\n  status                        queue overview\n  types                         list task types\n  reclaim [staleMs]             requeue/fail stale running tasks now");
   }
 }
 

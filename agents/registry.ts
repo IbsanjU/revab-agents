@@ -1,3 +1,5 @@
+import { promises as fs } from "fs";
+import path from "path";
 import { execCommand } from "../utils/exec.js";
 import { resolveProjectRepoPath } from "../utils/manifest.js";
 
@@ -18,6 +20,10 @@ export interface TaskHandler {
 }
 
 const TAG_PATTERN = /^[@\w\s()|&-]+$/; // cucumber tag expressions only
+// Reject shell metacharacters in any payload value that ends up as an execCommand argv entry
+// (execCommand uses spawn(..., { shell: true }) for Windows npm/npx shim compatibility, so
+// argv entries are not immune to shell injection — validate untrusted input before use).
+const SHELL_METACHAR_PATTERN = /[;&|`$(){}<>\n\r]/;
 
 function requireProject(payload: Record<string, unknown>): string {
   const project = typeof payload.project === "string" ? payload.project : undefined;
@@ -63,7 +69,15 @@ export const handlers: Record<string, TaskHandler> = {
     async run(payload) {
       const source = typeof payload.source === "string" ? payload.source : undefined;
       if (!source) throw new Error("payload.source (path to source repo) is required");
-      const args = ["run", "import:agents", "--", source];
+      if (SHELL_METACHAR_PATTERN.test(source)) {
+        throw new Error(`payload.source contains disallowed shell metacharacters: ${source}`);
+      }
+      const resolved = path.resolve(source);
+      const stat = await fs.stat(resolved).catch(() => null);
+      if (!stat?.isDirectory()) {
+        throw new Error(`payload.source does not resolve to an existing directory: ${resolved}`);
+      }
+      const args = ["run", "import:agents", "--", resolved];
       if (payload.dryRun) args.push("--dry-run");
       const result = await execCommand("npm", args);
       return { exitCode: result.code, stdout: result.stdout.slice(-4000), stderr: result.stderr.slice(-4000) };

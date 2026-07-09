@@ -21,3 +21,12 @@ Team/org conventions the agents must follow. The self-improvement agent updates 
 - Write-back tools (Jira/JTMF) default to `dryRun: true`; confirm with the user before disabling.
 - Every significant session ends with a `knowledge/learnings.md` entry.
 - Test plans live in `knowledge/test-plans/<project>/<EPIC-KEY>.md`.
+- `knowledge/learnings.md` is rotated once it grows past ~8KB: run `npm run knowledge:rotate`
+  to archive all but the current month's dated entries into `knowledge/learnings/<YYYY-MM>.md`.
+  Below that size the command is a safe no-op — run it periodically, no harm in running it often.
+- `npm run check:conventions` validates every `skills/*/SKILL.md` has valid frontmatter (matching
+  `name`/directory, non-empty `description`) and that every `agents/registry.ts` handler which
+  calls `resolveProjectRepoPath(...)` first requires/validates `payload.project` — run it whenever
+  a skill or registry handler is added or changed.
+- `npm test` runs the framework's own unit tests (Node's built-in test runner via `tsx`) for
+  `utils/manifest.ts`, `orchestrator/queue.ts`, and `scripts/check-conventions.ts`.

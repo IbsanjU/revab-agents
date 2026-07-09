@@ -10,6 +10,9 @@
   "scripts": {
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test \"utils/*.test.ts\" \"orchestrator/*.test.ts\" \"scripts/*.test.ts\"",
+    "check:conventions": "tsx scripts/check-conventions.ts",
+    "knowledge:rotate": "tsx scripts/rotate-learnings.ts",
     "serve:jira": "tsx mcp-servers/jira/index.ts",
     "serve:confluence": "tsx mcp-servers/confluence/index.ts",
     "serve:jtmf": "tsx mcp-servers/jtmf/index.ts",
