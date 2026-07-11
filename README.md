@@ -8,7 +8,7 @@ Centralized multi-agent QE automation framework — works in VS Code **without**
 
 | Area | Location | Purpose |
 | --- | --- | --- |
-| MCP servers | `mcp-servers/` | Jira, Confluence, JTMF, Artifacts, Playwright-runner, Allure-report, Codegen — local Streamable-HTTP servers registered in `.vscode/mcp.json` |
+| MCP servers | `mcp-servers/` | Jira, Confluence, JTMF, GitHub, Artifacts, Media, Playwright-runner, Allure-report, Codegen — local Streamable-HTTP servers registered in `.vscode/mcp.json` |
 | Agents | `.github/agents/` | orchestrator, researcher, test-planner, automation, reporter, importer, self-improve |
 | Orchestrator | `orchestrator/` + `agents/registry.ts` | async file-queue + polling worker for long-running, project-scoped tasks |
 | Manifest | `projects.manifest.json` + `utils/manifest.ts` | per-project config (repo location, test paths, Jira/Confluence/JTMF ids, execution mode) — the trust boundary for which repo a tool may touch |
@@ -47,6 +47,7 @@ Project-scoped work (running BDD suites, generating Allure reports, scaffolding 
 | jira | 7311 | repo-agnostic | `jira_search`, `jira_get_issue`, `jira_get_epic_children`, `jira_add_comment`, `jira_create_issue`, `jira_update_issue`, `jira_transition_issue`, `jira_delete_issue`, `jira_save_issue` |
 | confluence | 7312 | repo-agnostic | `confluence_search`, `confluence_get_page` (text/html/structured formats), `confluence_get_children`, `confluence_get_attachments`, `confluence_download_attachment`, `confluence_get_comments`, `confluence_extract_links`, `confluence_create_page`, `confluence_update_page`, `confluence_add_comment`, `confluence_delete_page`, `confluence_save_page` |
 | jtmf | 7313 | repo-agnostic | `jtmf_get_test_case`, `jtmf_search_tests`, `jtmf_get_test_plan`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`, `jtmf_raw_get` |
+| github | 7320 | repo-agnostic | `github_search_code`, `github_search_repos`, `github_search_issues`, `github_search_commits`, `github_get_file` |
 | artifacts | 7314 | this repo only | `list_files`, `read_repo_file`, `knowledge_append` |
 | media | 7319 | this repo, or a manifest `project` | `get_file_metadata`, `read_pdf_text`, `read_docx_text`, `create_pdf`, `create_docx` |
 | playwright-runner | 7316 | project-scoped | `run_bdd`, `run_playwright`, `get_test_files` |
@@ -54,7 +55,14 @@ Project-scoped work (running BDD suites, generating Allure reports, scaffolding 
 | codegen | 7318 | project-scoped | `scaffold_feature`, `scaffold_step`, `scaffold_page`, `detect_conventions` |
 | playwright | 7315 | target-agnostic | Official `@playwright/mcp` — browser automation tools (navigate, click, snapshot, etc.) |
 
-Auth: Cloud = `ATLASSIAN_AUTH_MODE=basic` (email + API token); Server/DC = `bearer` (PAT). See `.env.example`. Every Create/Update/Delete tool across Jira, Confluence, and JTMF (`jira_create_issue`, `jira_update_issue`, `jira_transition_issue`, `jira_delete_issue`, `confluence_create_page`, `confluence_update_page`, `confluence_add_comment`, `confluence_delete_page`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`) defaults to `dryRun: true` — always preview the payload/deletion and get explicit user confirmation before setting `dryRun: false`.
+Auth: Cloud = `ATLASSIAN_AUTH_MODE=basic` (email + API token); Server/DC = `bearer` (PAT). See `.env.example`. Every Create/Update/Delete tool across Jira, Confluence, and JTMF (`jira_create_issue`, `jira_update_issue`, `jira_transition_issue`, `jira_delete_issue`, `confluence_create_page`, `confluence_update_page`, `confluence_add_comment`, `confluence_delete_page`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`) defaults to `dryRun: true` — always preview the payload/deletion and get explicit user confirmation before setting `dryRun: false`. GitHub auth is a single `GITHUB_TOKEN` (PAT/App token); `GITHUB_ORG` scopes searches to your org by default when a call doesn't name its own `org`/`repo`, and `GITHUB_API_BASE_URL` targets GitHub Enterprise Server instead of github.com. All `github_*` tools are read-only.
+
+### Searching across sources
+The `search-across-sources` skill federates `jira_search` + `confluence_search` +
+`jtmf_search_tests` + `github_search_code`/`github_search_repos`/`github_search_issues`/
+`github_search_commits` for topic-based requests ("find everything on X", "what are
+the sources for X") and consolidates results into one linked **Sources** list, using
+`confluence_extract_links`/`github_get_file` to pull in connecting sources.
 
 ### Saving pulled data locally
 `confluence_save_page` and `jira_save_issue` pull a page/issue to disk (`downloads/confluence/<project>/...`, `downloads/jira/<project>/...`). If `project` is omitted, nothing is written — the tool returns a suggested folder name (e.g. `PROJ-XXX`, derived from the space/issue key) so the agent can ask the user to confirm or override it before saving. `confluence_get_page` and `confluence_save_page` also expand accordion/expand/tabs macros into a readable nested outline (`format: "structured"` / `page.structured.txt`) instead of flattening them away, and can return the raw storage HTML (`format: "html"` / `page.html`) for pages with rich layout.
