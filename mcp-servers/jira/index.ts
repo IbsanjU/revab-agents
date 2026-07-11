@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { env, intEnv } from "../shared/config.js";
-import { apiGet, apiPost, apiPut } from "../shared/http.js";
+import { apiGet, apiPost, apiPut, apiDelete } from "../shared/http.js";
 
 const base = () => env("JIRA_BASE_URL");
 const DEFAULT_FIELDS = "summary,status,issuetype,assignee,priority,labels,fixVersions,parent";
@@ -97,6 +97,67 @@ startMcpHttpServer({
             body,
           });
           return textResult(data);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_create_issue",
+      {
+        description:
+          "Create a new Jira issue. dryRun (default true) previews the payload without sending it — always search first to avoid duplicates.",
+        inputSchema: {
+          projectKey: z.string().describe("Jira project key, e.g. ABC"),
+          issueType: z.string().describe("Issue type name, e.g. Story, Bug, Task"),
+          summary: z.string().describe("Issue title"),
+          description: z.string().optional(),
+          labels: z.array(z.string()).optional(),
+          fields: z.record(z.unknown()).optional().describe("Additional raw Jira fields to merge in"),
+          dryRun: z.boolean().optional().describe("If true (default), return the payload without creating anything"),
+        },
+      },
+      async ({ projectKey, issueType, summary, description, labels, fields, dryRun }) => {
+        try {
+          const payloadFields: Record<string, unknown> = {
+            project: { key: projectKey },
+            issuetype: { name: issueType },
+            summary,
+            ...(description ? { description } : {}),
+            ...(labels ? { labels } : {}),
+            ...(fields ?? {}),
+          };
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, wouldCreate: { fields: payloadFields } });
+          }
+          const data = await apiPost(base(), "/rest/api/2/issue", { fields: payloadFields });
+          return textResult(data);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_delete_issue",
+      {
+        description:
+          "Delete a Jira issue. Destructive and irreversible. dryRun (default true) previews the deletion without applying it.",
+        inputSchema: {
+          key: z.string().describe("Issue key, e.g. ABC-123"),
+          deleteSubtasks: z.boolean().optional().describe("Also delete subtasks (default false)"),
+          dryRun: z.boolean().optional().describe("If true (default), return the intended deletion without applying it"),
+        },
+      },
+      async ({ key, deleteSubtasks, dryRun }) => {
+        try {
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, wouldDelete: key, deleteSubtasks: deleteSubtasks ?? false });
+          }
+          const path = `/rest/api/2/issue/${encodeURIComponent(key)}${deleteSubtasks ? "?deleteSubtasks=true" : ""}`;
+          const { status } = await apiDelete(base(), path);
+          return textResult({ deleted: key, status });
         } catch (err) {
           return errorResult(err);
         }

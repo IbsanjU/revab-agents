@@ -67,6 +67,17 @@ export async function apiPut(baseUrl: string, path: string, body: unknown): Prom
   return { status: res.status };
 }
 
+/** DELETE a resource from an authenticated Atlassian API. Many delete endpoints return 204 No Content. */
+export async function apiDelete(baseUrl: string, path: string): Promise<{ status: number }> {
+  const url = buildUrl(baseUrl, path);
+  const res = await fetch(url, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) {
+    const responseBody = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}\n${responseBody.slice(0, 2000)}`);
+  }
+  return { status: res.status };
+}
+
 /** GET a binary resource (attachment download). Returns a Buffer. */
 export async function apiGetBinary(baseUrl: string, path: string, params?: QueryParams): Promise<Buffer> {
   const url = buildUrl(baseUrl, path, params);

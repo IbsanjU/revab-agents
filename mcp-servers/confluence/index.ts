@@ -3,7 +3,7 @@ import path from "path";
 import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { env, intEnv } from "../shared/config.js";
-import { apiGet, apiGetBinary, stripHtml } from "../shared/http.js";
+import { apiGet, apiGetBinary, apiPost, apiPut, apiDelete, stripHtml } from "../shared/http.js";
 
 const base = () => env("CONFLUENCE_BASE_URL");
 
@@ -206,6 +206,124 @@ startMcpHttpServer({
           });
           const compact = data.results.map((c) => ({ id: c.id, text: stripHtml(c.body?.storage?.value ?? "") }));
           return textResult(compact);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "confluence_create_page",
+      {
+        description:
+          "Create a new Confluence page (storage-format HTML body). dryRun (default true) previews the payload without sending it — always search first to avoid duplicates.",
+        inputSchema: {
+          spaceKey: z.string().describe("Space key to create the page in"),
+          title: z.string().describe("Page title"),
+          body: z.string().describe("Page body as Confluence storage-format HTML"),
+          parentPageId: z.string().optional().describe("Optional parent page id to nest under"),
+          dryRun: z.boolean().optional().describe("If true (default), return the payload without creating anything"),
+        },
+      },
+      async ({ spaceKey, title, body, parentPageId, dryRun }) => {
+        try {
+          const payload = {
+            type: "page",
+            title,
+            space: { key: spaceKey },
+            ...(parentPageId ? { ancestors: [{ id: parentPageId }] } : {}),
+            body: { storage: { value: body, representation: "storage" } },
+          };
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, wouldCreate: payload });
+          }
+          const data = await apiPost(base(), "/rest/api/content", payload);
+          return textResult(data);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "confluence_update_page",
+      {
+        description:
+          "Update an existing Confluence page's title and/or body. Requires the page's current version number (from confluence_get_page) — Confluence rejects updates with a stale version. dryRun (default true) previews the payload without sending it.",
+        inputSchema: {
+          pageId: z.string().describe("Numeric page id"),
+          currentVersion: z.number().describe("Current version number from confluence_get_page"),
+          title: z.string().optional().describe("New title (defaults to unchanged if omitted, requires refetch)"),
+          body: z.string().optional().describe("New body as Confluence storage-format HTML"),
+          dryRun: z.boolean().optional().describe("If true (default), return the payload without updating anything"),
+        },
+      },
+      async ({ pageId, currentVersion, title, body, dryRun }) => {
+        try {
+          if (!title && !body) throw new Error("Provide at least one of title or body to update");
+          const payload = {
+            type: "page",
+            ...(title ? { title } : {}),
+            version: { number: currentVersion + 1 },
+            ...(body ? { body: { storage: { value: body, representation: "storage" } } } : {}),
+          };
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, pageId, wouldUpdate: payload });
+          }
+          const data = await apiPut(base(), `/rest/api/content/${encodeURIComponent(pageId)}`, payload);
+          return textResult(data);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "confluence_add_comment",
+      {
+        description:
+          "Add a comment to a Confluence page. dryRun (default true) previews the payload without sending it.",
+        inputSchema: {
+          pageId: z.string().describe("Numeric page id to comment on"),
+          body: z.string().describe("Comment body as Confluence storage-format HTML"),
+          dryRun: z.boolean().optional().describe("If true (default), return the payload without creating anything"),
+        },
+      },
+      async ({ pageId, body, dryRun }) => {
+        try {
+          const payload = {
+            type: "comment",
+            container: { id: pageId, type: "page" },
+            body: { storage: { value: body, representation: "storage" } },
+          };
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, wouldCreate: payload });
+          }
+          const data = await apiPost(base(), "/rest/api/content", payload);
+          return textResult(data);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "confluence_delete_page",
+      {
+        description:
+          "Delete a Confluence page. Destructive and irreversible (moves to trash, depending on space settings). dryRun (default true) previews the deletion without applying it.",
+        inputSchema: {
+          pageId: z.string().describe("Numeric page id"),
+          dryRun: z.boolean().optional().describe("If true (default), return the intended deletion without applying it"),
+        },
+      },
+      async ({ pageId, dryRun }) => {
+        try {
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, wouldDelete: pageId });
+          }
+          const { status } = await apiDelete(base(), `/rest/api/content/${encodeURIComponent(pageId)}`);
+          return textResult({ deleted: pageId, status });
         } catch (err) {
           return errorResult(err);
         }

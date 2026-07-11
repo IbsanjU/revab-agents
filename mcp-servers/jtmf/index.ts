@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { env, intEnv, optionalEnv } from "../shared/config.js";
-import { apiGet, apiPost, apiPut } from "../shared/http.js";
+import { apiGet, apiPost, apiPut, apiDelete } from "../shared/http.js";
 
 /**
  * JTMF / test-management MCP server.
@@ -183,6 +183,29 @@ startMcpHttpServer({
           }
           const { status } = await apiPut(base(), `/rest/api/2/issue/${encodeURIComponent(key)}`, { fields });
           return textResult({ updated: key, status });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jtmf_delete_test_case",
+      {
+        description:
+          "Delete a test-case issue. Destructive and irreversible. dryRun (default true) previews the deletion without applying it.",
+        inputSchema: {
+          key: z.string().describe("Test issue key, e.g. ABC-321"),
+          dryRun: z.boolean().optional().describe("If true (default), return the intended deletion without applying it"),
+        },
+      },
+      async ({ key, dryRun }) => {
+        try {
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, wouldDelete: key });
+          }
+          const { status } = await apiDelete(base(), `/rest/api/2/issue/${encodeURIComponent(key)}`);
+          return textResult({ deleted: key, status });
         } catch (err) {
           return errorResult(err);
         }

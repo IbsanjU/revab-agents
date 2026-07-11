@@ -44,16 +44,16 @@ Project-scoped work (running BDD suites, generating Allure reports, scaffolding 
 
 | Server | Port | Scope | Tools |
 | --- | --- | --- | --- |
-| jira | 7311 | repo-agnostic | `jira_search`, `jira_get_issue`, `jira_get_epic_children`, `jira_add_comment`, `jira_update_issue`, `jira_transition_issue` |
-| confluence | 7312 | repo-agnostic | `confluence_search`, `confluence_get_page`, `confluence_get_children`, `confluence_get_attachments`, `confluence_download_attachment`, `confluence_get_comments`, `confluence_extract_links` |
-| jtmf | 7313 | repo-agnostic | `jtmf_get_test_case`, `jtmf_search_tests`, `jtmf_get_test_plan`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_raw_get` |
+| jira | 7311 | repo-agnostic | `jira_search`, `jira_get_issue`, `jira_get_epic_children`, `jira_add_comment`, `jira_create_issue`, `jira_update_issue`, `jira_transition_issue`, `jira_delete_issue` |
+| confluence | 7312 | repo-agnostic | `confluence_search`, `confluence_get_page`, `confluence_get_children`, `confluence_get_attachments`, `confluence_download_attachment`, `confluence_get_comments`, `confluence_extract_links`, `confluence_create_page`, `confluence_update_page`, `confluence_add_comment`, `confluence_delete_page` |
+| jtmf | 7313 | repo-agnostic | `jtmf_get_test_case`, `jtmf_search_tests`, `jtmf_get_test_plan`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`, `jtmf_raw_get` |
 | artifacts | 7314 | this repo only | `list_files`, `read_repo_file`, `knowledge_append` |
 | playwright-runner | 7316 | project-scoped | `run_bdd`, `run_playwright`, `get_test_files` |
 | allure-report | 7317 | project-scoped | `generate_report`, `allure_summary`, `get_result_json` |
 | codegen | 7318 | project-scoped | `scaffold_feature`, `scaffold_step`, `scaffold_page`, `detect_conventions` |
 | playwright | 7315 | target-agnostic | Official `@playwright/mcp` — browser automation tools (navigate, click, snapshot, etc.) |
 
-Auth: Cloud = `ATLASSIAN_AUTH_MODE=basic` (email + API token); Server/DC = `bearer` (PAT). See `.env.example`. Write tools (`jira_update_issue`, `jira_transition_issue`, `jtmf_create_test_case`, `jtmf_update_test_case`) default to `dryRun: true` — always preview before confirming a write.
+Auth: Cloud = `ATLASSIAN_AUTH_MODE=basic` (email + API token); Server/DC = `bearer` (PAT). See `.env.example`. Every Create/Update/Delete tool across Jira, Confluence, and JTMF (`jira_create_issue`, `jira_update_issue`, `jira_transition_issue`, `jira_delete_issue`, `confluence_create_page`, `confluence_update_page`, `confluence_add_comment`, `confluence_delete_page`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`) defaults to `dryRun: true` — always preview the payload/deletion and get explicit user confirmation before setting `dryRun: false`.
 
 ## Project manifest
 
