@@ -2,6 +2,7 @@ import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { env, intEnv, optionalEnv } from "../shared/config.js";
 import { apiGet, apiPost, apiPut, apiDelete } from "../shared/http.js";
+import { buildJiraIssueUrl } from "../../utils/jiraLinks.js";
 
 /**
  * JTMF / test-management MCP server.
@@ -38,6 +39,7 @@ startMcpHttpServer({
             description: issue.fields["description"],
             steps: stepsField ? issue.fields[stepsField] : "(set JTMF_STEPS_FIELD in .env)",
             labels: issue.fields["labels"],
+            url: buildJiraIssueUrl(base(), issue.key),
           });
         } catch (err) {
           return errorResult(err);
@@ -49,7 +51,8 @@ startMcpHttpServer({
       "jtmf_search_tests",
       {
         description:
-          "Search test-case issues with JQL. Automatically scopes to the configured test issue type unless the JQL already mentions issuetype.",
+          "Search test-case issues with JQL. Automatically scopes to the configured test issue type unless " +
+          "the JQL already mentions issuetype. Returns a direct browse url per test case for citing sources.",
         inputSchema: {
           jql: z.string().describe('JQL fragment, e.g. \'project = ABC AND labels = regression\''),
           maxResults: z.number().optional(),
@@ -59,12 +62,17 @@ startMcpHttpServer({
         try {
           const testType = optionalEnv("JTMF_TEST_ISSUE_TYPE") ?? "Test";
           const scoped = /issuetype/i.test(jql) ? jql : `issuetype = "${testType}" AND (${jql})`;
-          const data = await apiGet(base(), "/rest/api/2/search", {
-            jql: scoped,
-            maxResults: maxResults ?? 50,
-            fields: "summary,status,labels,priority",
-          });
-          return textResult(data);
+          const data = await apiGet<{ issues?: Array<{ key: string; [k: string]: unknown }> }>(
+            base(),
+            "/rest/api/2/search",
+            {
+              jql: scoped,
+              maxResults: maxResults ?? 50,
+              fields: "summary,status,labels,priority",
+            }
+          );
+          const issues = data.issues?.map((issue) => ({ ...issue, url: buildJiraIssueUrl(base(), issue.key) }));
+          return textResult({ ...data, issues });
         } catch (err) {
           return errorResult(err);
         }

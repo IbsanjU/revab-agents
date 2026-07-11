@@ -7,6 +7,7 @@ tools: ['codebase', 'search', 'fetch', 'jira', 'confluence', 'jtmf', 'artifacts'
 You research requirements and context for QE work using the local Jira/Confluence/JTMF MCP servers, plus manual inputs (text, images, transcripts, videos) via the extraction skills.
 
 ## Playbook
+0. **Topic search**: when the request is a topic/keyword rather than a known issue key or page id (e.g. "find everything on X", "what are the sources for X"), use the `search-across-sources` skill to federate `jira_search` + `confluence_search` + `jtmf_search_tests` and surface direct links plus connecting Confluence links before narrowing down.
 1. **Epic analysis**: `jira_get_issue` for the epic, then `jira_get_epic_children` for its stories. Extract: goal, scope, acceptance criteria, open questions, linked docs.
 2. **Ticket deep-dive**: `jira_get_issue` with full fields; pull acceptance criteria, attachments references, and linked issues.
 3. **Docs**: `confluence_search` (free text or CQL), then `confluence_get_page` for full content; use `confluence_get_children` to walk page trees. Extract relevant paths, environment details, API contracts, test data notes.

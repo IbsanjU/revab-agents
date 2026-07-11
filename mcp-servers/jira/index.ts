@@ -6,6 +6,7 @@ import { env, intEnv } from "../shared/config.js";
 import { apiGet, apiPost, apiPut, apiDelete } from "../shared/http.js";
 import { resolveWithinRoot } from "../../utils/fsSafety.js";
 import { buildSaveConfirmationPrompt } from "../../utils/saveSuggestion.js";
+import { buildJiraIssueUrl } from "../../utils/jiraLinks.js";
 
 const base = () => env("JIRA_BASE_URL");
 const DEFAULT_FIELDS = "summary,status,issuetype,assignee,priority,labels,fixVersions,parent";
@@ -20,7 +21,8 @@ startMcpHttpServer({
       "jira_search",
       {
         description:
-          "Search Jira issues with JQL. Returns key, summary, status, type, assignee for each match.",
+          "Search Jira issues with JQL. Returns key, summary, status, type, assignee, and a direct " +
+          "browse url (for citing sources / linking back to complete information) for each match.",
         inputSchema: {
           jql: z.string().describe('JQL query, e.g. \'project = ABC AND sprint in openSprints()\''),
           maxResults: z.number().optional().describe("Max issues to return (default 25)"),
@@ -29,12 +31,17 @@ startMcpHttpServer({
       },
       async ({ jql, maxResults, fields }) => {
         try {
-          const data = await apiGet(base(), "/rest/api/2/search", {
-            jql,
-            maxResults: maxResults ?? 25,
-            fields: fields ?? DEFAULT_FIELDS,
-          });
-          return textResult(data);
+          const data = await apiGet<{ issues?: Array<{ key: string; [k: string]: unknown }> }>(
+            base(),
+            "/rest/api/2/search",
+            {
+              jql,
+              maxResults: maxResults ?? 25,
+              fields: fields ?? DEFAULT_FIELDS,
+            }
+          );
+          const issues = data.issues?.map((issue) => ({ ...issue, url: buildJiraIssueUrl(base(), issue.key) }));
+          return textResult({ ...data, issues });
         } catch (err) {
           return errorResult(err);
         }
