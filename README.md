@@ -44,16 +44,27 @@ Project-scoped work (running BDD suites, generating Allure reports, scaffolding 
 
 | Server | Port | Scope | Tools |
 | --- | --- | --- | --- |
-| jira | 7311 | repo-agnostic | `jira_search`, `jira_get_issue`, `jira_get_epic_children`, `jira_add_comment`, `jira_create_issue`, `jira_update_issue`, `jira_transition_issue`, `jira_delete_issue` |
-| confluence | 7312 | repo-agnostic | `confluence_search`, `confluence_get_page`, `confluence_get_children`, `confluence_get_attachments`, `confluence_download_attachment`, `confluence_get_comments`, `confluence_extract_links`, `confluence_create_page`, `confluence_update_page`, `confluence_add_comment`, `confluence_delete_page` |
+| jira | 7311 | repo-agnostic | `jira_search`, `jira_get_issue`, `jira_get_epic_children`, `jira_add_comment`, `jira_create_issue`, `jira_update_issue`, `jira_transition_issue`, `jira_delete_issue`, `jira_save_issue` |
+| confluence | 7312 | repo-agnostic | `confluence_search`, `confluence_get_page` (text/html/structured formats), `confluence_get_children`, `confluence_get_attachments`, `confluence_download_attachment`, `confluence_get_comments`, `confluence_extract_links`, `confluence_create_page`, `confluence_update_page`, `confluence_add_comment`, `confluence_delete_page`, `confluence_save_page` |
 | jtmf | 7313 | repo-agnostic | `jtmf_get_test_case`, `jtmf_search_tests`, `jtmf_get_test_plan`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`, `jtmf_raw_get` |
 | artifacts | 7314 | this repo only | `list_files`, `read_repo_file`, `knowledge_append` |
+| media | 7319 | this repo, or a manifest `project` | `get_file_metadata`, `read_pdf_text`, `read_docx_text`, `create_pdf`, `create_docx` |
 | playwright-runner | 7316 | project-scoped | `run_bdd`, `run_playwright`, `get_test_files` |
 | allure-report | 7317 | project-scoped | `generate_report`, `allure_summary`, `get_result_json` |
 | codegen | 7318 | project-scoped | `scaffold_feature`, `scaffold_step`, `scaffold_page`, `detect_conventions` |
 | playwright | 7315 | target-agnostic | Official `@playwright/mcp` — browser automation tools (navigate, click, snapshot, etc.) |
 
 Auth: Cloud = `ATLASSIAN_AUTH_MODE=basic` (email + API token); Server/DC = `bearer` (PAT). See `.env.example`. Every Create/Update/Delete tool across Jira, Confluence, and JTMF (`jira_create_issue`, `jira_update_issue`, `jira_transition_issue`, `jira_delete_issue`, `confluence_create_page`, `confluence_update_page`, `confluence_add_comment`, `confluence_delete_page`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`) defaults to `dryRun: true` — always preview the payload/deletion and get explicit user confirmation before setting `dryRun: false`.
+
+### Saving pulled data locally
+`confluence_save_page` and `jira_save_issue` pull a page/issue to disk (`downloads/confluence/<project>/...`, `downloads/jira/<project>/...`). If `project` is omitted, nothing is written — the tool returns a suggested folder name (e.g. `PROJ-XXX`, derived from the space/issue key) so the agent can ask the user to confirm or override it before saving. `confluence_get_page` and `confluence_save_page` also expand accordion/expand/tabs macros into a readable nested outline (`format: "structured"` / `page.structured.txt`) instead of flattening them away, and can return the raw storage HTML (`format: "html"` / `page.html`) for pages with rich layout.
+
+### Media utilities
+The `media` server lets agents read and generate non-text-file content:
+- `get_file_metadata` — size, detected MIME type, and type-specific details (image width/height, PDF page count/info, DOCX word count) as JSON, ready to feed to Copilot as context.
+- `read_pdf_text` / `read_docx_text` — extract text from local PDFs/DOCX files.
+- `create_pdf` / `create_docx` — generate a styled PDF or DOCX report from a title + sections (heading/body), with an optional accent color for PDFs.
+
 
 ## Project manifest
 

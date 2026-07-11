@@ -1,10 +1,16 @@
+import { promises as fs } from "fs";
+import path from "path";
 import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { env, intEnv } from "../shared/config.js";
 import { apiGet, apiPost, apiPut, apiDelete } from "../shared/http.js";
+import { resolveWithinRoot } from "../../utils/fsSafety.js";
+import { buildSaveConfirmationPrompt } from "../../utils/saveSuggestion.js";
 
 const base = () => env("JIRA_BASE_URL");
 const DEFAULT_FIELDS = "summary,status,issuetype,assignee,priority,labels,fixVersions,parent";
+const ROOT = path.resolve(process.cwd());
+const DEFAULT_SAVE_DIR = "downloads/jira";
 
 startMcpHttpServer({
   name: "jira",
@@ -29,6 +35,51 @@ startMcpHttpServer({
             fields: fields ?? DEFAULT_FIELDS,
           });
           return textResult(data);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_save_issue",
+      {
+        description:
+          "Pull a Jira issue to local disk as JSON (full fields + comments). If `project` is omitted, no " +
+          "files are written — the tool instead returns a suggested project folder name " +
+          "(e.g. `downloads/jira/PROJ-XXX`, derived from the issue key) so the agent can ask the user to " +
+          "confirm or override it before saving. Re-call with an explicit `project` once confirmed.",
+        inputSchema: {
+          key: z.string().describe("Issue key, e.g. ABC-123"),
+          project: z
+            .string()
+            .optional()
+            .describe("Confirmed local folder name to save under (ask the user first if not provided)"),
+          targetDir: z.string().optional().describe("Repo-relative base dir (default downloads/jira)"),
+        },
+      },
+      async ({ key, project, targetDir }) => {
+        try {
+          const [issue, comments] = await Promise.all([
+            apiGet(base(), `/rest/api/2/issue/${encodeURIComponent(key)}`, { expand: "renderedFields" }),
+            apiGet(base(), `/rest/api/2/issue/${encodeURIComponent(key)}/comment`).catch(() => undefined),
+          ]);
+          const baseDir = targetDir ?? DEFAULT_SAVE_DIR;
+
+          if (!project) {
+            const prompt = buildSaveConfirmationPrompt(key, baseDir);
+            return textResult({ needsConfirmation: true, key, ...prompt });
+          }
+
+          const dir = resolveWithinRoot(ROOT, path.join(baseDir, project));
+          await fs.mkdir(dir, { recursive: true });
+          const fileName = `${key}.json`;
+          const payload = { key, savedAt: new Date().toISOString(), issue, comments };
+          await fs.writeFile(path.join(dir, fileName), JSON.stringify(payload, null, 2), "utf8");
+
+          return textResult({
+            savedTo: path.relative(ROOT, path.join(dir, fileName)).replace(/\\/g, "/"),
+          });
         } catch (err) {
           return errorResult(err);
         }

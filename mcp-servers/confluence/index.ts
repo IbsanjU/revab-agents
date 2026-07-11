@@ -4,8 +4,13 @@ import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { env, intEnv } from "../shared/config.js";
 import { apiGet, apiGetBinary, apiPost, apiPut, apiDelete, stripHtml } from "../shared/http.js";
+import { resolveWithinRoot } from "../../utils/fsSafety.js";
+import { buildSaveConfirmationPrompt } from "../../utils/saveSuggestion.js";
+import { expandConfluenceMacros } from "../../utils/confluenceMacros.js";
 
 const base = () => env("CONFLUENCE_BASE_URL");
+const ROOT = path.resolve(process.cwd());
+const DEFAULT_SAVE_DIR = "downloads/confluence";
 
 interface ContentSearchResult {
   results: Array<{
@@ -60,13 +65,17 @@ startMcpHttpServer({
       "confluence_get_page",
       {
         description:
-          "Get a Confluence page by id. Returns title, version and body converted to plain text.",
+          "Get a Confluence page by id. Returns title, version and body in the requested format: " +
+          "'text' (default, plain-text stripped), 'html' (raw storage HTML — needed for pages with " +
+          "accordions, expand panels, or tabs), or 'structured' (accordions/expand/tabs macros expanded " +
+          "into a readable nested plain-text outline instead of being flattened away).",
         inputSchema: {
           pageId: z.string().describe("Numeric page id"),
-          raw: z.boolean().optional().describe("Return raw storage HTML instead of plain text"),
+          format: z.enum(["text", "html", "structured"]).optional().describe("Body format (default: text)"),
+          raw: z.boolean().optional().describe("Deprecated alias for format: 'html'"),
         },
       },
-      async ({ pageId, raw }) => {
+      async ({ pageId, format, raw }) => {
         try {
           const data = await apiGet<{
             id: string;
@@ -78,12 +87,20 @@ startMcpHttpServer({
             expand: "body.storage,version,space",
           });
           const html = data.body?.storage?.value ?? "";
+          const effectiveFormat = raw ? "html" : format ?? "text";
+          const body =
+            effectiveFormat === "html"
+              ? html
+              : effectiveFormat === "structured"
+                ? expandConfluenceMacros(html)
+                : stripHtml(html);
           return textResult({
             id: data.id,
             title: data.title,
             space: data.space?.key,
             version: data.version?.number,
-            body: raw ? html : stripHtml(html),
+            format: effectiveFormat,
+            body,
           });
         } catch (err) {
           return errorResult(err);
@@ -155,34 +172,33 @@ startMcpHttpServer({
       "confluence_download_attachment",
       {
         description:
-          "Download an attachment to the repo (default downloads/confluence/). Use the downloadLink from confluence_get_attachments. Note: binary media (images/video) can be saved and referenced but not visually interpreted.",
+          "Download an attachment to the repo (default downloads/confluence/, or downloads/confluence/<project>/ if project is given). Use the downloadLink from confluence_get_attachments. Note: binary media (images/video) can be saved and referenced but not visually interpreted — use the media MCP server's get_file_metadata/read_pdf_text/read_docx_text tools to inspect it further.",
         inputSchema: {
           downloadLink: z.string().describe("Relative download link starting with /download/..."),
           fileName: z.string().optional().describe("Override the saved file name"),
+          project: z.string().optional().describe("Confirmed local project folder to nest under (ask the user first if unsure)"),
           targetDir: z.string().optional().describe("Repo-relative target dir (default downloads/confluence)"),
         },
       },
-      async ({ downloadLink, fileName, targetDir }) => {
+      async ({ downloadLink, fileName, project, targetDir }) => {
         try {
           if (!downloadLink.startsWith("/")) {
             throw new Error("downloadLink must be the relative link from confluence_get_attachments");
           }
           const buf = await apiGetBinary(base(), downloadLink);
-          const root = path.resolve(process.cwd());
-          const dir = path.resolve(root, targetDir ?? "downloads/confluence");
-          if (dir !== root && !dir.startsWith(root + path.sep)) {
-            throw new Error("targetDir escapes the repository root");
-          }
+          const baseDir = targetDir ?? DEFAULT_SAVE_DIR;
+          const dir = resolveWithinRoot(ROOT, project ? path.join(baseDir, project) : baseDir);
           const name = path.basename(fileName ?? decodeURIComponent(downloadLink.split("?")[0]));
           await fs.mkdir(dir, { recursive: true });
           const target = path.join(dir, name);
           await fs.writeFile(target, buf);
           return textResult({
-            savedTo: path.relative(root, target).replace(/\\/g, "/"),
+            savedTo: path.relative(ROOT, target).replace(/\\/g, "/"),
             bytes: buf.length,
           });
         } catch (err) {
           return errorResult(err);
+
         }
       }
     );
@@ -206,6 +222,79 @@ startMcpHttpServer({
           });
           const compact = data.results.map((c) => ({ id: c.id, text: stripHtml(c.body?.storage?.value ?? "") }));
           return textResult(compact);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "confluence_save_page",
+      {
+        description:
+          "Pull a Confluence page to local disk: saves the raw storage HTML, a structured plain-text " +
+          "outline (accordions/expand/tabs expanded), and a metadata JSON file. If `project` is omitted, " +
+          "no files are written — the tool instead returns a suggested project folder name " +
+          "(e.g. `downloads/confluence/PROJ-XXX`) so the agent can ask the user to confirm or override it " +
+          "before saving. Re-call with an explicit `project` once confirmed.",
+        inputSchema: {
+          pageId: z.string().describe("Numeric page id"),
+          project: z
+            .string()
+            .optional()
+            .describe("Confirmed local folder name to save under (ask the user first if not provided)"),
+          targetDir: z.string().optional().describe("Repo-relative base dir (default downloads/confluence)"),
+        },
+      },
+      async ({ pageId, project, targetDir }) => {
+        try {
+          const data = await apiGet<{
+            id: string;
+            title: string;
+            version?: { number: number };
+            space?: { key: string };
+            _links?: { webui?: string };
+            body?: { storage?: { value?: string } };
+          }>(base(), `/rest/api/content/${encodeURIComponent(pageId)}`, {
+            expand: "body.storage,version,space",
+          });
+          const html = data.body?.storage?.value ?? "";
+          const baseDir = targetDir ?? DEFAULT_SAVE_DIR;
+
+          if (!project) {
+            const prompt = buildSaveConfirmationPrompt(data.space?.key, baseDir);
+            return textResult({
+              needsConfirmation: true,
+              page: { id: data.id, title: data.title, space: data.space?.key },
+              ...prompt,
+            });
+          }
+
+          const slug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "page";
+          const dir = resolveWithinRoot(ROOT, path.join(baseDir, project, `${data.id}-${slug}`));
+          await fs.mkdir(dir, { recursive: true });
+
+          const structured = expandConfluenceMacros(html);
+          const meta = {
+            id: data.id,
+            title: data.title,
+            space: data.space?.key,
+            version: data.version?.number,
+            url: data._links?.webui,
+            savedAt: new Date().toISOString(),
+          };
+
+          await Promise.all([
+            fs.writeFile(path.join(dir, "page.html"), html, "utf8"),
+            fs.writeFile(path.join(dir, "page.structured.txt"), structured, "utf8"),
+            fs.writeFile(path.join(dir, "meta.json"), JSON.stringify(meta, null, 2), "utf8"),
+          ]);
+
+          return textResult({
+            savedTo: path.relative(ROOT, dir).replace(/\\/g, "/"),
+            files: ["page.html", "page.structured.txt", "meta.json"],
+            meta,
+          });
         } catch (err) {
           return errorResult(err);
         }

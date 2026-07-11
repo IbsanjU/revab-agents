@@ -19,6 +19,7 @@ Team/org conventions the agents must follow. The self-improvement agent updates 
 - Long tasks go through the orchestrator queue, not blocking calls.
 - Project-scoped tools/tasks always require a `project` name resolved via `utils/manifest.ts` — never a raw path/URL.
 - Write-back tools (Jira/Confluence/JTMF) default to `dryRun: true` for every Create/Update/Delete operation; always show the previewed payload and get the user's explicit confirmation before disabling dryRun.
+- Saving pulled data to disk (Confluence pages, Jira issues, etc.) requires an explicit, user-confirmed project folder — tools return a suggested default (`<KEY>-XXX`) instead of writing when `project` is omitted; never assume a folder.
 - Every significant session ends with a `knowledge/learnings.md` entry.
 - Test plans live in `knowledge/test-plans/<project>/<EPIC-KEY>.md`.
 - `knowledge/learnings.md` is rotated once it grows past ~8KB: run `npm run knowledge:rotate`

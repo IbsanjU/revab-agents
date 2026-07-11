@@ -31,6 +31,10 @@
     "codegen": {
       "type": "http",
       "url": "http://localhost:7318/mcp"
+    },
+    "media": {
+      "type": "http",
+      "url": "http://localhost:7319/mcp"
     }
   }
 }

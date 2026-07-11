@@ -1,11 +1,12 @@
 # revab-agents — Copilot instructions
 
-Centralized multi-agent QE automation framework. Local MCP servers (Jira, Confluence, JTMF, Artifacts, Playwright-runner, Allure-report, Codegen) on localhost, async file-queue orchestrator, agent personas, and skills. **This repo is framework-only**: it never executes Playwright/Cucumber/Allure against itself, and holds no `tests/` of its own — all test authoring/execution/reporting happens in a **target project**, resolved from `projects.manifest.json` and operated on via MCP tools.
+Centralized multi-agent QE automation framework. Local MCP servers (Jira, Confluence, JTMF, Artifacts, Media, Playwright-runner, Allure-report, Codegen) on localhost, async file-queue orchestrator, agent personas, and skills. **This repo is framework-only**: it never executes Playwright/Cucumber/Allure against itself, and holds no `tests/` of its own — all test authoring/execution/reporting happens in a **target project**, resolved from `projects.manifest.json` and operated on via MCP tools.
 
 ## Architecture
-- `mcp-servers/` — TypeScript MCP servers (Streamable HTTP, stateless) registered in `.vscode/mcp.json`. Shared helpers live in `mcp-servers/shared/` — always reuse `startMcpHttpServer`, `textResult`, `apiGet/apiPost/apiPut`.
+- `mcp-servers/` — TypeScript MCP servers (Streamable HTTP, stateless) registered in `.vscode/mcp.json`. Shared helpers live in `mcp-servers/shared/` — always reuse `startMcpHttpServer`, `textResult`, `apiGet/apiPost/apiPut/apiDelete`; path-safety via `utils/fsSafety.ts`'s `resolveWithinRoot`.
   - `jira`, `confluence`, `jtmf` — requirement/test-management systems (repo-agnostic).
   - `artifacts` — file search/read + knowledge persistence, scoped to `revab-agents` itself only.
+  - `media` — reads/writes multimedia and document files (images, PDF, DOCX, and generic files) so their content can be fed to Copilot as metadata JSON or plain text, and generates styled PDF/DOCX reports; resolves paths against this repo by default or a manifest `project`'s repoPath if given.
   - `playwright-runner`, `allure-report`, `codegen` — project-scoped tools; every call takes a `project` name and resolves `repoPath` via `utils/manifest.ts`.
   - `playwright` (official `@playwright/mcp`) — interactive browser automation, target-agnostic.
 - `orchestrator/` — file-based queue (`.queue/pending|running|done|failed`) + polling worker. Task types are declared in `agents/registry.ts`; project-scoped handlers (`run-bdd`, `generate-report`) require `payload.project` and run with `cwd` = that project's resolved repo path.
@@ -29,6 +30,7 @@ Read `knowledge/memory.md` first — it contains the canonical in-repo project m
 9. **Citation required**: every generated test case, script, or Jira/JTMF write must carry a source citation (Jira key, Confluence page id, transcript timestamp, or app-model reference). No citation → ask, don't invent.
 10. **Dry-run first for writes**: every write (Create/Update/Delete) MCP tool across Jira (`jira_create_issue`, `jira_update_issue`, `jira_transition_issue`, `jira_delete_issue`), Confluence (`confluence_create_page`, `confluence_update_page`, `confluence_add_comment`, `confluence_delete_page`), and JTMF (`jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`) defaults to `dryRun: true`. Never set `dryRun: false` without first showing the previewed payload/deletion and getting the user's explicit, affirmative permission to proceed — this applies to every CRUD write against these external systems, with no exceptions.
 11. **BrowserStack is conditional, never assumed**: only use BrowserStack for a target project if it's already configured there (see the `detect-execution-convention` skill); otherwise ask the user for the execution convention to use.
+12. **Ask before saving pulled data locally**: when a user asks to pull Jira/Confluence/JTMF data (or any other remote content) and save it to disk, ask which project folder to use before writing anything. Tools like `confluence_save_page` and `jira_save_issue` return a suggested default (`downloads/<server>/<KEY>-XXX`, derived from the issue key or space key) instead of writing when `project` is omitted — never guess a folder and save without the user confirming it.
 
 ## Skill / MCP tool / agent boundary
 - **MCP tool** (new I/O: shell exec, external file access, HTTP) → `mcp-servers/*`.
@@ -36,7 +38,7 @@ Read `knowledge/memory.md` first — it contains the canonical in-repo project m
 - **Agent** (a persona orchestrating skills/tools for a role) → `.github/agents/*.agent.md`.
 
 ## Commands
-- `npm run serve:mcp` — start all MCP servers (jira, confluence, jtmf, artifacts, playwright-runner, allure-report, codegen, playwright)
+- `npm run serve:mcp` — start all MCP servers (jira, confluence, jtmf, artifacts, media, playwright-runner, allure-report, codegen, playwright)
 - `npm run worker` — start the async task worker
 - `npm run task -- enqueue <type> '<json>'` / `-- status` / `-- types` (project-scoped types require `{"project":"<name>"}`)
 - `npm run import:agents -- <sourceRepoPath> [--dry-run]` — import agents from another repo
