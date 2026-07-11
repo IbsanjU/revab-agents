@@ -11,7 +11,6 @@ Centralized multi-agent QE automation framework. Local MCP servers (Jira, Conflu
   - `playwright` (official `@playwright/mcp`) — interactive browser automation, target-agnostic.
 - `orchestrator/` — file-based queue (`.queue/pending|running|done|failed`) + polling worker. Task types are declared in `agents/registry.ts`; project-scoped handlers (`run-bdd`, `generate-report`) require `payload.project` and run with `cwd` = that project's resolved repo path.
 - `projects.manifest.json` + `utils/manifest.ts` — the only trust boundary for "which directory can a tool/task touch". Never accept a raw `repoPath`/`repoUrl` from a payload without resolving it through the manifest.
-- `fixtures/sample-target-repo/` — a minimal Playwright+Cucumber+Allure project used only to smoke-test the MCP tools; not part of this framework's own build/test.
 - `knowledge/` — persistent learnings and conventions. Agents append here after every session; `knowledge/app-model/<project>.md` holds living app maps; `knowledge/reports/<project>/` holds consolidated project reports.
 - `scripts/`, `utils/` — generic, parameterized, reusable modules only.
 

@@ -31,3 +31,6 @@ Entry format:
 - Added `npm run check:conventions` (`scripts/check-conventions.ts`): validates every `skills/*/SKILL.md` frontmatter (`name` matches dir, non-empty `description`) and that every `agents/registry.ts` handler calling `resolveProjectRepoPath(...)` first guards on `payload.project`.
 - Added `npm run knowledge:rotate` (`scripts/rotate-learnings.ts`): archives all-but-current-month dated entries from `knowledge/learnings.md` into `knowledge/learnings/<YYYY-MM>.md` once the main file exceeds ~8KB; no-op below that threshold.
 - Deferred: a dedicated OCR/speech-to-text MCP server (still the biggest documented capability gap) — not built this pass, flagged as the highest-leverage next server if image/video requirement extraction becomes a frequent real workflow.
+
+### 2026-07-11
+- Removed `fixtures/sample-target-repo/` entirely — this is a generic agent framework meant to operate on any external target project or standalone, not something that needs a bundled sample project to demonstrate itself. `projects.manifest.json` now ships a `my-project` placeholder entry (`repoPath`/`repoUrl` both to be filled in by the adopter) since the schema requires at least one project. Updated `README.md`, `.github/copilot-instructions.md`, `agents/registry.ts` payload examples, and `knowledge/memory.md` accordingly.

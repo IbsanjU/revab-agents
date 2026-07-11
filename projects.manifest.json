@@ -2,8 +2,8 @@
   "$schema": "./manifest.schema.json",
   "projects": [
     {
-      "name": "sample",
-      "repoPath": "fixtures/sample-target-repo",
+      "name": "my-project",
+      "repoPath": null,
       "repoUrl": null,
       "branch": null,
       "testPaths": {

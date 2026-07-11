@@ -34,7 +34,7 @@ function requireProject(payload: Record<string, unknown>): string {
 export const handlers: Record<string, TaskHandler> = {
   "run-bdd": {
     description:
-      "Run the target project's Cucumber/Playwright BDD suite. Payload: { project: 'sample', tags?: '@smoke' }",
+      "Run the target project's Cucumber/Playwright BDD suite. Payload: { project: 'my-project', tags?: '@smoke' }",
     async run(payload) {
       const project = requireProject(payload);
       const cwd = await resolveProjectRepoPath(project);
@@ -49,7 +49,7 @@ export const handlers: Record<string, TaskHandler> = {
     },
   },
   "generate-report": {
-    description: "Generate the Allure report for a target project. Payload: { project: 'sample' }",
+    description: "Generate the Allure report for a target project. Payload: { project: 'my-project' }",
     async run(payload) {
       const project = requireProject(payload);
       const cwd = await resolveProjectRepoPath(project);

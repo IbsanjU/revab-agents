@@ -12,7 +12,6 @@ Centralized multi-agent QE automation framework — works in VS Code **without**
 | Agents | `.github/agents/` | orchestrator, researcher, test-planner, automation, reporter, importer, self-improve |
 | Orchestrator | `orchestrator/` + `agents/registry.ts` | async file-queue + polling worker for long-running, project-scoped tasks |
 | Manifest | `projects.manifest.json` + `utils/manifest.ts` | per-project config (repo location, test paths, Jira/Confluence/JTMF ids, execution mode) — the trust boundary for which repo a tool may touch |
-| Fixture | `fixtures/sample-target-repo/` | minimal Playwright+Cucumber+Allure project used only to smoke-test the MCP tools |
 | Knowledge | `knowledge/` | persistent learnings, conventions, per-project app models, and consolidated reports — the framework's memory |
 | Reusables | `utils/`, `scripts/`, `skills/` | generic modules, CLIs, and agent skills |
 
@@ -25,13 +24,13 @@ npm run serve:mcp                 # start all MCP servers (keep running)
 npm run worker                    # start the async task worker (second terminal)
 ```
 
-Add your project(s) to `projects.manifest.json` (a `sample` entry pointing at `fixtures/sample-target-repo` is included as a working example). Then in VS Code: the servers in `.vscode/mcp.json` become available as MCP tools; pick an agent from the chat-mode dropdown (e.g. **orchestrator**) and tell it which `project` to work on.
+Add your project(s) to `projects.manifest.json` (a `my-project` placeholder entry is included — fill in its `repoPath`/`repoUrl` to point at a real target repo). Then in VS Code: the servers in `.vscode/mcp.json` become available as MCP tools; pick an agent from the chat-mode dropdown (e.g. **orchestrator**) and tell it which `project` to work on.
 
 ## Everyday commands
 
 ```powershell
-npm run task -- enqueue run-bdd '{"project":"sample","tags":"@smoke"}'   # async run via queue
-npm run task -- enqueue generate-report '{"project":"sample"}'
+npm run task -- enqueue run-bdd '{"project":"my-project","tags":"@smoke"}'   # async run via queue
+npm run task -- enqueue generate-report '{"project":"my-project"}'
 npm run task -- status                              # queue status
 npm run task -- types                               # available task types
 npm run import:agents -- C:\path\to\other-repo --dry-run  # import agents/conventions from another repo
@@ -82,8 +81,8 @@ The `media` server lets agents read and generate non-text-file content:
 {
   "projects": [
     {
-      "name": "sample",
-      "repoPath": "fixtures/sample-target-repo",
+      "name": "my-project",
+      "repoPath": "../my-project",
       "repoUrl": null,
       "branch": null,
       "testPaths": { "features": "tests/features", "steps": "tests/steps", "pages": "tests/pages", "support": "tests/support" },
