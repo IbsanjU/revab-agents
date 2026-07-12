@@ -101,3 +101,70 @@ test("check-conventions flags a registry handler that resolves a project path wi
     await fs.rm(dir, { recursive: true, force: true });
   }
 });
+
+const MARKER = "<!-- shared-conduct:v1 -->";
+const BOUNDARIES = "### Per-agent boundaries (can / cannot / must not)\n- **planner** — can: read.\n";
+
+async function writeAgentFixture(dir: string, opts: { marker: boolean; boundaries?: string; agents?: string[] }) {
+  await fs.mkdir(path.join(dir, ".github", "agents"), { recursive: true });
+  await fs.writeFile(path.join(dir, ".github", "copilot-instructions.md"), opts.boundaries ?? BOUNDARIES, "utf8");
+  for (const name of opts.agents ?? ["planner"]) {
+    await fs.writeFile(
+      path.join(dir, ".github", "agents", `${name}.agent.md`),
+      `# ${name}\n${opts.marker ? MARKER + "\n## Conduct\n" : ""}`,
+      "utf8"
+    );
+  }
+}
+
+test("check-conventions passes when every agent carries the shared-conduct marker and matches the boundaries list", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "revab-conventions-conduct-ok-"));
+  try {
+    await writeAgentFixture(dir, { marker: true });
+    const result = await runCheckerIn(dir);
+    assert.equal(result.code, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /OK/);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-conventions flags an agent file missing the shared-conduct marker", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "revab-conventions-conduct-nomarker-"));
+  try {
+    await writeAgentFixture(dir, { marker: false });
+    const result = await runCheckerIn(dir);
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /Missing shared-conduct marker/);
+    assert.match(result.stderr, /npm run agents:conduct/);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-conventions flags a boundaries persona with no matching .agent.md file", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "revab-conventions-conduct-noagent-"));
+  try {
+    await writeAgentFixture(dir, {
+      marker: true,
+      boundaries: BOUNDARIES + "- **reporter** — can: report.\n",
+    });
+    const result = await runCheckerIn(dir);
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /Persona "reporter" is listed under "Per-agent boundaries".*has no \.agent\.md file/);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-conventions flags an .agent.md file missing from the boundaries list", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "revab-conventions-conduct-unlisted-"));
+  try {
+    await writeAgentFixture(dir, { marker: true, agents: ["planner", "mystery"] });
+    const result = await runCheckerIn(dir);
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /Agent "mystery" .* is missing from the "Per-agent boundaries" list/);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
