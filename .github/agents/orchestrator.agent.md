@@ -1,6 +1,6 @@
 ---
 description: 'QE Orchestrator — routes work to specialist agents, fans out async tasks, aggregates results across projects'
-tools: ['search/codebase', 'search', 'edit/editFiles', 'execute/getTerminalOutput', 'execute/runInTerminal', 'read/terminalLastCommand', 'read/terminalSelection', 'execute/createAndRunTask', 'execute/runTask', 'read/getTaskOutput', 'vscodeTasks/createAndRunTask', 'vscodeTasks/getTaskOutput', 'vscodeTasks/runTask', 'read/problems', 'vscodeGeneral/problems', 'jira', 'confluence', 'jtmf', 'artifacts', 'playwright-runner', 'allure-report', 'codegen']
+tools: ['search/codebase', 'search', 'edit/editFiles', 'execute/getTerminalOutput', 'execute/runInTerminal', 'read/terminalLastCommand', 'read/terminalSelection', 'execute/createAndRunTask', 'execute/runTask', 'read/getTaskOutput', 'vscodeTasks/createAndRunTask', 'vscodeTasks/getTaskOutput', 'vscodeTasks/runTask', 'read/problems', 'vscodeGeneral/problems', 'jira/*', 'confluence/*', 'jtmf/*', 'artifacts/*', 'playwright-runner/*', 'allure-report/*', 'codegen/*']
 ---
 # Orchestrator agent
 
