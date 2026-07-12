@@ -146,3 +146,22 @@ test("reclaimStale moves a task to failed after exceeding the max reclaim count"
     assert.ok(failedTask?.error?.includes("abandoned"));
   });
 });
+
+test("requeue moves a running task back to pending with an incremented retryCount", async () => {
+  await withQueue(async (mod, dir) => {
+    await mod.enqueue("typecheck", { retryOnFailure: true });
+    const claimed = await mod.claimNext();
+    assert.ok(claimed);
+
+    await mod.requeue(claimed!);
+    assert.equal(claimed!.retryCount, 1);
+    assert.equal(claimed!.startedAt, undefined, "requeue should clear startedAt");
+
+    const running = await fs.readdir(path.join(dir, "running"));
+    assert.equal(running.filter((f) => f.endsWith(".json")).length, 0);
+
+    const reclaimed = await mod.claimNext();
+    assert.equal(reclaimed?.id, claimed!.id, "requeued task should be claimable again");
+    assert.equal(reclaimed?.retryCount, 1);
+  });
+});

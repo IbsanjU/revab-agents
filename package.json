@@ -23,10 +23,11 @@
     "serve:allure-report": "tsx mcp-servers/allure-report/index.ts",
     "serve:codegen": "tsx mcp-servers/codegen/index.ts",
     "serve:playwright": "npx @playwright/mcp@latest --port 7315",
-    "serve:mcp": "concurrently -n jira,conf,jtmf,art,media,gh,pwr,allure,codegen,pw -c blue,green,yellow,magenta,cyan,white,red,white,gray,gray npm:serve:jira npm:serve:confluence npm:serve:jtmf npm:serve:artifacts npm:serve:media npm:serve:github npm:serve:playwright-runner npm:serve:allure-report npm:serve:codegen npm:serve:playwright",
+    "serve:mcp": "concurrently -n jira,conf,jtmf,art,media,gh,notify,pwr,allure,codegen,pw -c blue,green,yellow,magenta,cyan,white,red,white,gray,gray,gray npm:serve:jira npm:serve:confluence npm:serve:jtmf npm:serve:artifacts npm:serve:media npm:serve:github npm:serve:notify npm:serve:playwright-runner npm:serve:allure-report npm:serve:codegen npm:serve:playwright",
     "worker": "tsx orchestrator/worker.ts",
     "task": "tsx orchestrator/cli.ts",
-    "import:agents": "tsx scripts/import-agents.ts"
+    "import:agents": "tsx scripts/import-agents.ts",
+    "serve:notify": "tsx mcp-servers/notify/index.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
@@ -36,13 +37,16 @@
     "file-type": "^22.0.1",
     "image-size": "^2.0.2",
     "mammoth": "^1.12.0",
+    "nodemailer": "^9.0.3",
     "pdf-parse": "^2.4.5",
     "pdfkit": "^0.19.1",
+    "tesseract.js": "^6.0.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^20.14.0",
+    "@types/nodemailer": "^8.0.1",
     "@types/pdfkit": "^0.13.9",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",

@@ -1,6 +1,10 @@
+import { promises as fs } from "fs";
+import nodePath from "path";
 import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { githubGet, githubMcpPort, defaultGithubOrg } from "../shared/githubHttp.js";
+import { resolveWithinRoot } from "../../utils/fsSafety.js";
+import { buildSaveConfirmationPrompt } from "../../utils/saveSuggestion.js";
 
 /**
  * GitHub MCP server: read-only search across an organization's repos (code, repo
@@ -9,6 +13,9 @@ import { githubGet, githubMcpPort, defaultGithubOrg } from "../shared/githubHttp
  * Repo-agnostic like jira/confluence — org/repo are call-time qualifiers, not
  * resolved through projects.manifest.json (no local filesystem access here).
  */
+
+const ROOT = nodePath.resolve(process.cwd());
+const DEFAULT_SAVE_DIR = "downloads/github";
 
 type SearchScope = { org?: string; repo?: string };
 
@@ -253,6 +260,102 @@ startMcpHttpServer({
           }
           const text = Buffer.from(data.content, data.encoding as BufferEncoding).toString("utf8");
           return textResult({ path: data.path, sha: data.sha, url: data.html_url, content: text });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "github_search_topics",
+      {
+        description:
+          "Search GitHub repositories by topic — for topic-driven research like 'playwright best practices'. " +
+          "Set scope:'public' to search all of github.com (external results — label them as such); the default " +
+          "scope:'org' stays within GITHUB_ORG. Read-only.",
+        inputSchema: {
+          topic: z.string().describe("Topic or keywords, e.g. 'playwright' or 'bdd cucumber'"),
+          scope: z.enum(["org", "public"]).optional().describe("'org' (default, GITHUB_ORG only) or 'public' (all of github.com)"),
+          language: z.string().optional().describe("Limit to a language, e.g. typescript"),
+          maxResults: z.number().optional().describe("Max items to return (default 20, max 100)"),
+        },
+      },
+      async ({ topic, scope, language, maxResults }) => {
+        try {
+          const isPublic = scope === "public";
+          const qualifiers = [
+            `topic:${topic.trim().split(/\s+/)[0].toLowerCase()}`,
+            language ? `language:${language}` : "",
+            isPublic ? "" : scopeQualifier({}),
+          ];
+          const q = qualifiers.filter(Boolean).join(" ");
+          const data = await githubGet<SearchResponse<RepoSearchItem>>("/search/repositories", {
+            q,
+            sort: "stars",
+            per_page: Math.min(maxResults ?? 20, 100),
+          });
+          const items = data.items.map((item) => ({
+            repo: item.full_name,
+            url: item.html_url,
+            description: item.description,
+            language: item.language,
+            stars: item.stargazers_count,
+            updated: item.updated_at,
+            origin: isPublic ? "external (public github.com)" : "internal (org)",
+          }));
+          return textResult({
+            total_count: data.total_count,
+            scope: isPublic ? "public" : "org",
+            note: isPublic
+              ? "External results from public github.com — clearly label them as external when presenting to the user."
+              : undefined,
+            items,
+          });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "github_save_file",
+      {
+        description:
+          "Save a GitHub file locally under downloads/github/<project>/ after the user confirms the project " +
+          "folder. If `project` is omitted, nothing is written — a suggested folder name is returned so the " +
+          "agent can ask the user to confirm or override it first (same ask-before-save convention as " +
+          "confluence_save_page / jira_save_issue).",
+        inputSchema: {
+          repo: z.string().describe("owner/repo, e.g. myorg/myservice"),
+          path: z.string().describe("Path to the file within the repo"),
+          ref: z.string().optional().describe("Branch, tag, or commit SHA (default: repo's default branch)"),
+          project: z.string().optional().describe("Confirmed local project folder to nest under (ask the user first if unsure)"),
+        },
+      },
+      async ({ repo, path: filePath, ref, project }) => {
+        try {
+          if (!project) {
+            return textResult(buildSaveConfirmationPrompt(repo.split("/")[1] ?? repo, DEFAULT_SAVE_DIR));
+          }
+          const data = await githubGet<{
+            name: string;
+            size: number;
+            encoding: string;
+            content?: string;
+            type: string;
+          }>(`/repos/${repo}/contents/${filePath}`, ref ? { ref } : undefined);
+          if (data.type !== "file" || !data.content) {
+            throw new Error(`${filePath} is not a single file (got type: ${data.type})`);
+          }
+          if (data.size > 5_000_000) {
+            throw new Error(`${filePath} is ${data.size} bytes — too large to save (limit 5MB)`);
+          }
+          const buf = Buffer.from(data.content, data.encoding as BufferEncoding);
+          const dir = resolveWithinRoot(ROOT, nodePath.join(DEFAULT_SAVE_DIR, project));
+          await fs.mkdir(dir, { recursive: true });
+          const target = nodePath.join(dir, nodePath.basename(data.name));
+          await fs.writeFile(target, buf);
+          return textResult({ savedTo: nodePath.relative(ROOT, target).replace(/\\/g, "/"), bytes: buf.length });
         } catch (err) {
           return errorResult(err);
         }

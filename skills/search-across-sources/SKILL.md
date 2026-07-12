@@ -39,6 +39,17 @@ orchestration playbook.
 5. If a query returns nothing from a source, say so explicitly (e.g. "No JTMF test
    cases found for this topic", "No GitHub code matches in <org>") rather than
    omitting the source silently.
+6. **Best-practice / external topics**: when the ask is about general practices (e.g.
+   "playwright best practices") rather than org-internal work, add
+   `github_search_topics` with `scope: "public"` — label these results **external**
+   and org hits **internal** in the Sources list.
+7. **Confluence page trees**: when a central hit is a parent page, walk it with
+   `confluence_get_children` and present a table of contents (title + one-line summary
+   per child) so the user can pick pages before pulling full content.
+8. **Suggest, then pull**: this skill is read-only. After presenting Sources, ask
+   which entries to pull locally and into which project folder, then use the
+   ask-before-save tools (`confluence_save_page`, `jira_save_issue`,
+   `github_save_file`) with the confirmed `project`.
 
 ## Rules
 - Never invent a url — only surface links returned by the tools.

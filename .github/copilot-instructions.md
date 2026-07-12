@@ -10,7 +10,7 @@ Centralized multi-agent QE automation framework. Local MCP servers (Jira, Conflu
   - `playwright-runner`, `allure-report`, `codegen` — project-scoped tools; every call takes a `project` name and resolves `repoPath` via `utils/manifest.ts`.
   - `playwright` (official `@playwright/mcp`) — interactive browser automation, target-agnostic.
 - `orchestrator/` — file-based queue (`.queue/pending|running|done|failed`) + polling worker. Task types are declared in `agents/registry.ts`; project-scoped handlers (`run-bdd`, `generate-report`) require `payload.project` and run with `cwd` = that project's resolved repo path.
-- `projects.manifest.json` + `utils/manifest.ts` — the only trust boundary for "which directory can a tool/task touch". Never accept a raw `repoPath`/`repoUrl` from a payload without resolving it through the manifest.
+- `projects/` (index `projects/manifest.json` + per-project `projects/<name>/project.json`, with legacy single-file `projects.manifest.json` fallback) + `utils/manifest.ts` — the only trust boundary for "which directory can a tool/task touch". Never accept a raw `repoPath`/`repoUrl` from a payload without resolving it through the manifest.
 - `knowledge/` — persistent learnings and conventions. Agents append here after every session; `knowledge/app-model/<project>.md` holds living app maps; `knowledge/reports/<project>/` holds consolidated project reports.
 - `scripts/`, `utils/` — generic, parameterized, reusable modules only.
 
@@ -30,6 +30,7 @@ Read `knowledge/memory.md` first — it contains the canonical in-repo project m
 10. **Dry-run first for writes**: every write (Create/Update/Delete) MCP tool across Jira (`jira_create_issue`, `jira_update_issue`, `jira_transition_issue`, `jira_delete_issue`), Confluence (`confluence_create_page`, `confluence_update_page`, `confluence_add_comment`, `confluence_delete_page`), and JTMF (`jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`) defaults to `dryRun: true`. Never set `dryRun: false` without first showing the previewed payload/deletion and getting the user's explicit, affirmative permission to proceed — this applies to every CRUD write against these external systems, with no exceptions.
 11. **BrowserStack is conditional, never assumed**: only use BrowserStack for a target project if it's already configured there (see the `detect-execution-convention` skill); otherwise ask the user for the execution convention to use.
 12. **Ask before saving pulled data locally**: when a user asks to pull Jira/Confluence/JTMF data (or any other remote content) and save it to disk, ask which project folder to use before writing anything. Tools like `confluence_save_page` and `jira_save_issue` return a suggested default (`downloads/<server>/<KEY>-XXX`, derived from the issue key or space key) instead of writing when `project` is omitted — never guess a folder and save without the user confirming it.
+13. **Planner-first**: destructive or multi-step work requires a finalized, user-approved plan from the planner agent (saved to `knowledge/plans/<project>/`); single read-only lookups are exempt. Queued tasks should carry a `"plan"` payload field pointing at that file for traceability.
 
 ## Skill / MCP tool / agent boundary
 - **MCP tool** (new I/O: shell exec, external file access, HTTP) → `mcp-servers/*`.

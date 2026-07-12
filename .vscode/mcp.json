@@ -39,6 +39,10 @@
     "github": {
       "type": "http",
       "url": "http://localhost:7320/mcp"
+    },
+    "notify": {
+      "type": "http",
+      "url": "http://localhost:7321/mcp"
     }
   }
 }

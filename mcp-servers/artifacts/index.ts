@@ -123,5 +123,53 @@ startMcpHttpServer({
         }
       }
     );
+
+    server.registerTool(
+      "knowledge_search",
+      {
+        description:
+          "Search the framework's persistent knowledge (knowledge/**: learnings, conventions, plans, reports; " +
+          "plus projects/*/app-model.md and per-project artifacts) for a keyword or regex. Use this before " +
+          "planning or researching to find prior work instead of redoing it. Returns matching lines with " +
+          "file paths and line numbers.",
+        inputSchema: {
+          query: z.string().describe("Substring or JS regex to search for (case-insensitive)"),
+          maxResults: z.number().optional().describe("Max matching lines to return (default 50)"),
+        },
+      },
+      async ({ query, maxResults }) => {
+        try {
+          let regex: RegExp;
+          try {
+            regex = new RegExp(query, "i");
+          } catch {
+            regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+          }
+          const files: string[] = [];
+          for (const root of ["knowledge", "projects"]) {
+            try {
+              await walk(safeResolve(root), files);
+            } catch {
+              // directory may not exist yet — skip
+            }
+          }
+          const limit = maxResults ?? 50;
+          const matches: Array<{ file: string; line: number; text: string }> = [];
+          for (const file of files.filter((f) => f.endsWith(".md"))) {
+            if (matches.length >= limit) break;
+            const content = await fs.readFile(safeResolve(file), "utf8");
+            const lines = content.split(/\r?\n/);
+            for (let i = 0; i < lines.length && matches.length < limit; i++) {
+              if (regex.test(lines[i])) {
+                matches.push({ file, line: i + 1, text: lines[i].trim().slice(0, 300) });
+              }
+            }
+          }
+          return textResult({ query, matches, truncated: matches.length >= limit });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
   },
 });
