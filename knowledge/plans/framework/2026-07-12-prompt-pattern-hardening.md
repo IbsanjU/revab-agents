@@ -62,3 +62,7 @@ green; every skill has an explicit **Output** contract; shared conduct rules exi
   recommends for shared rules), keyed per agent.
 - Iteration 2: checked scope creep — dropped any idea of adding new lint checks for
   Output sections (not requested); kept changes docs-only. No open blockers.
+- Follow-up (same day): user asked for the persona propagation to be applied. The
+  cloud environment still cannot write into `.github/agents/`, so the step is now
+  automated instead: run `npm run agents:conduct` locally (idempotent,
+  `--dry-run` supported) to append the shared Conduct sections to all nine personas.
