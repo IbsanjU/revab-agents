@@ -53,23 +53,93 @@ export type Project = z.infer<typeof ProjectSchema>;
 export type Manifest = z.infer<typeof ManifestSchema>;
 
 // MANIFEST_PATH_OVERRIDE is test-only: lets unit tests point at a throwaway manifest
-// instead of the repo's real projects.manifest.json. Never set in normal operation.
+// instead of the repo's real manifest. Never set in normal operation.
+// PROJECTS_DIR_OVERRIDE is test-only too: points at a throwaway `projects/` directory.
 const MANIFEST_PATH = process.env.MANIFEST_PATH_OVERRIDE
   ? path.resolve(process.env.MANIFEST_PATH_OVERRIDE)
   : path.resolve(process.cwd(), "projects.manifest.json");
+const PROJECTS_DIR = process.env.PROJECTS_DIR_OVERRIDE
+  ? path.resolve(process.env.PROJECTS_DIR_OVERRIDE)
+  : path.resolve(process.cwd(), "projects");
 const WORKSPACES_ROOT = path.resolve(process.cwd(), ".workspaces");
+
+// The projects/ directory layout: an index (names only — the trust boundary) plus one
+// folder per project holding its full config and all per-project artifacts
+// (app-model.md, downloads/, reports/, test-plans/).
+const ProjectsIndexSchema = z.object({
+  projects: z.array(z.object({ name: z.string().min(1) })).min(1),
+});
 
 let cached: Manifest | undefined;
 
-/** Load and validate projects.manifest.json. Fails fast with a clear error on invalid/missing fields. */
+async function readJson(file: string): Promise<unknown> {
+  return JSON.parse(await fs.readFile(file, "utf8"));
+}
+
+/**
+ * Load projects from the `projects/` directory layout:
+ * `projects/manifest.json` (index of names — the trust boundary) + one
+ * `projects/<name>/project.json` per entry (full config). Returns null when
+ * no `projects/manifest.json` exists (caller falls back to the legacy single file).
+ */
+async function loadProjectsDir(): Promise<Manifest | null> {
+  const indexPath = path.join(PROJECTS_DIR, "manifest.json");
+  let indexRaw: unknown;
+  try {
+    indexRaw = await readJson(indexPath);
+  } catch {
+    return null;
+  }
+  const index = ProjectsIndexSchema.safeParse(indexRaw);
+  if (!index.success) {
+    throw new Error(
+      `Invalid projects/manifest.json:\n${index.error.issues.map((i) => `- ${i.path.join(".")}: ${i.message}`).join("\n")}`
+    );
+  }
+  const projects: Project[] = [];
+  for (const { name } of index.data.projects) {
+    const projectFile = path.join(PROJECTS_DIR, name, "project.json");
+    let raw: unknown;
+    try {
+      raw = await readJson(projectFile);
+    } catch {
+      throw new Error(`Project "${name}" is listed in projects/manifest.json but projects/${name}/project.json is missing or unreadable.`);
+    }
+    const parsed = ProjectSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new Error(
+        `Invalid projects/${name}/project.json:\n${parsed.error.issues.map((i) => `- ${i.path.join(".")}: ${i.message}`).join("\n")}`
+      );
+    }
+    if (parsed.data.name !== name) {
+      throw new Error(`projects/${name}/project.json declares name "${parsed.data.name}" — it must match its folder name "${name}".`);
+    }
+    projects.push(parsed.data);
+  }
+  return { projects };
+}
+
+/**
+ * Load and validate the project manifest. Prefers the `projects/` directory layout
+ * (`projects/manifest.json` index + `projects/<name>/project.json`); falls back to
+ * the legacy single-file `projects.manifest.json` for backward compatibility.
+ * Fails fast with a clear error on invalid/missing fields.
+ */
 export async function loadManifest(force = false): Promise<Manifest> {
   if (cached && !force) return cached;
+
+  const fromDir = await loadProjectsDir();
+  if (fromDir) {
+    cached = fromDir;
+    return cached;
+  }
+
   let raw: string;
   try {
     raw = await fs.readFile(MANIFEST_PATH, "utf8");
   } catch {
     throw new Error(
-      `Missing projects.manifest.json at repo root. Add a project entry before running any project-scoped tool.`
+      `No project manifest found: add projects/manifest.json (+ projects/<name>/project.json) or a legacy projects.manifest.json at repo root before running any project-scoped tool.`
     );
   }
   const parsed = ManifestSchema.safeParse(JSON.parse(raw));
@@ -78,6 +148,18 @@ export async function loadManifest(force = false): Promise<Manifest> {
   }
   cached = parsed.data;
   return cached;
+}
+
+/**
+ * Resolve the per-project artifacts folder (`projects/<name>/`) for a manifest project.
+ * Used for downloads/, reports/, test-plans/, app-model.md. Validates the project
+ * exists in the manifest first (trust boundary), then ensures the folder exists.
+ */
+export async function resolveProjectArtifactsDir(name: string): Promise<string> {
+  await getProject(name); // throws for unknown projects
+  const dir = path.join(PROJECTS_DIR, name);
+  await fs.mkdir(dir, { recursive: true });
+  return dir;
 }
 
 /** Get a single project entry by name. Throws if not found — never silently defaults. */
