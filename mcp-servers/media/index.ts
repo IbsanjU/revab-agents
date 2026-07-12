@@ -64,12 +64,18 @@ interface OcrBlock {
 
 /**
  * OCR an image buffer with tesseract.js (fully local — no data leaves the machine;
- * language traineddata is downloaded once and cached). Returns plain text plus
- * block-level segments with bounding boxes and confidence, so agents can tell
- * headings/labels apart from body text.
+ * language traineddata is downloaded once from the tesseract CDN and cached — set
+ * TESSERACT_LANG_PATH / TESSERACT_CACHE_PATH in .env for offline or proxied setups).
+ * Returns plain text plus block-level segments with bounding boxes and confidence,
+ * so agents can tell headings/labels apart from body text.
  */
 async function ocrBuffer(buffer: Buffer, lang: string): Promise<{ text: string; confidence: number; blocks: OcrBlock[] }> {
-  const worker = await createWorker(lang);
+  const workerOptions: Record<string, string> = {};
+  const langPath = process.env.TESSERACT_LANG_PATH;
+  const cachePath = process.env.TESSERACT_CACHE_PATH;
+  if (langPath) workerOptions.langPath = langPath;
+  if (cachePath) workerOptions.cachePath = cachePath;
+  const worker = await createWorker(lang, undefined, workerOptions);
   try {
     const { data } = await worker.recognize(buffer, {}, { text: true, blocks: true });
     const blocks: OcrBlock[] = (data.blocks ?? []).map((b) => ({

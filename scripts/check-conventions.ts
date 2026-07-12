@@ -1,5 +1,5 @@
 /**
- * Conventions checker — enforces two "trust boundary" rules the framework's own
+ * Conventions checker — enforces three framework rules the framework's own
  * conventions depend on (see knowledge/conventions.md):
  *
  *  1. Every skills/<name>/SKILL.md has valid frontmatter: a `---`-delimited block
@@ -9,6 +9,10 @@
  *     `requireProject(payload)` or an equivalent explicit check) — a handler must
  *     never resolve an on-disk path without having required/validated the project
  *     name that drives it.
+ *
+ *  3. Docs drift: every `registerTool("name", ...)` in mcp-servers/<server>/index.ts
+ *     must be documented in README.md and knowledge/memory.md, and every server must
+ *     be registered in .vscode/mcp.json.
  *
  * Run with: npm run check:conventions
  * Exits non-zero (and prints every violation) if any rule is broken.
@@ -123,11 +127,71 @@ async function checkRegistryProjectGuard(): Promise<Violation[]> {
   return violations;
 }
 
+/**
+ * Rule 3 (docs drift): every tool registered via `server.registerTool("name", ...)` in
+ * mcp-servers/<server>/index.ts must be mentioned in both README.md and
+ * knowledge/memory.md, and every mcp-servers/<server>/ must appear in .vscode/mcp.json.
+ * Keeps the three documented tool lists from drifting away from the code.
+ */
+async function checkDocsDrift(): Promise<Violation[]> {
+  const violations: Violation[] = [];
+  const serversDir = path.resolve("mcp-servers");
+  let entries;
+  try {
+    entries = await fs.readdir(serversDir, { withFileTypes: true });
+  } catch {
+    return violations;
+  }
+
+  let readme = "";
+  let memory = "";
+  let mcpJson = "";
+  try {
+    readme = await fs.readFile(path.resolve("README.md"), "utf8");
+    memory = await fs.readFile(path.resolve("knowledge", "memory.md"), "utf8");
+    mcpJson = await fs.readFile(path.resolve(".vscode", "mcp.json"), "utf8");
+  } catch {
+    return violations; // docs not present — nothing to check against
+  }
+
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name === "shared") continue;
+    const indexFile = path.join(serversDir, entry.name, "index.ts");
+    const rel = path.relative(process.cwd(), indexFile);
+    let source: string;
+    try {
+      source = await fs.readFile(indexFile, "utf8");
+    } catch {
+      continue;
+    }
+
+    if (!new RegExp(`"${entry.name}"\\s*:`).test(mcpJson)) {
+      violations.push({ file: ".vscode/mcp.json", message: `MCP server "${entry.name}" is not registered` });
+    }
+
+    const toolNames = [...source.matchAll(/registerTool\(\s*\r?\n?\s*"([^"]+)"/g)].map((m) => m[1]);
+    for (const tool of toolNames) {
+      if (!readme.includes(tool)) {
+        violations.push({ file: "README.md", message: `Tool \`${tool}\` (${rel}) is not documented` });
+      }
+      if (!memory.includes(tool)) {
+        violations.push({ file: "knowledge/memory.md", message: `Tool \`${tool}\` (${rel}) is not documented` });
+      }
+    }
+  }
+
+  return violations;
+}
+
 async function main(): Promise<void> {
-  const violations = [...(await checkSkillFrontmatter()), ...(await checkRegistryProjectGuard())];
+  const violations = [
+    ...(await checkSkillFrontmatter()),
+    ...(await checkRegistryProjectGuard()),
+    ...(await checkDocsDrift()),
+  ];
 
   if (violations.length === 0) {
-    console.log("check:conventions — OK (skill frontmatter + registry project guards all valid)");
+    console.log("check:conventions — OK (skill frontmatter + registry project guards + docs/tool lists all valid)");
     return;
   }
 
