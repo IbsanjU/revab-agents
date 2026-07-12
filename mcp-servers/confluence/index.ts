@@ -3,7 +3,7 @@ import path from "path";
 import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { env, intEnv } from "../shared/config.js";
-import { apiGet, apiGetBinary, apiPost, apiPut, apiDelete, stripHtml } from "../shared/http.js";
+import { apiGet, apiGetBinary, apiPost, apiPut, apiDelete, stripHtml, authHeaders } from "../shared/http.js";
 import { resolveWithinRoot } from "../../utils/fsSafety.js";
 import { buildSaveConfirmationPrompt } from "../../utils/saveSuggestion.js";
 import { expandConfluenceMacros } from "../../utils/confluenceMacros.js";
@@ -199,6 +199,58 @@ startMcpHttpServer({
         } catch (err) {
           return errorResult(err);
 
+        }
+      }
+    );
+
+    server.registerTool(
+      "confluence_upload_attachment",
+      {
+        description:
+          "Upload a local file (e.g. a screenshot from the playwright MCP or a diagram from the media server's " +
+          "create_diagram) as an attachment on a Confluence page, so it can be referenced with an <ac:image> tag. " +
+          "dryRun (default true) previews the upload without sending it — always get explicit user confirmation first.",
+        inputSchema: {
+          pageId: z.string().describe("Numeric page id to attach the file to"),
+          filePath: z.string().describe("Path to the local file, relative to this repo"),
+          fileName: z.string().optional().describe("Override the attachment file name (default: the local file's name)"),
+          comment: z.string().optional().describe("Optional attachment version comment"),
+          dryRun: z.boolean().optional().describe("If true (default), return the intended upload without sending it"),
+        },
+      },
+      async ({ pageId, filePath, fileName, comment, dryRun }) => {
+        try {
+          const target = resolveWithinRoot(ROOT, filePath);
+          const stat = await fs.stat(target);
+          if (!stat.isFile()) throw new Error(`Not a file: ${filePath}`);
+          const name = path.basename(fileName ?? target);
+          if (dryRun ?? true) {
+            return textResult({
+              dryRun: true,
+              wouldUpload: { pageId, fileName: name, sizeBytes: stat.size, from: filePath },
+              embedHint: `After uploading, reference it in the page body with: <ac:image><ri:attachment ri:filename="${name}" /></ac:image>`,
+            });
+          }
+          const buf = await fs.readFile(target);
+          const form = new FormData();
+          form.append("file", new Blob([new Uint8Array(buf)]), name);
+          if (comment) form.append("comment", comment);
+          const url = `${base()}/rest/api/content/${encodeURIComponent(pageId)}/child/attachment`;
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { ...authHeaders(), "X-Atlassian-Token": "nocheck" },
+            body: form,
+          });
+          if (!res.ok) {
+            throw new Error(`Attachment upload failed: ${res.status} ${res.statusText} — ${(await res.text()).slice(0, 500)}`);
+          }
+          const data = (await res.json()) as { results?: Array<{ id: string; title: string }> };
+          return textResult({
+            uploaded: data.results?.map((a) => ({ id: a.id, title: a.title })) ?? [],
+            embedHint: `Reference it in the page body with: <ac:image><ri:attachment ri:filename="${name}" /></ac:image>`,
+          });
+        } catch (err) {
+          return errorResult(err);
         }
       }
     );

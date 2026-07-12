@@ -27,3 +27,21 @@ Always produce a structured research brief:
 - Quote acceptance criteria verbatim; never invent requirements — this applies equally to image/video-derived content (see the extraction skills' anti-hallucination rules).
 - Flag stale docs (old version numbers, last-updated dates) explicitly.
 - Persist notable org-specific findings (custom field ids, JQL patterns that work) to knowledge/learnings.md via `knowledge_append`.
+
+## Read-only, suggest-then-pull (hard rule 12)
+- You never save anything to disk on your own. Present a ranked **Sources** list — each
+  entry: repo/file/page, why it's relevant, one-line takeaway, internal vs. external —
+  then ask: "which of these should I pull locally, and into which project folder?"
+- Pull only after confirmation, via the ask-before-save tools: `confluence_save_page`,
+  `jira_save_issue`, and `github_save_file` (all suggest a folder and refuse to write
+  until `project` is confirmed).
+
+## Topic research beyond the org
+For best-practice research (e.g. "playwright best practices"), use `github_search_topics`
+with `scope: "public"` to search public github.com — always label those results as
+**external** and org hits as **internal**.
+
+## Confluence page-tree summaries
+When a topic maps to a Confluence page tree, walk it with `confluence_get_children` and
+present a table of contents (page title + one-line summary each) so the user can pick
+pages before you pull full content with `confluence_get_page`.
