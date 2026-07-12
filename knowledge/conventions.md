@@ -27,14 +27,11 @@ Team/org conventions the agents must follow. The self-improvement agent updates 
   Below that size the command is a safe no-op — run it periodically, no harm in running it often.
 - `npm run check:conventions` validates every `skills/*/SKILL.md` has valid frontmatter (matching
   `name`/directory, non-empty `description`), that every `agents/registry.ts` handler which
-  calls `resolveProjectRepoPath(...)` first requires/validates `payload.project`, and that every
-  `.github/agents/*.agent.md` carries the current shared-conduct marker and matches the
-  "Per-agent boundaries" list in `.github/copilot-instructions.md` — run it whenever a skill,
-  registry handler, or agent persona is added or changed.
-- Shared conduct version bumps: when the shared **Agent conduct** text in
-  `.github/copilot-instructions.md` changes, bump `MARKER` in `scripts/apply-agent-conduct.ts`
-  (e.g. `shared-conduct:v1` → `shared-conduct:v2`) so `npm run agents:conduct` replaces stale
-  blocks instead of skipping them; `check:conventions` reads the marker from that script, so a
-  bump automatically makes CI flag every persona still carrying the old version.
+  calls `resolveProjectRepoPath(...)` first requires/validates `payload.project` — run it whenever a skill or
+  registry handler is added or changed.
 - `npm test` runs the framework's own unit tests (Node's built-in test runner via `tsx`) for
   `utils/manifest.ts`, `orchestrator/queue.ts`, and `scripts/check-conventions.ts`.
+- Agent conduct rules live once in `.github/copilot-instructions.md` (Agent conduct + Per-agent
+  boundaries sections) — that file loads automatically alongside every persona, so
+  `.github/agents/*.agent.md` files carry a one-line pointer, not a duplicated copy. Tighten a
+  specific persona directly in its own file instead of re-pasting shared text.

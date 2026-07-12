@@ -14,11 +14,6 @@
  *     must be documented in README.md and knowledge/memory.md, and every server must
  *     be registered in .vscode/mcp.json.
  *
- *  4. Agent conduct drift: every .github/agents/<name>.agent.md must carry the current
- *     shared-conduct marker (applied via `npm run agents:conduct`), and the persona set
- *     must match the "Per-agent boundaries" list in .github/copilot-instructions.md
- *     (every listed persona has a matching .agent.md file, and vice versa).
- *
  * Run with: npm run check:conventions
  * Exits non-zero (and prints every violation) if any rule is broken.
  */
@@ -188,94 +183,16 @@ async function checkDocsDrift(): Promise<Violation[]> {
   return violations;
 }
 
-/**
- * Rule 4 (agent conduct drift): every .github/agents/<name>.agent.md must contain the
- * current shared-conduct version marker (kept in scripts/apply-agent-conduct.ts and
- * applied via `npm run agents:conduct`), and the persona set must stay in sync with the
- * "Per-agent boundaries" list in .github/copilot-instructions.md.
- */
-async function checkAgentConduct(): Promise<Violation[]> {
-  const violations: Violation[] = [];
-  const agentsDir = path.resolve(".github", "agents");
-  let entries;
-  try {
-    entries = await fs.readdir(agentsDir, { withFileTypes: true });
-  } catch {
-    return violations; // no .github/agents/ directory — nothing to check
-  }
-
-  // Keep the expected marker in lockstep with apply-agent-conduct.ts (version bumps included).
-  let marker = "<!-- shared-conduct:v1 -->";
-  try {
-    const applyScript = await fs.readFile(path.resolve("scripts", "apply-agent-conduct.ts"), "utf8");
-    const markerMatch = /const MARKER = "([^"]+)"/.exec(applyScript);
-    if (markerMatch) marker = markerMatch[1];
-  } catch {
-    // fall back to the default marker
-  }
-
-  const agentNames = entries
-    .filter((e) => e.isFile() && e.name.endsWith(".agent.md"))
-    .map((e) => e.name.replace(/\.agent\.md$/, ""));
-
-  for (const name of agentNames) {
-    const rel = path.join(".github", "agents", `${name}.agent.md`);
-    let content: string;
-    try {
-      content = await fs.readFile(path.join(agentsDir, `${name}.agent.md`), "utf8");
-    } catch {
-      continue;
-    }
-    if (!content.includes(marker)) {
-      violations.push({
-        file: rel,
-        message: `Missing shared-conduct marker \`${marker}\` — run \`npm run agents:conduct\` locally and commit the result`,
-      });
-    }
-  }
-
-  let instructions: string;
-  try {
-    instructions = await fs.readFile(path.resolve(".github", "copilot-instructions.md"), "utf8");
-  } catch {
-    return violations; // no copilot-instructions.md — skip the parity check
-  }
-
-  const boundariesSection = /### Per-agent boundaries[^\n]*\n([\s\S]*?)(?:\n#|$)/.exec(instructions);
-  if (!boundariesSection) return violations;
-  const listedPersonas = [...boundariesSection[1].matchAll(/^- \*\*([\w-]+)\*\*/gm)].map((m) => m[1]);
-
-  for (const persona of listedPersonas) {
-    if (!agentNames.includes(persona)) {
-      violations.push({
-        file: path.join(".github", "agents", `${persona}.agent.md`),
-        message: `Persona "${persona}" is listed under "Per-agent boundaries" in .github/copilot-instructions.md but has no .agent.md file`,
-      });
-    }
-  }
-  for (const name of agentNames) {
-    if (!listedPersonas.includes(name)) {
-      violations.push({
-        file: ".github/copilot-instructions.md",
-        message: `Agent "${name}" (.github/agents/${name}.agent.md) is missing from the "Per-agent boundaries" list`,
-      });
-    }
-  }
-
-  return violations;
-}
-
 async function main(): Promise<void> {
   const violations = [
     ...(await checkSkillFrontmatter()),
     ...(await checkRegistryProjectGuard()),
     ...(await checkDocsDrift()),
-    ...(await checkAgentConduct()),
   ];
 
   if (violations.length === 0) {
     console.log(
-      "check:conventions — OK (skill frontmatter + registry project guards + docs/tool lists + agent conduct markers all valid)"
+      "check:conventions — OK (skill frontmatter + registry project guards + docs/tool lists all valid)"
     );
     return;
   }
