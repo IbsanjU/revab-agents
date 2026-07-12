@@ -17,6 +17,13 @@ description: Update Jira ticket/epic status and evidence links after test planni
    (execution verdict, Allure link, JTMF test case keys) via `comment`.
 5. Log the change (issue key, old/new status, evidence link) to `knowledge/learnings.md`.
 
+## Output
+Respond with exactly these sections, in this order:
+1. **Preview** — the exact field/transition change and comment text from the `dryRun: true` call (this is what the user approves).
+2. **Confirmation status** — awaiting approval / approved / declined.
+3. **Result** — after an approved write: issue key, old → new status/fields, evidence links posted.
+4. **Recorded** — the `knowledge/learnings.md` entry appended.
+
 ## Rules
 - Never transition an issue to "Done"/"Closed" purely because tests passed — status
   changes reflect the user's process, not just test results; always confirm.

@@ -17,6 +17,13 @@ description: Explore a target application interactively (via the playwright MCP 
    rather than guessing a selector — if the page isn't yet mapped, re-run this skill
    before generating scenarios for it.
 
+## Output
+Respond with exactly these sections, in this order:
+1. **Pages visited** — one line each: route/URL, purpose.
+2. **App-model delta** — the entries added/updated in `knowledge/app-model/<project>.md` (page, elements with observed roles/testids, flows).
+3. **Unmapped gaps** — pages/flows still not explored, or "None".
+4. **Citations** — app-model entry anchors for everything recorded.
+
 ## Rules
 - Only record elements actually observed in a snapshot — never guess role/testid names.
 - Re-run exploration when the app model looks stale (e.g. automation fails because a

@@ -25,6 +25,13 @@ description: Produce one consolidated, traceable report for a project spanning J
 7. Persist the consolidated report to `knowledge/reports/<project>/<date>.md` via
    `knowledge_append` (or a direct file write) for trend comparison across runs.
 
+## Output
+Respond with exactly these sections, in this order:
+1. **Status line** — one sentence: project, run date, overall health (green/amber/red).
+2. **Traceability table** — `requirement (Jira/Confluence) | test case (JTMF) | execution result (Allure) | Jira status`, one row per requirement.
+3. **Gaps** — uncovered acceptance criteria, unexecuted test cases, stale Jira statuses (each flagged explicitly, or "None").
+4. **Report location** — the `knowledge/reports/<project>/<date>.md` path persisted.
+
 ## Rules
 - Every row in the consolidated table must cite its four sources by id (Jira key,
   Confluence page id, JTMF key, Allure result id) — no row without full traceability.

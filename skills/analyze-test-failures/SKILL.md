@@ -16,6 +16,13 @@ description: Analyze failed BDD runs using Allure results — classify failures 
 5. For repeat offenders, check knowledge/learnings.md history; record new flaky tests there.
 6. Output the reporter-format table: scenario | classification | root cause | suggested fix/owner.
 
+## Output
+Respond with exactly these sections, in this order, no preamble:
+1. **Run summary** — one line: project, total/passed/failed counts, Allure run id.
+2. **Failure table** — `scenario | classification (product bug/test bug/environment/data) | root cause | suggested fix/owner`, one row per failure.
+3. **Repeat offenders** — scenarios already recorded as flaky in `knowledge/learnings.md`, or "None".
+4. **Citations** — Allure result ids and any Jira keys cross-checked, one per line.
+
 ## Anti-patterns to reject
 - Adding retries or sleeps to mask flakiness.
 - Marking failures as "flaky" without two observed alternating outcomes.

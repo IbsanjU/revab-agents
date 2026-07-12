@@ -51,6 +51,12 @@ orchestration playbook.
    ask-before-save tools (`confluence_save_page`, `jira_save_issue`,
    `github_save_file`) with the confirmed `project`.
 
+## Output
+Respond with exactly these sections, in this order:
+1. **Sources** — grouped by system (Jira / Confluence / JTMF / GitHub), each entry `- [<key, title, or repo/path>](<url>) — <one-line summary>`; connecting links nested under the page that surfaced them; external results labeled **external**.
+2. **Empty sources** — every system that returned nothing, stated explicitly.
+3. **Next step** — the suggest-then-pull question: which entries to save locally and into which project folder.
+
 ## Rules
 - Never invent a url — only surface links returned by the tools.
 - Prefer this skill over calling a single source's search in isolation when the
