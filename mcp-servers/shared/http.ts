@@ -18,7 +18,8 @@ export function authHeaders(): Record<string, string> {
 
 export type QueryParams = Record<string, string | number | boolean | undefined>;
 
-function buildUrl(baseUrl: string, path: string, params?: QueryParams): string {
+/** Join a base URL + path and append query params. Shared across all HTTP-backed MCP servers. */
+export function buildUrl(baseUrl: string, path: string, params?: QueryParams): string {
   const url = new URL(baseUrl.replace(/\/+$/, "") + path);
   for (const [key, value] of Object.entries(params ?? {})) {
     if (value !== undefined) url.searchParams.set(key, String(value));
@@ -26,7 +27,8 @@ function buildUrl(baseUrl: string, path: string, params?: QueryParams): string {
   return url.toString();
 }
 
-async function handle<T>(res: Response, url: string): Promise<T> {
+/** Parse a JSON response, throwing a descriptive error on non-2xx status. */
+export async function handleJson<T>(res: Response, url: string): Promise<T> {
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}\n${body.slice(0, 2000)}`);
@@ -38,7 +40,7 @@ async function handle<T>(res: Response, url: string): Promise<T> {
 export async function apiGet<T = unknown>(baseUrl: string, path: string, params?: QueryParams): Promise<T> {
   const url = buildUrl(baseUrl, path, params);
   const res = await fetch(url, { headers: { ...authHeaders(), Accept: "application/json" } });
-  return handle<T>(res, url);
+  return handleJson<T>(res, url);
 }
 
 /** POST a JSON body to an authenticated Atlassian API. */
@@ -49,7 +51,33 @@ export async function apiPost<T = unknown>(baseUrl: string, path: string, body: 
     headers: { ...authHeaders(), Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  return handle<T>(res, url);
+  return handleJson<T>(res, url);
+}
+
+/** PUT a JSON body to an authenticated Atlassian API. Many Jira update endpoints return 204 No Content. */
+export async function apiPut(baseUrl: string, path: string, body: unknown): Promise<{ status: number }> {
+  const url = buildUrl(baseUrl, path);
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: { ...authHeaders(), Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const responseBody = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}\n${responseBody.slice(0, 2000)}`);
+  }
+  return { status: res.status };
+}
+
+/** DELETE a resource from an authenticated Atlassian API. Many delete endpoints return 204 No Content. */
+export async function apiDelete(baseUrl: string, path: string): Promise<{ status: number }> {
+  const url = buildUrl(baseUrl, path);
+  const res = await fetch(url, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) {
+    const responseBody = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}\n${responseBody.slice(0, 2000)}`);
+  }
+  return { status: res.status };
 }
 
 /** GET a binary resource (attachment download). Returns a Buffer. */

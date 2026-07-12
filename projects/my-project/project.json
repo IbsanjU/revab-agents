@@ -1,0 +1,16 @@
+{
+  "name": "my-project",
+  "repoPath": null,
+  "repoUrl": null,
+  "branch": null,
+  "testPaths": {
+    "features": "tests/features",
+    "steps": "tests/steps",
+    "pages": "tests/pages",
+    "support": "tests/support"
+  },
+  "jira": { "projectKey": "ABC", "defaultJql": "project = ABC ORDER BY created DESC" },
+  "confluence": { "spaceKey": "ABC" },
+  "jtmf": { "projectId": "ABC", "testPlanId": null },
+  "execution": { "mode": "local" }
+}

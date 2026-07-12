@@ -17,7 +17,6 @@
     "orchestrator/**/*.ts",
     "agents/**/*.ts",
     "scripts/**/*.ts",
-    "utils/**/*.ts",
-    "tests/**/*.ts"
+    "utils/**/*.ts"
   ]
 }

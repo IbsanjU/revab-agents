@@ -19,6 +19,30 @@
     "playwright": {
       "type": "http",
       "url": "http://localhost:7315/mcp"
+    },
+    "playwright-runner": {
+      "type": "http",
+      "url": "http://localhost:7316/mcp"
+    },
+    "allure-report": {
+      "type": "http",
+      "url": "http://localhost:7317/mcp"
+    },
+    "codegen": {
+      "type": "http",
+      "url": "http://localhost:7318/mcp"
+    },
+    "media": {
+      "type": "http",
+      "url": "http://localhost:7319/mcp"
+    },
+    "github": {
+      "type": "http",
+      "url": "http://localhost:7320/mcp"
+    },
+    "notify": {
+      "type": "http",
+      "url": "http://localhost:7321/mcp"
     }
   }
 }

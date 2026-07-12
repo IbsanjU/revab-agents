@@ -5,9 +5,12 @@ import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js
 import { intEnv } from "../shared/config.js";
 
 /**
- * Artifacts MCP server: repo-rooted file search/read, Allure result analysis,
- * and knowledge persistence for the self-improvement loop.
- * All paths are confined to the repository root.
+ * Artifacts MCP server: file search/read and knowledge persistence for the
+ * self-improvement loop, scoped to the revab-agents framework repo itself
+ * (agent definitions, skills, knowledge/). It never reads/writes a target
+ * project's test code or results — see mcp-servers/playwright-runner and
+ * mcp-servers/allure-report for project-scoped (manifest-resolved) tools.
+ * All paths are confined to this repository's root.
  */
 const ROOT = path.resolve(process.cwd());
 const IGNORED = new Set(["node_modules", ".git", "dist", ".queue"]);
@@ -32,13 +35,6 @@ async function walk(dir: string, results: string[]): Promise<void> {
       results.push(path.relative(ROOT, full).replace(/\\/g, "/"));
     }
   }
-}
-
-interface AllureResult {
-  name?: string;
-  status?: string;
-  statusDetails?: { message?: string };
-  labels?: Array<{ name: string; value: string }>;
 }
 
 startMcpHttpServer({
@@ -101,41 +97,6 @@ startMcpHttpServer({
     );
 
     server.registerTool(
-      "allure_summary",
-      {
-        description:
-          "Summarize the latest Allure results (reports/allure-results): status counts and failed test details.",
-        inputSchema: {
-          resultsDir: z.string().optional().describe("Default: reports/allure-results"),
-        },
-      },
-      async ({ resultsDir }) => {
-        try {
-          const dir = safeResolve(resultsDir ?? "reports/allure-results");
-          const entries = await fs.readdir(dir).catch(() => [] as string[]);
-          const resultFiles = entries.filter((f) => f.endsWith("-result.json"));
-          if (resultFiles.length === 0) {
-            return textResult("No Allure results found. Run `npm run test:bdd` first.");
-          }
-          const counts: Record<string, number> = {};
-          const failures: Array<{ name?: string; message?: string }> = [];
-          for (const file of resultFiles) {
-            const raw = await fs.readFile(path.join(dir, file), "utf8");
-            const result = JSON.parse(raw) as AllureResult;
-            const status = result.status ?? "unknown";
-            counts[status] = (counts[status] ?? 0) + 1;
-            if (status === "failed" || status === "broken") {
-              failures.push({ name: result.name, message: result.statusDetails?.message?.slice(0, 500) });
-            }
-          }
-          return textResult({ total: resultFiles.length, counts, failures });
-        } catch (err) {
-          return errorResult(err);
-        }
-      }
-    );
-
-    server.registerTool(
       "knowledge_append",
       {
         description:
@@ -157,6 +118,54 @@ startMcpHttpServer({
           await fs.mkdir(path.dirname(target), { recursive: true });
           await fs.appendFile(target, `\n### ${stamp}\n${entry.trim()}\n`, "utf8");
           return textResult(`Appended entry to knowledge/${name}`);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "knowledge_search",
+      {
+        description:
+          "Search the framework's persistent knowledge (knowledge/**: learnings, conventions, plans, reports; " +
+          "plus projects/*/app-model.md and per-project artifacts) for a keyword or regex. Use this before " +
+          "planning or researching to find prior work instead of redoing it. Returns matching lines with " +
+          "file paths and line numbers.",
+        inputSchema: {
+          query: z.string().describe("Substring or JS regex to search for (case-insensitive)"),
+          maxResults: z.number().optional().describe("Max matching lines to return (default 50)"),
+        },
+      },
+      async ({ query, maxResults }) => {
+        try {
+          let regex: RegExp;
+          try {
+            regex = new RegExp(query, "i");
+          } catch {
+            regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+          }
+          const files: string[] = [];
+          for (const root of ["knowledge", "projects"]) {
+            try {
+              await walk(safeResolve(root), files);
+            } catch {
+              // directory may not exist yet — skip
+            }
+          }
+          const limit = maxResults ?? 50;
+          const matches: Array<{ file: string; line: number; text: string }> = [];
+          for (const file of files.filter((f) => f.endsWith(".md"))) {
+            if (matches.length >= limit) break;
+            const content = await fs.readFile(safeResolve(file), "utf8");
+            const lines = content.split(/\r?\n/);
+            for (let i = 0; i < lines.length && matches.length < limit; i++) {
+              if (regex.test(lines[i])) {
+                matches.push({ file, line: i + 1, text: lines[i].trim().slice(0, 300) });
+              }
+            }
+          }
+          return textResult({ query, matches, truncated: matches.length >= limit });
         } catch (err) {
           return errorResult(err);
         }

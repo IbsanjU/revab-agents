@@ -1,10 +1,17 @@
+import { promises as fs } from "fs";
+import path from "path";
 import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { env, intEnv } from "../shared/config.js";
-import { apiGet, apiPost } from "../shared/http.js";
+import { apiGet, apiPost, apiPut, apiDelete } from "../shared/http.js";
+import { resolveWithinRoot } from "../../utils/fsSafety.js";
+import { buildSaveConfirmationPrompt } from "../../utils/saveSuggestion.js";
+import { buildJiraIssueUrl } from "../../utils/jiraLinks.js";
 
 const base = () => env("JIRA_BASE_URL");
 const DEFAULT_FIELDS = "summary,status,issuetype,assignee,priority,labels,fixVersions,parent";
+const ROOT = path.resolve(process.cwd());
+const DEFAULT_SAVE_DIR = "downloads/jira";
 
 startMcpHttpServer({
   name: "jira",
@@ -14,7 +21,8 @@ startMcpHttpServer({
       "jira_search",
       {
         description:
-          "Search Jira issues with JQL. Returns key, summary, status, type, assignee for each match.",
+          "Search Jira issues with JQL. Returns key, summary, status, type, assignee, and a direct " +
+          "browse url (for citing sources / linking back to complete information) for each match.",
         inputSchema: {
           jql: z.string().describe('JQL query, e.g. \'project = ABC AND sprint in openSprints()\''),
           maxResults: z.number().optional().describe("Max issues to return (default 25)"),
@@ -23,12 +31,62 @@ startMcpHttpServer({
       },
       async ({ jql, maxResults, fields }) => {
         try {
-          const data = await apiGet(base(), "/rest/api/2/search", {
-            jql,
-            maxResults: maxResults ?? 25,
-            fields: fields ?? DEFAULT_FIELDS,
+          const data = await apiGet<{ issues?: Array<{ key: string; [k: string]: unknown }> }>(
+            base(),
+            "/rest/api/2/search",
+            {
+              jql,
+              maxResults: maxResults ?? 25,
+              fields: fields ?? DEFAULT_FIELDS,
+            }
+          );
+          const issues = data.issues?.map((issue) => ({ ...issue, url: buildJiraIssueUrl(base(), issue.key) }));
+          return textResult({ ...data, issues });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_save_issue",
+      {
+        description:
+          "Pull a Jira issue to local disk as JSON (full fields + comments). If `project` is omitted, no " +
+          "files are written — the tool instead returns a suggested project folder name " +
+          "(e.g. `downloads/jira/PROJ-XXX`, derived from the issue key) so the agent can ask the user to " +
+          "confirm or override it before saving. Re-call with an explicit `project` once confirmed.",
+        inputSchema: {
+          key: z.string().describe("Issue key, e.g. ABC-123"),
+          project: z
+            .string()
+            .optional()
+            .describe("Confirmed local folder name to save under (ask the user first if not provided)"),
+          targetDir: z.string().optional().describe("Repo-relative base dir (default downloads/jira)"),
+        },
+      },
+      async ({ key, project, targetDir }) => {
+        try {
+          const [issue, comments] = await Promise.all([
+            apiGet(base(), `/rest/api/2/issue/${encodeURIComponent(key)}`, { expand: "renderedFields" }),
+            apiGet(base(), `/rest/api/2/issue/${encodeURIComponent(key)}/comment`).catch(() => undefined),
+          ]);
+          const baseDir = targetDir ?? DEFAULT_SAVE_DIR;
+
+          if (!project) {
+            const prompt = buildSaveConfirmationPrompt(key, baseDir);
+            return textResult({ needsConfirmation: true, key, ...prompt });
+          }
+
+          const dir = resolveWithinRoot(ROOT, path.join(baseDir, project));
+          await fs.mkdir(dir, { recursive: true });
+          const fileName = `${key}.json`;
+          const payload = { key, savedAt: new Date().toISOString(), issue, comments };
+          await fs.writeFile(path.join(dir, fileName), JSON.stringify(payload, null, 2), "utf8");
+
+          return textResult({
+            savedTo: path.relative(ROOT, path.join(dir, fileName)).replace(/\\/g, "/"),
           });
-          return textResult(data);
         } catch (err) {
           return errorResult(err);
         }
@@ -97,6 +155,139 @@ startMcpHttpServer({
             body,
           });
           return textResult(data);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_create_issue",
+      {
+        description:
+          "Create a new Jira issue. dryRun (default true) previews the payload without sending it — always search first to avoid duplicates.",
+        inputSchema: {
+          projectKey: z.string().describe("Jira project key, e.g. ABC"),
+          issueType: z.string().describe("Issue type name, e.g. Story, Bug, Task"),
+          summary: z.string().describe("Issue title"),
+          description: z.string().optional(),
+          labels: z.array(z.string()).optional(),
+          fields: z.record(z.unknown()).optional().describe("Additional raw Jira fields to merge in"),
+          dryRun: z.boolean().optional().describe("If true (default), return the payload without creating anything"),
+        },
+      },
+      async ({ projectKey, issueType, summary, description, labels, fields, dryRun }) => {
+        try {
+          const payloadFields: Record<string, unknown> = {
+            project: { key: projectKey },
+            issuetype: { name: issueType },
+            summary,
+            ...(description ? { description } : {}),
+            ...(labels ? { labels } : {}),
+            ...(fields ?? {}),
+          };
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, wouldCreate: { fields: payloadFields } });
+          }
+          const data = await apiPost(base(), "/rest/api/2/issue", { fields: payloadFields });
+          return textResult(data);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_delete_issue",
+      {
+        description:
+          "Delete a Jira issue. Destructive and irreversible. dryRun (default true) previews the deletion without applying it.",
+        inputSchema: {
+          key: z.string().describe("Issue key, e.g. ABC-123"),
+          deleteSubtasks: z.boolean().optional().describe("Also delete subtasks (default false)"),
+          dryRun: z.boolean().optional().describe("If true (default), return the intended deletion without applying it"),
+        },
+      },
+      async ({ key, deleteSubtasks, dryRun }) => {
+        try {
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, wouldDelete: key, deleteSubtasks: deleteSubtasks ?? false });
+          }
+          const path = `/rest/api/2/issue/${encodeURIComponent(key)}${deleteSubtasks ? "?deleteSubtasks=true" : ""}`;
+          const { status } = await apiDelete(base(), path);
+          return textResult({ deleted: key, status });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_update_issue",
+      {
+        description:
+          "Update fields on a Jira issue (e.g. summary, description, labels). dryRun (default true) previews the payload without sending it.",
+        inputSchema: {
+          key: z.string().describe("Issue key, e.g. ABC-123"),
+          fields: z.record(z.unknown()).describe("Jira field map to update, e.g. { summary: 'New title' }"),
+          dryRun: z.boolean().optional().describe("If true (default), return the payload without updating anything"),
+        },
+      },
+      async ({ key, fields, dryRun }) => {
+        try {
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, key, wouldUpdate: { fields } });
+          }
+          const { status } = await apiPut(base(), `/rest/api/2/issue/${encodeURIComponent(key)}`, { fields });
+          return textResult({ updated: key, status });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_transition_issue",
+      {
+        description:
+          "Transition a Jira issue to a new workflow status (e.g. 'Done', 'In Progress'). dryRun (default true) lists available transitions and previews without applying.",
+        inputSchema: {
+          key: z.string().describe("Issue key, e.g. ABC-123"),
+          transitionName: z.string().describe("Target status/transition name, e.g. 'Done' (case-insensitive match)"),
+          comment: z.string().optional().describe("Optional comment to add with the transition"),
+          dryRun: z.boolean().optional().describe("If true (default), only list available transitions without applying"),
+        },
+      },
+      async ({ key, transitionName, comment, dryRun }) => {
+        try {
+          const transitionsData = await apiGet<{ transitions: Array<{ id: string; name: string }> }>(
+            base(),
+            `/rest/api/2/issue/${encodeURIComponent(key)}/transitions`
+          );
+          const match = transitionsData.transitions.find(
+            (t) => t.name.toLowerCase() === transitionName.toLowerCase()
+          );
+          if (dryRun ?? true) {
+            return textResult({
+              dryRun: true,
+              key,
+              requestedTransition: transitionName,
+              matched: match ?? null,
+              availableTransitions: transitionsData.transitions.map((t) => t.name),
+            });
+          }
+          if (!match) {
+            throw new Error(
+              `No transition named "${transitionName}" for ${key}. Available: ${transitionsData.transitions
+                .map((t) => t.name)
+                .join(", ")}`
+            );
+          }
+          const data = await apiPost(base(), `/rest/api/2/issue/${encodeURIComponent(key)}/transitions`, {
+            transition: { id: match.id },
+            ...(comment ? { update: { comment: [{ add: { body: comment } }] } } : {}),
+          });
+          return textResult(data ?? { transitioned: key, to: match.name });
         } catch (err) {
           return errorResult(err);
         }
