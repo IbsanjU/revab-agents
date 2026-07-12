@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import { createWriteStream } from "fs";
 import path from "path";
+import os from "os";
 import { z } from "zod";
 import PDFDocument from "pdfkit";
 import { PDFParse } from "pdf-parse";
@@ -8,10 +9,13 @@ import * as mammoth from "mammoth";
 import { imageSize } from "image-size";
 import { fileTypeFromBuffer } from "file-type";
 import { Document, Packer, Paragraph, HeadingLevel, TextRun } from "docx";
+import { createWorker } from "tesseract.js";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { intEnv } from "../shared/config.js";
 import { resolveWithinRoot } from "../../utils/fsSafety.js";
 import { resolveProjectRepoPath } from "../../utils/manifest.js";
+import { parseDiagram } from "../../utils/diagramParse.js";
+import { execCommand } from "../../utils/exec.js";
 
 /**
  * Media MCP server: reads/writes multimedia and document files so their content
@@ -51,6 +55,33 @@ const SectionSchema = z.object({
   heading: z.string().optional().describe("Optional section heading"),
   body: z.string().describe("Section body text (plain text; newlines become paragraph breaks)"),
 });
+
+interface OcrBlock {
+  text: string;
+  confidence: number;
+  bbox: { x0: number; y0: number; x1: number; y1: number };
+}
+
+/**
+ * OCR an image buffer with tesseract.js (fully local — no data leaves the machine;
+ * language traineddata is downloaded once and cached). Returns plain text plus
+ * block-level segments with bounding boxes and confidence, so agents can tell
+ * headings/labels apart from body text.
+ */
+async function ocrBuffer(buffer: Buffer, lang: string): Promise<{ text: string; confidence: number; blocks: OcrBlock[] }> {
+  const worker = await createWorker(lang);
+  try {
+    const { data } = await worker.recognize(buffer, {}, { text: true, blocks: true });
+    const blocks: OcrBlock[] = (data.blocks ?? []).map((b) => ({
+      text: b.text.trim(),
+      confidence: Math.round(b.confidence * 100) / 100,
+      bbox: b.bbox,
+    }));
+    return { text: data.text.trim(), confidence: Math.round(data.confidence * 100) / 100, blocks };
+  } finally {
+    await worker.terminate();
+  }
+}
 
 startMcpHttpServer({
   name: "media",
@@ -257,6 +288,144 @@ startMcpHttpServer({
           const buffer = await Packer.toBuffer(doc);
           await fs.writeFile(target, buffer);
 
+          return textResult({ savedTo: path.relative(root, target).replace(/\\/g, "/") });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "ocr_image",
+      {
+        description:
+          "OCR a local image (screenshot, scanned requirement doc, whiteboard photo) with a fully local " +
+          "tesseract engine — no data leaves the machine. Returns plain text plus block-level segments " +
+          "with bounding boxes and confidence scores so headings/labels can be told apart from body text.",
+        inputSchema: {
+          filePath: z.string().describe("Path to the image, relative to the repo (or the project's repo if `project` is given)"),
+          project: z.string().optional().describe("Manifest project name to resolve filePath against (default: this framework repo)"),
+          lang: z.string().optional().describe("Tesseract language code (default: eng)"),
+        },
+      },
+      async ({ filePath, project, lang }) => {
+        try {
+          const root = await resolveRoot(project);
+          const target = resolveWithinRoot(root, filePath);
+          const buffer = await readFileWithLimit(target);
+          const result = await ocrBuffer(buffer, lang ?? "eng");
+          return textResult(result);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "ocr_pdf",
+      {
+        description:
+          "OCR a scanned/image-only PDF page by page (read_pdf_text only handles PDFs with a text layer). " +
+          "Renders each page and runs local tesseract OCR on it. Slow for large PDFs — use maxPages.",
+        inputSchema: {
+          filePath: z.string().describe("Path to the PDF, relative to the repo (or the project's repo if `project` is given)"),
+          project: z.string().optional().describe("Manifest project name to resolve filePath against (default: this framework repo)"),
+          lang: z.string().optional().describe("Tesseract language code (default: eng)"),
+          maxPages: z.number().optional().describe("OCR at most this many pages (default 10)"),
+        },
+      },
+      async ({ filePath, project, lang, maxPages }) => {
+        const holder: { parser?: PDFParse } = {};
+        try {
+          const root = await resolveRoot(project);
+          const target = resolveWithinRoot(root, filePath);
+          const buffer = await readFileWithLimit(target);
+          const parser = new PDFParse({ data: buffer });
+          holder.parser = parser;
+          const limit = Math.max(1, maxPages ?? 10);
+          const shots = await parser.getScreenshot({ first: limit });
+          const pages: Array<{ pageNumber: number; text: string; confidence: number }> = [];
+          for (const page of shots.pages) {
+            const result = await ocrBuffer(Buffer.from(page.data), lang ?? "eng");
+            pages.push({ pageNumber: page.pageNumber, text: result.text, confidence: result.confidence });
+          }
+          return textResult({ totalPages: shots.total, ocrPages: pages.length, pages });
+        } catch (err) {
+          return errorResult(err);
+        } finally {
+          await holder.parser?.destroy();
+        }
+      }
+    );
+
+    server.registerTool(
+      "read_diagram",
+      {
+        description:
+          "Parse a structured diagram into a machine-readable { nodes, edges } graph. Supports " +
+          "draw.io/diagrams.net XML (.drawio/.xml), Mermaid flowchart/graph source, and PlantUML arrows " +
+          "— pass either a filePath or inline source. For raster-only diagrams (PNG/JPG flowcharts) use " +
+          "ocr_image instead and treat the output as best-effort, needing human confirmation.",
+        inputSchema: {
+          filePath: z.string().optional().describe("Path to the diagram file, relative to the repo (or the project's repo if `project` is given)"),
+          source: z.string().optional().describe("Inline diagram source (e.g. a mermaid block copied from a Confluence page or .md file)"),
+          project: z.string().optional().describe("Manifest project name to resolve filePath against (default: this framework repo)"),
+          format: z.enum(["drawio", "mermaid", "plantuml"]).optional().describe("Format hint (default: auto-detect)"),
+        },
+      },
+      async ({ filePath, source, project, format }) => {
+        try {
+          if (!filePath && !source) throw new Error("Provide either filePath or source.");
+          let content = source;
+          if (filePath) {
+            const root = await resolveRoot(project);
+            const target = resolveWithinRoot(root, filePath);
+            const ext = path.extname(target).toLowerCase();
+            if ([".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp"].includes(ext)) {
+              throw new Error(
+                "Raster image diagrams have no parseable structure — run ocr_image on this file instead " +
+                  "and treat the extracted blocks as best-effort input that needs human confirmation."
+              );
+            }
+            content = (await readFileWithLimit(target)).toString("utf8");
+          }
+          return textResult(parseDiagram(content!, format));
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "create_diagram",
+      {
+        description:
+          "Render Mermaid diagram source to an SVG or PNG file (via @mermaid-js/mermaid-cli, run through npx " +
+          "on demand), so agents can author architecture/flow diagrams for docs and Confluence pages.",
+        inputSchema: {
+          source: z.string().describe("Mermaid diagram source, e.g. 'flowchart TD\\n A --> B'"),
+          targetPath: z.string().describe("Where to write the rendered .svg or .png, relative to the repo (or the project's repo if `project` is given)"),
+          project: z.string().optional().describe("Manifest project name to resolve targetPath against (default: this framework repo)"),
+        },
+      },
+      async ({ source, targetPath, project }) => {
+        try {
+          const root = await resolveRoot(project);
+          const target = resolveWithinRoot(root, targetPath);
+          const ext = path.extname(target).toLowerCase();
+          if (![".svg", ".png"].includes(ext)) throw new Error("targetPath must end in .svg or .png");
+          await fs.mkdir(path.dirname(target), { recursive: true });
+          const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "revab-mermaid-"));
+          const inputFile = path.join(tmpDir, "diagram.mmd");
+          try {
+            await fs.writeFile(inputFile, source, "utf8");
+            const result = await execCommand("npx", ["-y", "@mermaid-js/mermaid-cli", "-i", inputFile, "-o", target]);
+            if (result.code !== 0) {
+              throw new Error(`mermaid-cli failed (exit ${result.code}):\n${result.stderr.slice(-2000)}`);
+            }
+          } finally {
+            await fs.rm(tmpDir, { recursive: true, force: true });
+          }
           return textResult({ savedTo: path.relative(root, target).replace(/\\/g, "/") });
         } catch (err) {
           return errorResult(err);

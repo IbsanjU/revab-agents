@@ -4,33 +4,39 @@ description: Extract requirement text from an image attachment (screenshot, whit
 ---
 # Extract requirements from image
 
-## Current capability
-No OCR MCP tool exists yet in this framework (`revab-agents` has no vision/OCR
-capability wired up). Until one is added, this skill's role is to:
+## Playbook
 1. Download the attachment via `confluence_download_attachment` (or the equivalent
    Jira attachment path) and confirm the file is reachable.
-2. If the calling agent/model has native image-reading capability, read the image
-   directly and transcribe only what is visibly legible — never infer or guess text
-   that isn't clearly readable.
-3. If no image-reading capability is available, tell the user explicitly that OCR is
-   not yet automated and ask them to paste the text manually, rather than fabricating
-   content.
+2. **Structured diagrams first**: if the file is a draw.io/diagrams.net XML export
+   (`.drawio`/`.xml`) or contains Mermaid/PlantUML source, use the media server's
+   `read_diagram` tool — it returns a machine-readable `{ nodes, edges }` graph that
+   is the preferred citation source (exact labels, no transcription risk).
+3. **Raster images**: run the media server's `ocr_image` tool (local tesseract; no
+   data leaves the machine). Prefer its block output — each block carries a bounding
+   box and a confidence score, so headings/labels can be told apart from body text.
+   Discard or flag blocks with low confidence; never "fix up" garbled OCR by guessing.
+4. **Scanned PDFs**: if the attachment is an image-only PDF, use `ocr_pdf` (per-page
+   OCR) instead of `read_pdf_text`.
+5. Cross-check with native vision if available: when the calling model can read the
+   image directly, use it to *verify* the OCR/diagram output, not to replace it —
+   the tool output is the citation source.
+6. For raster flowcharts/diagrams (no parseable structure), combine `ocr_image` block
+   output with visual layout interpretation and mark the result explicitly as
+   **best-effort, needs human confirmation**.
 
-## Output format (once text is obtained)
+## Output format
 Produce a requirement fragment record:
 ```
-{ text, sourceType: "image", sourceId: "<attachment id/url>", location: "<page/coords if known>" }
+{ text, sourceType: "image", sourceId: "<attachment id/url>", location: "<page/coords or ocr block bbox>" }
 ```
+For diagrams, `text` may be a node/edge summary (e.g. "Login page --submit--> Validation").
 Feed this into the researcher brief / test-planner input alongside Jira/Confluence
 sources — it must carry the same citation weight, not be treated as lower-confidence
 without saying so.
 
-## Future work (not yet implemented)
-Adding a dedicated OCR MCP tool (e.g. wrapping `tesseract.js`) is the recommended next
-step so this skill can extract text automatically instead of relying on native vision
-or manual transcription. Track this as a known gap in `knowledge/learnings.md` until
-built.
-
 ## Rules
 - Never invent or guess requirement text from an image you cannot clearly read.
-- Always state explicitly which parts of the image were illegible/ambiguous.
+- Always state explicitly which parts of the image were illegible/ambiguous (include
+  the OCR confidence for anything borderline).
+- Raster-diagram interpretations are best-effort: get user confirmation before any
+  generated test case cites them.
