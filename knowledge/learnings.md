@@ -32,5 +32,10 @@ Entry format:
 - Added `npm run knowledge:rotate` (`scripts/rotate-learnings.ts`): archives all-but-current-month dated entries from `knowledge/learnings.md` into `knowledge/learnings/<YYYY-MM>.md` once the main file exceeds ~8KB; no-op below that threshold.
 - Deferred: a dedicated OCR/speech-to-text MCP server (still the biggest documented capability gap) — not built this pass, flagged as the highest-leverage next server if image/video requirement extraction becomes a frequent real workflow.
 
+### 2026-07-12
+- Hardening pass landed: shared HTTP-server helper hardening, `knowledge_search` artifacts tool, docs-drift lint in `check:conventions` (every registered MCP tool name must appear in both `README.md` and `knowledge/memory.md`; every server dir must be in `.vscode/mcp.json`), and a CI workflow (`.github/workflows/ci.yml`: typecheck + test + check:conventions) with explicit least-privilege `permissions`.
+- CodeQL findings fixed and verified clean: `utils/diagramParse.ts` entity decoding rewritten as a single-pass regex replace (avoids double-decoding/incomplete-sanitization class of bugs); CI workflow given explicit `permissions` block.
+- Full validation green on this branch: `npm run typecheck`, `npm test` (57 tests), `npm run check:conventions`, CodeQL (0 alerts).
+
 ### 2026-07-11
 - Removed `fixtures/sample-target-repo/` entirely — this is a generic agent framework meant to operate on any external target project or standalone, not something that needs a bundled sample project to demonstrate itself. `projects.manifest.json` now ships a `my-project` placeholder entry (`repoPath`/`repoUrl` both to be filled in by the adopter) since the schema requires at least one project. Updated `README.md`, `.github/copilot-instructions.md`, `agents/registry.ts` payload examples, and `knowledge/memory.md` accordingly.
