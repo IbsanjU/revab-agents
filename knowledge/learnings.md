@@ -39,3 +39,7 @@ Entry format:
 
 ### 2026-07-11
 - Removed `fixtures/sample-target-repo/` entirely — this is a generic agent framework meant to operate on any external target project or standalone, not something that needs a bundled sample project to demonstrate itself. `projects.manifest.json` now ships a `my-project` placeholder entry (`repoPath`/`repoUrl` both to be filled in by the adopter) since the schema requires at least one project. Updated `README.md`, `.github/copilot-instructions.md`, `agents/registry.ts` payload examples, and `knowledge/memory.md` accordingly.
+
+### 2026-07-12 (prompt-pattern hardening)
+- Adopted production-prompt patterns (as patterns only — no external prompt text copied): every `skills/*/SKILL.md` now has a fixed **Output** contract section; `.github/copilot-instructions.md` gained Good/Bad example pairs for hard rules #8/#9/#10 and a shared **Agent conduct** section (tool discipline, when-blocked escalation template, verbosity calibration, executing-agent completion checklist, anti-hallucination anchors, memory hygiene, per-agent can/cannot/must-not boundaries).
+- Deferred: propagating/echoing the shared Agent conduct sections into the individual `.github/agents/*.agent.md` personas — the cloud execution environment cannot access that directory; do this in a local session if per-persona tightening is wanted. Plan: `knowledge/plans/framework/2026-07-12-prompt-pattern-hardening.md`.

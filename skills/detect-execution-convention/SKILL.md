@@ -27,6 +27,13 @@ repo already has it configured.
 4. Record the decision (and evidence) in `knowledge/learnings.md` via `knowledge_append`,
    scoped per project, so the `reporter` and `automation` agents don't re-detect every run.
 
+## Output
+Respond with exactly these sections, in this order:
+1. **Decision** — one line: `execution.mode` chosen (`local` | `browserstack` | `custom`) for the project.
+2. **Evidence** — the files/deps `detect_conventions` actually found (versions, config files), never assumptions.
+3. **Manifest change** — the exact `execution` field values persisted (or the one targeted question asked if unresolved).
+4. **Recorded** — the `knowledge/learnings.md` entry appended for this decision.
+
 ## Rules
 - Never add BrowserStack devDependencies/config to a target repo that doesn't already have them, even if asked to "add mobile testing" — clarify with the user first per step 3.
 - Detection evidence (which files/deps were found) must be stated, not assumed.

@@ -17,6 +17,13 @@ description: Create or update JTMF test-case issues from generated test cases, w
    as a citation comment (e.g. `# JTMF: ABC-321`) via the `codegen` tool, so the
    requirement → test-case → automation trail stays intact.
 
+## Output
+Respond with exactly these sections, in this order:
+1. **Dedup result** — existing JTMF matches found (keys + summaries), or "No duplicates found".
+2. **Preview** — the exact create/update payload(s) from the `dryRun: true` call (this is what the user approves).
+3. **Confirmation status** — awaiting approval / approved / declined.
+4. **Result** — after an approved write: created/updated JTMF keys and the feature files annotated with citation comments.
+
 ## Rules
 - Every test case pushed to JTMF must carry the same source citation used when it was
   generated (Jira key / Confluence page / transcript timestamp) in its description.

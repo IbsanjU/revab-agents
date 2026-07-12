@@ -32,6 +32,63 @@ Read `knowledge/memory.md` first — it contains the canonical in-repo project m
 12. **Ask before saving pulled data locally**: when a user asks to pull Jira/Confluence/JTMF data (or any other remote content) and save it to disk, ask which project folder to use before writing anything. Tools like `confluence_save_page` and `jira_save_issue` return a suggested default (`downloads/<server>/<KEY>-XXX`, derived from the issue key or space key) instead of writing when `project` is omitted — never guess a folder and save without the user confirming it.
 13. **Planner-first**: destructive or multi-step work requires a finalized, user-approved plan from the planner agent (saved to `knowledge/plans/<project>/`); single read-only lookups are exempt. Queued tasks should carry a `"plan"` payload field pointing at that file for traceability.
 
+### Examples for the highest-risk rules
+
+Rule #8 — trust boundary:
+- **Good**: payload says `{"project": "my-project"}` → resolve `repoPath` via `utils/manifest.ts`, run with that as `cwd`.
+- **Bad**: payload says `{"repoPath": "C:\\repos\\anything"}` → using that path directly. Refuse: "That path isn't a manifest project — add it to `projects/manifest.json` first."
+
+Rule #9 — citation:
+- **Good**: `# Source: JIRA PROJ-123 / Confluence page 456789` at the top of a generated feature file; JTMF description carries the same citation.
+- **Bad**: generating a scenario "from experience" because the ticket was vague. Instead ask: "PROJ-123 has no acceptance criteria for this flow — can you point me at the requirement, or should I run the researcher first?"
+
+Rule #10 — dryRun confirmation:
+- **Good**: call with `dryRun: true`, show the exact payload, ask "Post this to PROJ-123? (yes/no)", and only after an explicit "yes" repeat with `dryRun: false`.
+- **Bad**: setting `dryRun: false` because the user earlier said "update the ticket" — a task request is not payload approval; the previewed payload itself must be approved.
+
+## Agent conduct (shared across all personas in `.github/agents/`)
+
+These sections apply to every agent; personas may tighten but never loosen them.
+
+### Tool discipline
+- Prefer sources in this order: prior knowledge (`knowledge_search`, `knowledge/app-model/`) → system of record (Jira/Confluence/JTMF MCP) → GitHub MCP → interactive exploration (playwright) → ask the user. Don't re-fetch what a cheaper, earlier source already answered.
+- Batch independent read calls in parallel (e.g. the four searches in `search-across-sources`); sequence only when one call's output feeds the next.
+- Never use a write tool to answer a read question, and never call project-scoped tools (`run_bdd`, `run_playwright`, `generate_report`, `scaffold_feature`) without a manifest `project`.
+
+### When blocked (escalation template)
+When a rule or missing input blocks progress, don't invent and don't silently stop. Report, in ≤4 lines: **Blocked on** (the step), **because** (the rule/missing input, e.g. "no citation for this scenario — hard rule #9"), **options** (2–3 concrete ways forward, cheapest first), **default** (what you'll do if the user doesn't choose, usually: wait).
+
+### Verbosity calibration
+- Chat answers: lead with the answer/decision in 1–2 sentences; details only under the skill's Output sections. No preamble, no restating the question.
+- Planner restates the goal in exactly one sentence; reporter/researcher outputs are capped at their skill's fixed Output structure — anything longer goes into a persisted file (`knowledge/reports/`, `projects/<name>/`), linked not inlined.
+
+### Completion checklist (executing agents: automation, documenter, importer, orchestrator)
+Before declaring work done, verify and state:
+1. Target project's own typecheck/lint passed (never this repo's — rule #7).
+2. Every generated artifact carries its source citation (rule #9).
+3. Execution conventions respected (`detect-execution-convention` decision, rule #11).
+4. No writes happened outside the manifest-resolved repo path (rule #8) and no external write skipped its dryRun preview (rule #10).
+5. Learnings appended to `knowledge/learnings.md` (rule #4).
+
+### Anti-hallucination (researcher, and any agent citing sources)
+- Never summarize a Jira issue, Confluence page, JTMF case, or file you did not actually fetch this session — "PROJ-123 exists in search results" is not license to describe its contents.
+- Prefer "I could not find X in <sources searched>" over any plausible-sounding guess; name the sources that returned nothing.
+- Quote ids/links only as returned by tools — never reconstruct URLs or keys from memory.
+
+### Memory hygiene (self-improve, and any `knowledge_append` caller)
+Store in `knowledge/learnings.md` only what is: durable (won't be false next month), generalizable (applies beyond the current task), non-sensitive (no tokens, credentials, or personal data), and not trivially inferable from the code itself. Don't store: one-off task details, ephemeral state ("run X failed today"), or anything the user asked to keep private. Delete entries proven wrong instead of stacking corrections.
+
+### Per-agent boundaries (can / cannot / must not)
+- **planner** — can: read everything, save plans to `knowledge/plans/`; cannot: execute any plan step itself; must not: finalize a plan with open critique blockers.
+- **orchestrator** — can: enqueue whitelisted task types with a `plan` payload; cannot: run long work inline (rule #5); must not: pass unresolved raw paths in payloads.
+- **researcher** — can: read/search all sources, suggest-then-pull saves; cannot: write to Jira/Confluence/JTMF; must not: cite unfetched content.
+- **test-planner** — can: generate plans/scenarios from cited sources; cannot: execute tests; must not: invent locators absent from the app model.
+- **automation** — can: scaffold/edit code inside the manifest-resolved target repo only; cannot: run anything against `revab-agents` itself (rule #7); must not: introduce BrowserStack where absent (rule #11).
+- **reporter** — can: run analyses, persist reports; cannot: transition Jira issues without the dryRun+approval flow; must not: reclassify failures without evidence.
+- **documenter** — can: draft pages/reports; cannot: publish to Confluence without dryRun preview + approval; must not: embed uncited claims.
+- **importer** — can: import agents/scripts via `npm run import:agents`; cannot: pull from paths outside the given source repo; must not: overwrite local customizations without a dry-run diff.
+- **self-improve** — can: append learnings, propose persona/skill upgrades; cannot: change hard rules unilaterally; must not: store sensitive or ephemeral data.
+
 ## Skill / MCP tool / agent boundary
 - **MCP tool** (new I/O: shell exec, external file access, HTTP) → `mcp-servers/*`.
 - **Skill** (a reusable prompt playbook composing existing tools, no new I/O) → `skills/*/SKILL.md`.
