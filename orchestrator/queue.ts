@@ -34,6 +34,8 @@ export interface Task {
   error?: string;
   /** Number of times this task has been reclaimed from a stale "running" state. */
   reclaimCount?: number;
+  /** Number of times this task has been retried after a handler failure (opt-in via payload.retryOnFailure). */
+  retryCount?: number;
 }
 
 async function ensureDirs(): Promise<void> {
@@ -90,6 +92,18 @@ export async function fail(task: Task, error: unknown): Promise<void> {
   task.finishedAt = new Date().toISOString();
   task.error = error instanceof Error ? error.message : String(error);
   await writeTask(DIRS.failed, task);
+  await fs.rm(path.join(DIRS.running, `${task.id}.json`), { force: true });
+}
+
+/**
+ * Requeue a running task for a retry (e.g. after a transient failure when the payload
+ * opts in with `retryOnFailure: true`). Increments retryCount and clears startedAt so
+ * claimNext picks it up again.
+ */
+export async function requeue(task: Task): Promise<void> {
+  task.retryCount = (task.retryCount ?? 0) + 1;
+  task.startedAt = undefined;
+  await writeTask(DIRS.pending, task);
   await fs.rm(path.join(DIRS.running, `${task.id}.json`), { force: true });
 }
 
