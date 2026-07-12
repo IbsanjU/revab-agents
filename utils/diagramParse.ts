@@ -32,14 +32,18 @@ export interface DiagramGraph {
 
 /** Strip HTML tags and decode common entities from draw.io labels. */
 function cleanLabel(raw: string): string {
+  const entities: Record<string, string> = {
+    "&lt;": "<",
+    "&gt;": ">",
+    "&amp;": "&",
+    "&quot;": '"',
+    "&#39;": "'",
+    "&apos;": "'",
+    "&nbsp;": " ",
+  };
   return raw
     .replace(/<[^>]*>/g, " ")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&nbsp;/g, " ")
+    .replace(/&(?:lt|gt|amp|quot|#39|apos|nbsp);/g, (m) => entities[m])
     .replace(/\s+/g, " ")
     .trim();
 }
