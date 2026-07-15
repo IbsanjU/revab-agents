@@ -49,11 +49,21 @@ user as an open question for that row rather than guessing a plausible value.
 - Single ticket: `jira_create_issue` with `dryRun: true` (default) — show the exact payload.
 - Batch: `jira_bulk_create_issues` with `dryRun: true` (default) — show the full batch
   preview, including any rows flagged as potential duplicates and any rows you flagged as
-  missing required fields in step 2.
+  missing required fields in step 2. A row that needs to land somewhere other than the
+  workflow's default status can carry a `transitionName`, applied right after that row's
+  create succeeds.
 - Get explicit user confirmation on the previewed payload before setting `dryRun: false`.
   Approval is scoped to that exact preview — re-preview and re-confirm if anything changes.
 - After creation, assign owners (`jira_assign_issue`, dryRun-first) for rows that didn't
   carry an inline `assignee` field, and report created keys + links back to the user.
+
+### 4a. Bulk-editing existing tickets
+When the request is to change a batch of *existing* tickets (reassign a component's
+backlog, bump priority on a list of rows, move a set of tickets to a new status), use the
+`bulk-update-tickets` skill (`jira_bulk_update_issues`, dryRun-first) rather than looping
+single-ticket `jira_update_issue`/`jira_transition_issue` calls. If the target set comes
+from a JQL query, resolve and show the matching keys via `jira_search` before updating
+anything — never update off an unconfirmed query.
 
 ### 5. Tracking (on request, or after a bulk create)
 - `jira_get_boards` -> `jira_get_sprints` to find the active sprint/board.
@@ -71,8 +81,8 @@ user as an open question for that row rather than guessing a plausible value.
 - Every ticket you create must cite its source: the file name + row number, or "from chat
   request on <date>" — put it in the description or as a comment, so the batch is auditable.
 - Dry-run first for every write (`jira_create_issue`, `jira_bulk_create_issues`,
-  `jira_assign_issue`, `jira_update_issue`, `jira_transition_issue`, `jira_move_to_sprint`) —
-  hard rule 10, no exceptions.
+  `jira_assign_issue`, `jira_update_issue`, `jira_bulk_update_issues`,
+  `jira_transition_issue`, `jira_move_to_sprint`) — hard rule 10, no exceptions.
 - Don't fabricate story points, priority, or acceptance criteria absent from the source —
   ask.
 

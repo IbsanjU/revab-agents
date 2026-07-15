@@ -31,6 +31,11 @@ Team/org conventions the agents must follow. The self-improvement agent updates 
   (`byComponent` -> `byLabel` -> `byIssueType` -> `defaultAssignee`, per the `route-assignee`
   skill) and turn the matched name into a verified `accountId` via `jira_search_users` before
   ever assigning — never assign a raw name or a `null` placeholder accountId.
+- **Bulk update, not just bulk create**: `jira_bulk_update_issues` covers batch field
+  changes and/or status transitions (per row) — don't loop `jira_update_issue`/
+  `jira_transition_issue` one issue at a time when a batch of tickets needs the same kind
+  of change. `jira_bulk_create_issues` also accepts an optional per-row `transitionName` to
+  move a newly created ticket out of its default status in the same call.
 - **No deletes**: `jira_delete_issue` exists in `mcp-servers/jira/index.ts` but its
   `registerTool` call is intentionally commented out — the running `jira` server cannot
   delete an issue. Correct or transition a ticket instead (`jira_update_issue` /

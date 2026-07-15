@@ -27,9 +27,14 @@ description: Turn an uploaded Excel/CSV sheet (or a chat-described list of requi
    user asks for changes, re-run the preview and re-confirm.
 7. **Create**: call again with `dryRun: false`. The tool is partial-failure tolerant — read
    the per-row `results` (created / skipped-as-duplicate / error) rather than assuming an
-   all-or-nothing outcome.
+   all-or-nothing outcome. If a row needs to land in a non-default status (e.g. "Ready for
+   Grooming" instead of the workflow's default "To Do"), set that row's `transitionName` in
+   the draft — it's applied right after a successful, non-duplicate create; a transition
+   failure is reported per-row (`transitionError`) without undoing the create.
 8. **Assign**: for created rows that didn't carry an inline assignee in the create payload,
-   call `jira_assign_issue` (dryRun-first) using the accountId resolved in step 4.
+   call `jira_assign_issue` (dryRun-first) using the accountId resolved in step 4. For a
+   batch of *existing* tickets needing the same field change or status move later, use the
+   `bulk-update-tickets` skill instead of looping single-ticket calls.
 9. **Cite the source**: each created ticket's description (or a follow-up comment via
    `jira_add_comment`) should note where it came from — file name + row number, or "bulk
    chat request on <date>".

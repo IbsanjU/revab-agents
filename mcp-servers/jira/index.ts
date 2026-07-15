@@ -18,6 +18,32 @@ function escapeJqlString(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
+/** Fetch an issue's available transitions and case-insensitively match one by name. */
+async function findTransition(
+  key: string,
+  transitionName: string
+): Promise<{ match: { id: string; name: string } | null; available: string[] }> {
+  const data = await apiGet<{ transitions: Array<{ id: string; name: string }> }>(
+    base(),
+    `/rest/api/2/issue/${encodeURIComponent(key)}/transitions`
+  );
+  const match = data.transitions.find((t) => t.name.toLowerCase() === transitionName.toLowerCase()) ?? null;
+  return { match, available: data.transitions.map((t) => t.name) };
+}
+
+/** Apply a transition by name to an issue, throwing with the available-transitions list if no match. */
+async function applyTransition(key: string, transitionName: string, comment?: string): Promise<{ transitionedTo: string }> {
+  const { match, available } = await findTransition(key, transitionName);
+  if (!match) {
+    throw new Error(`No transition named "${transitionName}" for ${key}. Available: ${available.join(", ")}`);
+  }
+  await apiPost(base(), `/rest/api/2/issue/${encodeURIComponent(key)}/transitions`, {
+    transition: { id: match.id },
+    ...(comment ? { update: { comment: [{ add: { body: comment } }] } } : {}),
+  });
+  return { transitionedTo: match.name };
+}
+
 const BulkIssueDraft = z.object({
   projectKey: z.string().describe("Jira project key, e.g. ABC"),
   issueType: z.string().describe("Issue type name, e.g. Story, Bug, Task"),
@@ -25,7 +51,24 @@ const BulkIssueDraft = z.object({
   description: z.string().optional(),
   labels: z.array(z.string()).optional(),
   fields: z.record(z.unknown()).optional().describe("Additional raw Jira fields to merge in (e.g. assignee, priority, components, story points, epic link, sprint)"),
+  transitionName: z
+    .string()
+    .optional()
+    .describe(
+      "Optional status to transition the new issue to immediately after creation, e.g. 'Ready for Grooming' " +
+        "(case-insensitive match against that issue's own available transitions — can't be pre-validated in " +
+        "the dryRun preview since the issue doesn't exist yet)"
+    ),
 });
+
+const BulkUpdateDraft = z
+  .object({
+    key: z.string().describe("Issue key to update, e.g. ABC-123"),
+    fields: z.record(z.unknown()).optional().describe("Jira field map to update, e.g. { priority: { name: 'High' } }"),
+    transitionName: z.string().optional().describe("Target status/transition name to apply, e.g. 'Done' (case-insensitive match)"),
+    comment: z.string().optional().describe("Optional comment to add with the transition"),
+  })
+  .refine((v) => v.fields || v.transitionName, { message: "Each row needs fields and/or transitionName" });
 
 startMcpHttpServer({
   name: "jira",
@@ -256,7 +299,9 @@ startMcpHttpServer({
           "read_excel_rows/read_csv_rows) or a list of chat-described tickets. Dedup-checks every row against " +
           "existing issues by summary before creating (set skipDedupe to bypass). dryRun (default true) returns " +
           "the full batch preview — including any detected duplicates — without creating anything. Each row " +
-          "succeeds/fails/skips independently; a bad row never blocks the rest of the batch.",
+          "succeeds/fails/skips independently; a bad row never blocks the rest of the batch. Each draft may " +
+          "carry a transitionName to move the new issue out of its default status right after creation " +
+          "(applied only on a real, non-duplicate create; a transition failure doesn't undo the create).",
         inputSchema: {
           issues: z.array(BulkIssueDraft).min(1).describe("Issue drafts to create"),
           skipDedupe: z.boolean().optional().describe("Skip the pre-create duplicate search (default false)"),
@@ -287,7 +332,7 @@ startMcpHttpServer({
                   .filter((i) => i.fields.summary.trim().toLowerCase() === draft.summary.trim().toLowerCase())
                   .map((i) => ({ key: i.key, summary: i.fields.summary, url: buildJiraIssueUrl(base(), i.key) }));
               }
-              return { index, fields: payloadFields, potentialDuplicates };
+              return { index, fields: payloadFields, potentialDuplicates, requestedTransition: draft.transitionName ?? null };
             })
           );
 
@@ -303,7 +348,16 @@ startMcpHttpServer({
             }
             try {
               const data = await apiPost<{ key: string }>(base(), "/rest/api/2/issue", { fields: row.fields });
-              results.push({ index: row.index, key: data.key, url: buildJiraIssueUrl(base(), data.key) });
+              const created: Record<string, unknown> = { index: row.index, key: data.key, url: buildJiraIssueUrl(base(), data.key) };
+              if (row.requestedTransition) {
+                try {
+                  const transitionResult = await applyTransition(data.key, row.requestedTransition);
+                  created.transitionedTo = transitionResult.transitionedTo;
+                } catch (transitionErr) {
+                  created.transitionError = transitionErr instanceof Error ? transitionErr.message : String(transitionErr);
+                }
+              }
+              results.push(created);
             } catch (err) {
               results.push({ index: row.index, error: err instanceof Error ? err.message : String(err) });
             }
@@ -312,6 +366,86 @@ startMcpHttpServer({
             batchSize: issues.length,
             created: results.filter((r) => "key" in r).length,
             skipped: results.filter((r) => r.skipped).length,
+            failed: results.filter((r) => "error" in r).length,
+            results,
+          });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_bulk_update_issues",
+      {
+        description:
+          "Update many Jira issues in one batch — a field change, a status transition, or both per row " +
+          "(e.g. bump priority on a list of ticket keys, or move a list of tickets to a new status). " +
+          "dryRun (default true) previews every row's intended field diff and matched transition (transitions " +
+          "are resolved against each issue's own available transitions, same lookup as jira_transition_issue) " +
+          "without applying anything. Partial-failure tolerant: each row succeeds/fails independently, and a " +
+          "field update is applied even if that same row's transition then fails (reported separately).",
+        inputSchema: {
+          updates: z
+            .array(BulkUpdateDraft)
+            .min(1)
+            .describe("Update rows: { key, fields?, transitionName?, comment? } — fields and/or transitionName required per row"),
+          dryRun: z.boolean().optional().describe("If true (default), return the full batch preview without applying anything"),
+        },
+      },
+      async ({ updates, dryRun }) => {
+        try {
+          const preview = await Promise.all(
+            updates.map(async (row, index) => {
+              let matchedTransition: { id: string; name: string } | null = null;
+              let availableTransitions: string[] | undefined;
+              if (row.transitionName) {
+                const { match, available } = await findTransition(row.key, row.transitionName).catch(() => ({
+                  match: null,
+                  available: [] as string[],
+                }));
+                matchedTransition = match;
+                availableTransitions = available;
+              }
+              return {
+                index,
+                key: row.key,
+                wouldUpdateFields: row.fields ?? null,
+                requestedTransition: row.transitionName ?? null,
+                matchedTransition,
+                availableTransitions,
+              };
+            })
+          );
+
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, batchSize: updates.length, preview });
+          }
+
+          const results: Array<Record<string, unknown>> = [];
+          for (const row of updates) {
+            const rowResult: Record<string, unknown> = { key: row.key };
+            try {
+              if (row.fields) {
+                await apiPut(base(), `/rest/api/2/issue/${encodeURIComponent(row.key)}`, { fields: row.fields });
+                rowResult.fieldsUpdated = true;
+              }
+              if (row.transitionName) {
+                try {
+                  const transitionResult = await applyTransition(row.key, row.transitionName, row.comment);
+                  rowResult.transitionedTo = transitionResult.transitionedTo;
+                } catch (transitionErr) {
+                  rowResult.transitionError = transitionErr instanceof Error ? transitionErr.message : String(transitionErr);
+                }
+              }
+              results.push(rowResult);
+            } catch (err) {
+              results.push({ key: row.key, error: err instanceof Error ? err.message : String(err) });
+            }
+          }
+          return textResult({
+            batchSize: updates.length,
+            succeeded: results.filter((r) => !("error" in r)).length,
             failed: results.filter((r) => "error" in r).length,
             results,
           });
@@ -390,34 +524,18 @@ startMcpHttpServer({
       },
       async ({ key, transitionName, comment, dryRun }) => {
         try {
-          const transitionsData = await apiGet<{ transitions: Array<{ id: string; name: string }> }>(
-            base(),
-            `/rest/api/2/issue/${encodeURIComponent(key)}/transitions`
-          );
-          const match = transitionsData.transitions.find(
-            (t) => t.name.toLowerCase() === transitionName.toLowerCase()
-          );
+          const { match, available } = await findTransition(key, transitionName);
           if (dryRun ?? true) {
             return textResult({
               dryRun: true,
               key,
               requestedTransition: transitionName,
-              matched: match ?? null,
-              availableTransitions: transitionsData.transitions.map((t) => t.name),
+              matched: match,
+              availableTransitions: available,
             });
           }
-          if (!match) {
-            throw new Error(
-              `No transition named "${transitionName}" for ${key}. Available: ${transitionsData.transitions
-                .map((t) => t.name)
-                .join(", ")}`
-            );
-          }
-          const data = await apiPost(base(), `/rest/api/2/issue/${encodeURIComponent(key)}/transitions`, {
-            transition: { id: match.id },
-            ...(comment ? { update: { comment: [{ add: { body: comment } }] } } : {}),
-          });
-          return textResult(data ?? { transitioned: key, to: match.name });
+          const result = await applyTransition(key, transitionName, comment);
+          return textResult({ transitioned: key, ...result });
         } catch (err) {
           return errorResult(err);
         }
