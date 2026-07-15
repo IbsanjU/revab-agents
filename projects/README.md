@@ -9,6 +9,7 @@ projects/
   <project-name>/
     project.json           # full config: repoPath/repoUrl, testPaths, jira/confluence/jtmf ids, execution mode
     app-model.md           # living app map (moved from knowledge/app-model/<project>.md)
+    team-roster.json       # component/label/issueType -> assignee accountId, for the bsa agent's route-assignee skill
     downloads/             # pulled Jira/Confluence/GitHub content for this project
     reports/               # consolidated project reports
     test-plans/            # persisted test plans

@@ -15,6 +15,33 @@ Team/org conventions the agents must follow. The self-improvement agent updates 
 - No hard waits; web-first assertions.
 - BrowserStack only if already configured in the target project (see `detect-execution-convention` skill) — never introduced by default.
 
+## BSA / ticket authoring
+- **Required fields by issue type** (the `bsa` agent's `bulk-create-tickets` skill validates
+  against this before previewing a create):
+  - All types: summary, description (context + why), issue type, project key.
+  - Story: + acceptance criteria, component, priority, story points (only if the source gives
+    an estimate — never invent one).
+  - Bug: + steps to reproduce, expected vs. actual, severity/priority.
+  - Task: + owner-facing deliverable description, priority.
+  - Epic: + goal/outcome statement, target components.
+  - A row missing a required field is still previewed (flagged `incomplete` with the missing
+    field names) — never fabricate the missing value to make a row pass validation.
+- **Assignee routing**: explicit assignee named in the source (Excel column, chat request)
+  always wins; otherwise resolve via `projects/<project>/team-roster.json`
+  (`byComponent` -> `byLabel` -> `byIssueType` -> `defaultAssignee`, per the `route-assignee`
+  skill) and turn the matched name into a verified `accountId` via `jira_search_users` before
+  ever assigning — never assign a raw name or a `null` placeholder accountId.
+- **Bulk update, not just bulk create**: `jira_bulk_update_issues` covers batch field
+  changes and/or status transitions (per row) — don't loop `jira_update_issue`/
+  `jira_transition_issue` one issue at a time when a batch of tickets needs the same kind
+  of change. `jira_bulk_create_issues` also accepts an optional per-row `transitionName` to
+  move a newly created ticket out of its default status in the same call.
+- **No deletes**: `jira_delete_issue` exists in `mcp-servers/jira/index.ts` but its
+  `registerTool` call is intentionally commented out — the running `jira` server cannot
+  delete an issue. Correct or transition a ticket instead (`jira_update_issue` /
+  `jira_transition_issue`). Re-enabling it is a deliberate, separate decision (uncomment +
+  restart the server), never a silent workaround for "the user asked to delete something."
+
 ## Process
 - Long tasks go through the orchestrator queue, not blocking calls.
 - Project-scoped tools/tasks always require a `project` name resolved via `utils/manifest.ts` — never a raw path/URL.

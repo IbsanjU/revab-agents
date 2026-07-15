@@ -9,9 +9,9 @@ Centralized multi-agent QE automation framework — works in VS Code **without**
 | Area | Location | Purpose |
 | --- | --- | --- |
 | MCP servers | `mcp-servers/` | Jira, Confluence, JTMF, GitHub, Artifacts, Media, Notify, Playwright-runner, Allure-report, Codegen — local Streamable-HTTP servers registered in `.vscode/mcp.json` (loopback-only; optional `MCP_SHARED_SECRET` header auth) |
-| Agents | `.github/agents/` | planner, orchestrator, researcher, test-planner, automation, reporter, documenter, importer, self-improve |
+| Agents | `.github/agents/` | planner, orchestrator, researcher, test-planner, automation, reporter, documenter, importer, self-improve, bsa |
 | Orchestrator | `orchestrator/` + `agents/registry.ts` | async file-queue + polling worker for long-running, project-scoped tasks |
-| Manifest | `projects/` + `utils/manifest.ts` | per-project config and artifacts (`projects/<name>/`: `project.json`, `app-model.md`, `downloads/`, `reports/`, `test-plans/`) with `projects/manifest.json` as the index — the trust boundary for which repo a tool may touch |
+| Manifest | `projects/` + `utils/manifest.ts` | per-project config and artifacts (`projects/<name>/`: `project.json`, `app-model.md`, `team-roster.json`, `downloads/`, `reports/`, `test-plans/`) with `projects/manifest.json` as the index — the trust boundary for which repo a tool may touch |
 | Knowledge | `knowledge/` | persistent learnings, conventions, per-project app models, and consolidated reports — the framework's memory |
 | Reusables | `utils/`, `scripts/`, `skills/` | generic modules, CLIs, and agent skills |
 
@@ -43,19 +43,19 @@ Project-scoped work (running BDD suites, generating Allure reports, scaffolding 
 
 | Server | Port | Scope | Tools |
 | --- | --- | --- | --- |
-| jira | 7311 | repo-agnostic | `jira_search`, `jira_get_issue`, `jira_get_epic_children`, `jira_add_comment`, `jira_create_issue`, `jira_update_issue`, `jira_transition_issue`, `jira_delete_issue`, `jira_save_issue` |
+| jira | 7311 | repo-agnostic | `jira_search`, `jira_get_issue`, `jira_get_epic_children`, `jira_add_comment`, `jira_create_issue`, `jira_bulk_create_issues` (supports an optional per-row post-create `transitionName`), `jira_search_users`, `jira_assign_issue`, `jira_update_issue`, `jira_bulk_update_issues` (per-row field update and/or transition), `jira_transition_issue`, `jira_get_boards`, `jira_get_sprints`, `jira_get_backlog`, `jira_move_to_sprint`, `jira_get_sprint_report`, `jira_save_issue` — `jira_delete_issue` exists in source but is **not registered** (commented out, see [Known limitations](#known-limitations)) |
 | confluence | 7312 | repo-agnostic | `confluence_search`, `confluence_get_page` (text/html/structured formats), `confluence_get_children`, `confluence_get_attachments`, `confluence_download_attachment`, `confluence_get_comments`, `confluence_extract_links`, `confluence_create_page`, `confluence_update_page`, `confluence_add_comment`, `confluence_delete_page`, `confluence_save_page`, `confluence_upload_attachment` |
 | jtmf | 7313 | repo-agnostic | `jtmf_get_test_case`, `jtmf_search_tests`, `jtmf_get_test_plan`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`, `jtmf_raw_get` |
 | github | 7320 | repo-agnostic | `github_search_code`, `github_search_repos`, `github_search_issues`, `github_search_commits`, `github_search_topics`, `github_get_file`, `github_save_file` |
 | artifacts | 7314 | this repo only | `list_files`, `read_repo_file`, `knowledge_append`, `knowledge_search` |
-| media | 7319 | this repo, or a manifest `project` | `get_file_metadata`, `read_pdf_text`, `read_docx_text`, `create_pdf`, `create_docx`, `ocr_image`, `ocr_pdf`, `read_diagram`, `create_diagram` |
+| media | 7319 | this repo, or a manifest `project` | `get_file_metadata`, `read_pdf_text`, `read_docx_text`, `read_excel_rows`, `read_csv_rows`, `create_pdf`, `create_docx`, `ocr_image`, `ocr_pdf`, `read_diagram`, `create_diagram` |
 | notify | 7321 | target-agnostic | `notify_teams`, `notify_email` — both dryRun-first |
 | playwright-runner | 7316 | project-scoped | `run_bdd`, `run_playwright`, `get_test_files` |
 | allure-report | 7317 | project-scoped | `generate_report`, `allure_summary`, `get_result_json` |
 | codegen | 7318 | project-scoped | `scaffold_feature`, `scaffold_step`, `scaffold_page`, `detect_conventions` |
 | playwright | 7315 | target-agnostic | Official `@playwright/mcp` — browser automation tools (navigate, click, snapshot, etc.) |
 
-Auth: Cloud = `ATLASSIAN_AUTH_MODE=basic` (email + API token); Server/DC = `bearer` (PAT). See `.env.example`. Every Create/Update/Delete tool across Jira, Confluence, and JTMF (`jira_create_issue`, `jira_update_issue`, `jira_transition_issue`, `jira_delete_issue`, `confluence_create_page`, `confluence_update_page`, `confluence_add_comment`, `confluence_delete_page`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`) defaults to `dryRun: true` — always preview the payload/deletion and get explicit user confirmation before setting `dryRun: false`. GitHub auth is a single `GITHUB_TOKEN` (PAT/App token); `GITHUB_ORG` scopes searches to your org by default when a call doesn't name its own `org`/`repo`, and `GITHUB_API_BASE_URL` targets GitHub Enterprise Server instead of github.com. All `github_*` tools are read-only.
+Auth: Cloud = `ATLASSIAN_AUTH_MODE=basic` (email + API token); Server/DC = `bearer` (PAT). See `.env.example`. Every Create/Update/Assign/Move tool across Jira, Confluence, and JTMF (`jira_create_issue`, `jira_bulk_create_issues`, `jira_update_issue`, `jira_bulk_update_issues`, `jira_transition_issue`, `jira_assign_issue`, `jira_move_to_sprint`, `confluence_create_page`, `confluence_update_page`, `confluence_add_comment`, `confluence_delete_page`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`) defaults to `dryRun: true` — always preview the payload and get explicit user confirmation before setting `dryRun: false`. `jira_delete_issue` is registered in source but not wired up to the running `jira` server (commented out — see [Known limitations](#known-limitations)), so the `bsa` agent and any Jira-facing agent can never delete a ticket even by accident; `confluence_delete_page`/`jtmf_delete_test_case` remain active, dryRun-gated as usual. GitHub auth is a single `GITHUB_TOKEN` (PAT/App token); `GITHUB_ORG` scopes searches to your org by default when a call doesn't name its own `org`/`repo`, and `GITHUB_API_BASE_URL` targets GitHub Enterprise Server instead of github.com. All `github_*` tools are read-only.
 
 ### Searching across sources
 The `search-across-sources` skill federates `jira_search` + `confluence_search` +
@@ -71,6 +71,7 @@ the sources for X") and consolidates results into one linked **Sources** list, u
 The `media` server lets agents read and generate non-text-file content:
 - `get_file_metadata` — size, detected MIME type, and type-specific details (image width/height, PDF page count/info, DOCX word count) as JSON, ready to feed to Copilot as context.
 - `read_pdf_text` / `read_docx_text` — extract text from local PDFs/DOCX files.
+- `read_excel_rows` / `read_csv_rows` — parse a local `.xlsx`/`.xls`/`.csv` into structured rows (first row = headers), for bulk ticket intake via the `bsa` agent's `bulk-create-tickets` skill.
 - `create_pdf` / `create_docx` — generate a styled PDF or DOCX report from a title + sections (heading/body), with an optional accent color for PDFs.
 - `ocr_image` — local tesseract OCR for screenshots/scans/whiteboard photos (no data leaves the machine); returns text plus blocks with bounding boxes and confidence scores.
 - `ocr_pdf` — page-by-page OCR for scanned/image-only PDFs (`read_pdf_text` covers text-layer PDFs).
@@ -83,7 +84,7 @@ The `notify` server posts to **Microsoft Teams** (Incoming Webhook / Power Autom
 
 ## Project manifest
 
-The `projects/` directory declares every target project this framework can operate on — `projects/manifest.json` is the index (names only), and each `projects/<name>/` folder holds the full `project.json` plus that project's artifacts (`app-model.md`, `downloads/`, `reports/`, `test-plans/`) for fast readability. The legacy single-file `projects.manifest.json` at the repo root is still supported as a fallback. A `project.json` looks like:
+The `projects/` directory declares every target project this framework can operate on — `projects/manifest.json` is the index (names only), and each `projects/<name>/` folder holds the full `project.json` plus that project's artifacts (`app-model.md`, `team-roster.json`, `downloads/`, `reports/`, `test-plans/`) for fast readability. The legacy single-file `projects.manifest.json` at the repo root is still supported as a fallback. A `project.json` looks like:
 
 ```json
 {
@@ -118,9 +119,17 @@ The `projects/` directory declares every target project this framework can opera
 6. **documenter** builds/updates documentation (Confluence pages or `.md`) for a repo or change set, embedding screenshots/diagrams via `confluence_upload_attachment` / `create_diagram`.
 7. **self-improve** persists learnings to `knowledge/` and proposes framework upgrades — every session.
 
+**bsa** runs independently of the linear pipeline above, as the entry point when requirements
+arrive as chat text, an Excel/CSV sheet, or a doc/image rather than as existing Jira tickets:
+parses the input, drafts tickets against a required-fields template, resolves assignees via
+`projects/<project>/team-roster.json` (`route-assignee` skill), previews and bulk-creates via
+`jira_bulk_create_issues` (dry-run first), and reports sprint/backlog health via
+`jira_get_sprint_report`/`jira_get_backlog`. It never deletes — `jira_delete_issue` isn't
+registered on the running server.
+
 ## Skills
 
-`skills/*/SKILL.md` — reusable playbooks composing existing MCP tools: `analyze-test-failures`, `detect-execution-convention`, `upload-to-jtmf`, `update-jira-epic`, `extract-requirements-from-image`, `extract-requirements-from-video`, `consolidate-project-report`, `build-test-plan-interactive`, `search-across-sources`.
+`skills/*/SKILL.md` — reusable playbooks composing existing MCP tools: `analyze-test-failures`, `detect-execution-convention`, `upload-to-jtmf`, `update-jira-epic`, `extract-requirements-from-image`, `extract-requirements-from-video`, `consolidate-project-report`, `build-test-plan-interactive`, `search-across-sources`, `bulk-create-tickets`, `bulk-update-tickets`, `route-assignee`, `sprint-backlog-report`.
 
 ## Extending
 
@@ -129,8 +138,10 @@ The `projects/` directory declares every target project this framework can opera
 - **New async task type**: add a handler in `agents/registry.ts`.
 - **New agent**: add `.github/agents/<name>.agent.md`.
 - **New skill**: add `skills/<name>/SKILL.md` — no new I/O, only composes existing tools.
+- **New project's team roster**: copy `projects/my-project/team-roster.json` into the new `projects/<name>/` folder and fill in real Jira `accountId`s (resolve via `jira_search_users`) before the `route-assignee` skill relies on it.
 
 ## Known limitations
 
 - Only Playwright + TypeScript + Cucumber target projects are currently supported for `codegen`/`playwright-runner` scaffolding and execution. Other automation stacks are out of scope until requested.
+- **`jira_delete_issue` is disabled by design**: the tool's implementation still lives in `mcp-servers/jira/index.ts`, but its `server.registerTool(...)` call is wrapped in a block comment — the running `jira` MCP server never registers it, so calling it isn't possible even accidentally. Delete is a deliberate exclusion for the `bsa` agent's bulk-create/backlog-management workflows (correct or transition a ticket instead — `jira_update_issue`/`jira_transition_issue`). To re-enable it deliberately, uncomment the block and restart the server.
 - Requirement extraction from video/audio still relies on manually supplied transcripts — there is no speech-to-text MCP tool (deliberately out of scope). Images, scanned PDFs, and structured diagrams are covered by the media server's `ocr_image`/`ocr_pdf`/`read_diagram`.
