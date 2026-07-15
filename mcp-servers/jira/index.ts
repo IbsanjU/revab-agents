@@ -3,10 +3,14 @@ import path from "path";
 import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { env, intEnv } from "../shared/config.js";
-import { apiGet, apiPost, apiPut, apiDelete } from "../shared/http.js";
+import { apiGet, apiPost, apiPut, apiDelete, setAuthService } from "../shared/http.js";
 import { resolveWithinRoot } from "../../utils/fsSafety.js";
 import { buildSaveConfirmationPrompt } from "../../utils/saveSuggestion.js";
 import { buildJiraIssueUrl } from "../../utils/jiraLinks.js";
+
+// Authenticate as "jira" — prefers JIRA_EMAIL/JIRA_API_TOKEN/JIRA_AUTH_MODE, falling back to
+// the shared ATLASSIAN_* vars (see mcp-servers/shared/http.ts).
+setAuthService("jira");
 
 const base = () => env("JIRA_BASE_URL");
 const DEFAULT_FIELDS = "summary,status,issuetype,assignee,priority,labels,fixVersions,parent";
