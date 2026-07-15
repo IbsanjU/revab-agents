@@ -13,6 +13,20 @@ const DEFAULT_FIELDS = "summary,status,issuetype,assignee,priority,labels,fixVer
 const ROOT = path.resolve(process.cwd());
 const DEFAULT_SAVE_DIR = "downloads/jira";
 
+/** Escape a string for safe embedding in a JQL string literal (summary ~ "..."). */
+function escapeJqlString(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+const BulkIssueDraft = z.object({
+  projectKey: z.string().describe("Jira project key, e.g. ABC"),
+  issueType: z.string().describe("Issue type name, e.g. Story, Bug, Task"),
+  summary: z.string().describe("Issue title"),
+  description: z.string().optional(),
+  labels: z.array(z.string()).optional(),
+  fields: z.record(z.unknown()).optional().describe("Additional raw Jira fields to merge in (e.g. assignee, priority, components, story points, epic link, sprint)"),
+});
+
 startMcpHttpServer({
   name: "jira",
   port: intEnv("JIRA_MCP_PORT", 7311),
@@ -162,6 +176,43 @@ startMcpHttpServer({
     );
 
     server.registerTool(
+      "jira_search_users",
+      {
+        description:
+          "Search Jira users by name/email — resolve a person to an accountId before assigning an issue " +
+          "(jira_assign_issue) or building a bulk-create batch. Never guess an accountId. If projectKey is " +
+          "given, restricts results to users assignable to that project.",
+        inputSchema: {
+          query: z.string().describe("Name or email fragment to search for"),
+          projectKey: z.string().optional().describe("Restrict to users assignable to this Jira project"),
+          maxResults: z.number().optional().describe("Max results (default 20)"),
+        },
+      },
+      async ({ query, projectKey, maxResults }) => {
+        try {
+          const searchPath = projectKey ? "/rest/api/2/user/assignable/search" : "/rest/api/2/user/search";
+          const params: Record<string, string | number> = { query, maxResults: maxResults ?? 20 };
+          if (projectKey) params.project = projectKey;
+          const data = await apiGet<Array<{ accountId: string; displayName: string; emailAddress?: string; active: boolean }>>(
+            base(),
+            searchPath,
+            params
+          );
+          return textResult({
+            users: data.map((u) => ({
+              accountId: u.accountId,
+              displayName: u.displayName,
+              emailAddress: u.emailAddress,
+              active: u.active,
+            })),
+          });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
       "jira_create_issue",
       {
         description:
@@ -198,6 +249,84 @@ startMcpHttpServer({
     );
 
     server.registerTool(
+      "jira_bulk_create_issues",
+      {
+        description:
+          "Create many Jira issues in one batch — e.g. from a parsed Excel/CSV sheet (see media server's " +
+          "read_excel_rows/read_csv_rows) or a list of chat-described tickets. Dedup-checks every row against " +
+          "existing issues by summary before creating (set skipDedupe to bypass). dryRun (default true) returns " +
+          "the full batch preview — including any detected duplicates — without creating anything. Each row " +
+          "succeeds/fails/skips independently; a bad row never blocks the rest of the batch.",
+        inputSchema: {
+          issues: z.array(BulkIssueDraft).min(1).describe("Issue drafts to create"),
+          skipDedupe: z.boolean().optional().describe("Skip the pre-create duplicate search (default false)"),
+          dryRun: z.boolean().optional().describe("If true (default), return the full batch preview without creating anything"),
+        },
+      },
+      async ({ issues, skipDedupe, dryRun }) => {
+        try {
+          const preview = await Promise.all(
+            issues.map(async (draft, index) => {
+              const payloadFields: Record<string, unknown> = {
+                project: { key: draft.projectKey },
+                issuetype: { name: draft.issueType },
+                summary: draft.summary,
+                ...(draft.description ? { description: draft.description } : {}),
+                ...(draft.labels ? { labels: draft.labels } : {}),
+                ...(draft.fields ?? {}),
+              };
+              let potentialDuplicates: Array<{ key: string; summary: string; url: string }> = [];
+              if (!skipDedupe) {
+                const jql = `project = ${draft.projectKey} AND summary ~ "${escapeJqlString(draft.summary)}" ORDER BY created DESC`;
+                const found = await apiGet<{ issues?: Array<{ key: string; fields: { summary: string } }> }>(
+                  base(),
+                  "/rest/api/2/search",
+                  { jql, maxResults: 5, fields: "summary" }
+                ).catch(() => ({ issues: [] as Array<{ key: string; fields: { summary: string } }> }));
+                potentialDuplicates = (found.issues ?? [])
+                  .filter((i) => i.fields.summary.trim().toLowerCase() === draft.summary.trim().toLowerCase())
+                  .map((i) => ({ key: i.key, summary: i.fields.summary, url: buildJiraIssueUrl(base(), i.key) }));
+              }
+              return { index, fields: payloadFields, potentialDuplicates };
+            })
+          );
+
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, batchSize: issues.length, preview });
+          }
+
+          const results: Array<Record<string, unknown>> = [];
+          for (const row of preview) {
+            if (row.potentialDuplicates.length > 0) {
+              results.push({ index: row.index, skipped: true, reason: "duplicate", duplicates: row.potentialDuplicates });
+              continue;
+            }
+            try {
+              const data = await apiPost<{ key: string }>(base(), "/rest/api/2/issue", { fields: row.fields });
+              results.push({ index: row.index, key: data.key, url: buildJiraIssueUrl(base(), data.key) });
+            } catch (err) {
+              results.push({ index: row.index, error: err instanceof Error ? err.message : String(err) });
+            }
+          }
+          return textResult({
+            batchSize: issues.length,
+            created: results.filter((r) => "key" in r).length,
+            skipped: results.filter((r) => r.skipped).length,
+            failed: results.filter((r) => "error" in r).length,
+            results,
+          });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    // jira_delete_issue is intentionally NOT registered — see the commented-out block below.
+    // A BSA corrects/closes tickets; it never deletes Jira history. Kept in source (rather than
+    // removed) so the full CRUD implementation is auditable and can be re-enabled deliberately
+    // (uncomment + restart the jira MCP server) if a future workflow genuinely needs it.
+    /*
+    server.registerTool(
       "jira_delete_issue",
       {
         description:
@@ -221,6 +350,7 @@ startMcpHttpServer({
         }
       }
     );
+    */
 
     server.registerTool(
       "jira_update_issue",
@@ -288,6 +418,174 @@ startMcpHttpServer({
             ...(comment ? { update: { comment: [{ add: { body: comment } }] } } : {}),
           });
           return textResult(data ?? { transitioned: key, to: match.name });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_assign_issue",
+      {
+        description:
+          "Assign a Jira issue to a user by accountId — resolve the accountId first via jira_search_users, " +
+          "never guess it. Pass accountId: 'unassign' to clear the assignee. dryRun (default true) previews " +
+          "the assignment without applying it.",
+        inputSchema: {
+          key: z.string().describe("Issue key, e.g. ABC-123"),
+          accountId: z.string().describe("Jira accountId of the assignee (from jira_search_users), or 'unassign' to clear"),
+          dryRun: z.boolean().optional().describe("If true (default), preview without applying"),
+        },
+      },
+      async ({ key, accountId, dryRun }) => {
+        try {
+          const resolvedAccountId = accountId === "unassign" ? null : accountId;
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, key, wouldAssignTo: resolvedAccountId });
+          }
+          const { status } = await apiPut(base(), `/rest/api/2/issue/${encodeURIComponent(key)}/assignee`, {
+            accountId: resolvedAccountId,
+          });
+          return textResult({ assigned: key, accountId: resolvedAccountId, status });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_get_boards",
+      {
+        description:
+          "List Jira Agile boards, optionally filtered to a project. Use this to find a boardId for " +
+          "jira_get_sprints / jira_get_backlog.",
+        inputSchema: {
+          projectKey: z.string().optional().describe("Restrict to boards for this project"),
+          maxResults: z.number().optional().describe("Max results (default 50)"),
+        },
+      },
+      async ({ projectKey, maxResults }) => {
+        try {
+          const params: Record<string, string | number> = { maxResults: maxResults ?? 50 };
+          if (projectKey) params.projectKeyOrId = projectKey;
+          const data = await apiGet(base(), "/rest/agile/1.0/board", params);
+          return textResult(data);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_get_sprints",
+      {
+        description:
+          "List sprints on a board (active/future/closed). Use jira_get_boards first to find the boardId.",
+        inputSchema: {
+          boardId: z.number().describe("Board id, from jira_get_boards"),
+          state: z.string().optional().describe("Comma-separated states to filter: active, future, closed (default: active,future)"),
+          maxResults: z.number().optional().describe("Max results (default 50)"),
+        },
+      },
+      async ({ boardId, state, maxResults }) => {
+        try {
+          const data = await apiGet(base(), `/rest/agile/1.0/board/${boardId}/sprint`, {
+            state: state ?? "active,future",
+            maxResults: maxResults ?? 50,
+          });
+          return textResult(data);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_get_backlog",
+      {
+        description: "List issues in a board's backlog (not yet assigned to a sprint). Use jira_get_boards first to find the boardId.",
+        inputSchema: {
+          boardId: z.number().describe("Board id, from jira_get_boards"),
+          maxResults: z.number().optional().describe("Max results (default 100)"),
+          fields: z.string().optional().describe("Comma-separated field list to return"),
+        },
+      },
+      async ({ boardId, maxResults, fields }) => {
+        try {
+          const data = await apiGet(base(), `/rest/agile/1.0/board/${boardId}/backlog`, {
+            maxResults: maxResults ?? 100,
+            fields: fields ?? DEFAULT_FIELDS,
+          });
+          return textResult(data);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_move_to_sprint",
+      {
+        description:
+          "Move one or more issues into a sprint. Use jira_get_sprints to find the sprintId. dryRun " +
+          "(default true) previews the move without applying it.",
+        inputSchema: {
+          sprintId: z.number().describe("Target sprint id, from jira_get_sprints"),
+          issueKeys: z.array(z.string()).min(1).describe("Issue keys to move, e.g. ['ABC-1','ABC-2']"),
+          dryRun: z.boolean().optional().describe("If true (default), preview without applying"),
+        },
+      },
+      async ({ sprintId, issueKeys, dryRun }) => {
+        try {
+          if (dryRun ?? true) {
+            return textResult({ dryRun: true, sprintId, wouldMove: issueKeys });
+          }
+          await apiPost(base(), `/rest/agile/1.0/sprint/${sprintId}/issue`, { issues: issueKeys });
+          return textResult({ movedToSprint: sprintId, issues: issueKeys });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "jira_get_sprint_report",
+      {
+        description:
+          "Summarize a sprint's tickets for tracking: counts by status, unassigned issues, and issues missing " +
+          "a description or priority (a proxy for 'not ready' tickets). Use jira_get_sprints to find the sprintId.",
+        inputSchema: {
+          sprintId: z.number().describe("Sprint id, from jira_get_sprints"),
+          maxResults: z.number().optional().describe("Max issues to scan (default 200)"),
+        },
+      },
+      async ({ sprintId, maxResults }) => {
+        try {
+          const data = await apiGet<{ issues?: Array<{ key: string; fields: Record<string, unknown> }> }>(
+            base(),
+            `/rest/agile/1.0/sprint/${sprintId}/issue`,
+            { maxResults: maxResults ?? 200, fields: "summary,status,assignee,description,priority" }
+          );
+          const issues = data.issues ?? [];
+          const byStatus: Record<string, number> = {};
+          const unassigned: string[] = [];
+          const missingDescription: string[] = [];
+          const missingPriority: string[] = [];
+          for (const issue of issues) {
+            const status = (issue.fields.status as { name?: string } | undefined)?.name ?? "Unknown";
+            byStatus[status] = (byStatus[status] ?? 0) + 1;
+            if (!issue.fields.assignee) unassigned.push(issue.key);
+            if (!issue.fields.description) missingDescription.push(issue.key);
+            if (!issue.fields.priority) missingPriority.push(issue.key);
+          }
+          return textResult({
+            sprintId,
+            total: issues.length,
+            byStatus,
+            unassigned: { count: unassigned.length, keys: unassigned },
+            missingDescription: { count: missingDescription.length, keys: missingDescription },
+            missingPriority: { count: missingPriority.length, keys: missingPriority },
+          });
         } catch (err) {
           return errorResult(err);
         }

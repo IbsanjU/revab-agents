@@ -1,0 +1,13 @@
+{
+  "_placeholder": "Template only — copy into a real project folder and fill in real Jira accountIds (resolve names via the jira_search_users MCP tool) before the bsa agent's route-assignee skill relies on this file.",
+  "resolutionOrder": ["explicitInInput", "byComponent", "byLabel", "byIssueType", "defaultAssignee"],
+  "defaultAssignee": { "accountId": null, "displayName": "TODO: triage owner" },
+  "byComponent": {
+    "Frontend": { "accountId": null, "displayName": "TODO" },
+    "Backend": { "accountId": null, "displayName": "TODO" }
+  },
+  "byLabel": {},
+  "byIssueType": {
+    "Bug": { "accountId": null, "displayName": "TODO: QA triage owner" }
+  }
+}

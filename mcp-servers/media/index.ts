@@ -6,6 +6,7 @@ import { z } from "zod";
 import PDFDocument from "pdfkit";
 import { PDFParse } from "pdf-parse";
 import * as mammoth from "mammoth";
+import * as XLSX from "xlsx";
 import { imageSize } from "image-size";
 import { fileTypeFromBuffer } from "file-type";
 import { Document, Packer, Paragraph, HeadingLevel, TextRun } from "docx";
@@ -209,6 +210,83 @@ startMcpHttpServer({
           const buffer = await readFileWithLimit(target);
           const result = await mammoth.extractRawText({ buffer });
           return textResult({ text: result.value, warnings: result.messages.map((m) => m.message) });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "read_excel_rows",
+      {
+        description:
+          "Parse a local .xlsx/.xls file into structured rows — e.g. a bulk requirements/ticket sheet a " +
+          "stakeholder shared. Treats the first row of the sheet as column headers and returns each following " +
+          "row as an object keyed by header (blank cells become empty strings). Use jira_bulk_create_issues " +
+          "to turn the returned rows into tickets after mapping columns to Jira fields.",
+        inputSchema: {
+          filePath: z.string().describe("Path to the .xlsx/.xls file, relative to the repo (or the project's repo if `project` is given)"),
+          project: z.string().optional().describe("Manifest project name to resolve filePath against (default: this framework repo)"),
+          sheetName: z.string().optional().describe("Sheet to read (default: first sheet in the workbook)"),
+          maxRows: z.number().optional().describe("Cap the number of data rows returned (default: all)"),
+        },
+      },
+      async ({ filePath, project, sheetName, maxRows }) => {
+        try {
+          const root = await resolveRoot(project);
+          const target = resolveWithinRoot(root, filePath);
+          const buffer = await readFileWithLimit(target);
+          const workbook = XLSX.read(buffer, { type: "buffer" });
+          const resolvedSheet = sheetName ?? workbook.SheetNames[0];
+          const sheet = workbook.Sheets[resolvedSheet];
+          if (!sheet) {
+            throw new Error(`Sheet "${resolvedSheet}" not found. Available sheets: ${workbook.SheetNames.join(", ")}`);
+          }
+          const allRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+          const rows = maxRows ? allRows.slice(0, maxRows) : allRows;
+          return textResult({
+            sheetNames: workbook.SheetNames,
+            sheet: resolvedSheet,
+            headers: allRows.length ? Object.keys(allRows[0]) : [],
+            rowCount: allRows.length,
+            truncated: !!maxRows && allRows.length > maxRows,
+            rows,
+          });
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "read_csv_rows",
+      {
+        description:
+          "Parse a local .csv file into structured rows. Treats the first row as column headers and returns " +
+          "each following row as an object keyed by header (blank cells become empty strings). Use " +
+          "jira_bulk_create_issues to turn the returned rows into tickets after mapping columns to Jira fields.",
+        inputSchema: {
+          filePath: z.string().describe("Path to the .csv file, relative to the repo (or the project's repo if `project` is given)"),
+          project: z.string().optional().describe("Manifest project name to resolve filePath against (default: this framework repo)"),
+          maxRows: z.number().optional().describe("Cap the number of data rows returned (default: all)"),
+        },
+      },
+      async ({ filePath, project, maxRows }) => {
+        try {
+          const root = await resolveRoot(project);
+          const target = resolveWithinRoot(root, filePath);
+          const buffer = await readFileWithLimit(target);
+          const workbook = XLSX.read(buffer.toString("utf8"), { type: "string" });
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          const allRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+          const rows = maxRows ? allRows.slice(0, maxRows) : allRows;
+          return textResult({
+            headers: allRows.length ? Object.keys(allRows[0]) : [],
+            rowCount: allRows.length,
+            truncated: !!maxRows && allRows.length > maxRows,
+            rows,
+          });
         } catch (err) {
           return errorResult(err);
         }

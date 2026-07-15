@@ -27,13 +27,14 @@ export function buildUrl(baseUrl: string, path: string, params?: QueryParams): s
   return url.toString();
 }
 
-/** Parse a JSON response, throwing a descriptive error on non-2xx status. */
+/** Parse a JSON response, throwing a descriptive error on non-2xx status. Tolerates a 204/empty body. */
 export async function handleJson<T>(res: Response, url: string): Promise<T> {
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}\n${body.slice(0, 2000)}`);
   }
-  return (await res.json()) as T;
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 /** GET a JSON resource from an authenticated Atlassian API. */
