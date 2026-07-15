@@ -1,18 +1,63 @@
-import { env, optionalEnv } from "./config.js";
+import { optionalEnv } from "./config.js";
+
+export type AtlassianService = "jira" | "confluence" | "jtmf";
+
+// Set once per process at server startup (see setAuthService below) — each of the jira/
+// confluence/jtmf MCP servers is its own Node process, so this is never shared or mutated
+// across services at runtime, just read by every authHeaders()/apiGet/... call after startup.
+let currentService: AtlassianService | undefined;
 
 /**
- * Auth headers for Atlassian REST APIs.
+ * Declare which service (jira/confluence/jtmf) this process's HTTP calls authenticate as.
+ * Call once at server startup, before any request handling — every MCP server's index.ts
+ * does this immediately after its imports. Lets each service use its own token (a separate,
+ * least-privilege service account) instead of one shared Atlassian credential.
+ */
+export function setAuthService(service: AtlassianService): void {
+  currentService = service;
+}
+
+/**
+ * Resolve mode/email/token for the service set via setAuthService, preferring a
+ * per-service override (a JIRA_, CONFLUENCE_, or JTMF_ prefixed var) and falling back to
+ * the shared ATLASSIAN_ prefixed vars so a single-token .env setup keeps working unchanged.
+ */
+function resolveAuthConfig(): { mode: string; token: string; email?: string } {
+  if (!currentService) {
+    throw new Error(
+      "No Atlassian service configured for this process — call setAuthService('jira'|'confluence'|'jtmf') at server startup before making any request."
+    );
+  }
+  const prefix = currentService.toUpperCase();
+  const mode = optionalEnv(`${prefix}_AUTH_MODE`) ?? optionalEnv("ATLASSIAN_AUTH_MODE") ?? "basic";
+  const token = optionalEnv(`${prefix}_API_TOKEN`) ?? optionalEnv("ATLASSIAN_API_TOKEN");
+  if (!token) {
+    throw new Error(
+      `Missing API token for "${currentService}": set ${prefix}_API_TOKEN (per-service, recommended) or ATLASSIAN_API_TOKEN (shared fallback) in .env.`
+    );
+  }
+  if (mode === "bearer") return { mode, token };
+  const email = optionalEnv(`${prefix}_EMAIL`) ?? optionalEnv("ATLASSIAN_EMAIL");
+  if (!email) {
+    throw new Error(
+      `Missing email for "${currentService}" (basic auth mode): set ${prefix}_EMAIL (per-service) or ATLASSIAN_EMAIL (shared fallback) in .env.`
+    );
+  }
+  return { mode, token, email };
+}
+
+/**
+ * Auth headers for the Atlassian REST API of whichever service this process declared via
+ * setAuthService.
  * - basic  (Cloud): email + API token
  * - bearer (Server/DC): Personal Access Token
  */
 export function authHeaders(): Record<string, string> {
-  const mode = optionalEnv("ATLASSIAN_AUTH_MODE") ?? "basic";
+  const { mode, token, email } = resolveAuthConfig();
   if (mode === "bearer") {
-    return { Authorization: `Bearer ${env("ATLASSIAN_API_TOKEN")}` };
+    return { Authorization: `Bearer ${token}` };
   }
-  const credentials = Buffer.from(
-    `${env("ATLASSIAN_EMAIL")}:${env("ATLASSIAN_API_TOKEN")}`
-  ).toString("base64");
+  const credentials = Buffer.from(`${email}:${token}`).toString("base64");
   return { Authorization: `Basic ${credentials}` };
 }
 

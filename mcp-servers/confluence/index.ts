@@ -3,10 +3,14 @@ import path from "path";
 import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { env, intEnv } from "../shared/config.js";
-import { apiGet, apiGetBinary, apiPost, apiPut, apiDelete, stripHtml, authHeaders } from "../shared/http.js";
+import { apiGet, apiGetBinary, apiPost, apiPut, apiDelete, stripHtml, authHeaders, setAuthService } from "../shared/http.js";
 import { resolveWithinRoot } from "../../utils/fsSafety.js";
 import { buildSaveConfirmationPrompt } from "../../utils/saveSuggestion.js";
 import { expandConfluenceMacros } from "../../utils/confluenceMacros.js";
+
+// Authenticate as "confluence" — prefers CONFLUENCE_EMAIL/CONFLUENCE_API_TOKEN/
+// CONFLUENCE_AUTH_MODE, falling back to the shared ATLASSIAN_* vars.
+setAuthService("confluence");
 
 const base = () => env("CONFLUENCE_BASE_URL");
 const ROOT = path.resolve(process.cwd());

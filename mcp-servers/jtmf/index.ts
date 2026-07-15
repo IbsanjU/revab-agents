@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { env, intEnv, optionalEnv } from "../shared/config.js";
-import { apiGet, apiPost, apiPut, apiDelete } from "../shared/http.js";
+import { apiGet, apiPost, apiPut, apiDelete, setAuthService } from "../shared/http.js";
 import { buildJiraIssueUrl } from "../../utils/jiraLinks.js";
 
 /**
@@ -10,6 +10,10 @@ import { buildJiraIssueUrl } from "../../utils/jiraLinks.js";
  * so everything here is driven by env config (JTMF_* vars) plus a raw-GET escape hatch
  * for any org-specific REST endpoint.
  */
+// Authenticate as "jtmf" — prefers JTMF_EMAIL/JTMF_API_TOKEN/JTMF_AUTH_MODE (e.g. a
+// dedicated test-management service account), falling back to the shared ATLASSIAN_* vars.
+setAuthService("jtmf");
+
 const base = () => env("JIRA_BASE_URL");
 
 startMcpHttpServer({
