@@ -63,6 +63,30 @@ interface OcrBlock {
   bbox: { x0: number; y0: number; x1: number; y1: number };
 }
 
+interface RequirementFragment {
+  text: string;
+  sourceType: "media-fallback";
+  sourceId: string;
+  location: string;
+  confidence?: number;
+}
+
+interface FileExtraction {
+  path: string;
+  mimeType: string;
+  route: string;
+  summary: string;
+  metadata: Record<string, unknown>;
+  fragments: RequirementFragment[];
+}
+
+function formatMetaValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (value === null || value === undefined) return "null";
+  return JSON.stringify(value);
+}
+
 /**
  * OCR an image buffer with tesseract.js (fully local — no data leaves the machine;
  * language traineddata is downloaded once from the tesseract CDN and cached — set
@@ -88,6 +112,283 @@ async function ocrBuffer(buffer: Buffer, lang: string): Promise<{ text: string; 
   } finally {
     await worker.terminate();
   }
+}
+
+function splitRequirementLines(text: string, maxLines = 20): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length >= 5)
+    .slice(0, maxLines);
+}
+
+async function listFiles(target: string, recurse: boolean): Promise<string[]> {
+  const stat = await fs.stat(target);
+  if (stat.isFile()) return [target];
+  if (!stat.isDirectory()) throw new Error(`Path is neither file nor directory: ${target}`);
+  const out: string[] = [];
+  const entries = await fs.readdir(target, { withFileTypes: true });
+  for (const entry of entries) {
+    const full = path.join(target, entry.name);
+    if (entry.isFile()) out.push(full);
+    if (recurse && entry.isDirectory()) {
+      out.push(...(await listFiles(full, true)));
+    }
+  }
+  return out;
+}
+
+async function extractFromSingleFile(
+  root: string,
+  target: string,
+  lang: string,
+  maxChars: number,
+  ocrConfidenceThreshold: number
+): Promise<FileExtraction> {
+  const rel = path.relative(root, target).replace(/\\/g, "/");
+  const stat = await fs.stat(target);
+  const buffer = await readFileWithLimit(target);
+  const detected = await fileTypeFromBuffer(buffer);
+  const ext = path.extname(target).toLowerCase();
+  const mimeType = detected?.mime ?? EXT_MIME[ext] ?? "application/octet-stream";
+  const sourceId = rel;
+  const baseMetadata: Record<string, unknown> = {
+    sizeBytes: stat.size,
+    extension: ext || "",
+  };
+
+  if (mimeType.startsWith("image/")) {
+    const result = await ocrBuffer(buffer, lang);
+    const lines = splitRequirementLines(result.text);
+    let dimensions: { width?: number; height?: number; imageType?: string } = {};
+    try {
+      const dims = imageSize(buffer);
+      dimensions = { width: dims.width, height: dims.height, imageType: dims.type };
+    } catch {
+      // best effort only; OCR can still proceed without dimensions
+    }
+    const fragments: RequirementFragment[] = lines.map((line, idx) => ({
+      text: line,
+      sourceType: "media-fallback",
+      sourceId,
+      location: `line:${idx + 1}`,
+      confidence: result.confidence,
+    }));
+    const lowConfidence = result.confidence < ocrConfidenceThreshold;
+    return {
+      path: rel,
+      mimeType,
+      route: "ocr_image",
+      summary: `OCR text length=${result.text.length}; confidence=${result.confidence}${lowConfidence ? " (below threshold)" : ""}`,
+      metadata: { ...baseMetadata, ...dimensions, ocrConfidence: result.confidence, ocrBlocks: result.blocks.length },
+      fragments,
+    };
+  }
+
+  if (mimeType === "application/pdf" || ext === ".pdf") {
+    const parser = new PDFParse({ data: buffer });
+    try {
+      const textResult = await parser.getText();
+      const rawText = textResult.text.trim();
+      if (rawText.length > 30) {
+        const lines = splitRequirementLines(rawText.slice(0, maxChars));
+        return {
+          path: rel,
+          mimeType,
+          route: "read_pdf_text",
+          summary: `PDF text-layer extracted, pages=${textResult.total}`,
+          metadata: { ...baseMetadata, pageCount: textResult.total, extractionMode: "text-layer" },
+          fragments: lines.map((line, idx) => ({
+            text: line,
+            sourceType: "media-fallback",
+            sourceId,
+            location: `pdf-text-line:${idx + 1}`,
+          })),
+        };
+      }
+
+      const shots = await parser.getScreenshot({ first: 5 });
+      const fragments: RequirementFragment[] = [];
+      for (const page of shots.pages) {
+        const ocr = await ocrBuffer(Buffer.from(page.data), lang);
+        for (const line of splitRequirementLines(ocr.text, 10)) {
+          fragments.push({
+            text: line,
+            sourceType: "media-fallback",
+            sourceId,
+            location: `page:${page.pageNumber}`,
+            confidence: ocr.confidence,
+          });
+        }
+      }
+      return {
+        path: rel,
+        mimeType,
+        route: "ocr_pdf",
+        summary: `PDF had weak/no text layer; OCR applied to ${shots.pages.length} page(s)`,
+        metadata: { ...baseMetadata, ocrPages: shots.pages.length, extractionMode: "ocr" },
+        fragments,
+      };
+    } finally {
+      await parser.destroy();
+    }
+  }
+
+  if (ext === ".docx") {
+    const result = await mammoth.extractRawText({ buffer });
+    const lines = splitRequirementLines(result.value.slice(0, maxChars));
+    return {
+      path: rel,
+      mimeType,
+      route: "read_docx_text",
+      summary: `DOCX extracted${result.messages.length ? ` with ${result.messages.length} warning(s)` : ""}`,
+      metadata: {
+        ...baseMetadata,
+        approxWordCount: result.value.trim().split(/\s+/).filter(Boolean).length,
+        warnings: result.messages.length,
+      },
+      fragments: lines.map((line, idx) => ({
+        text: line,
+        sourceType: "media-fallback",
+        sourceId,
+        location: `docx-line:${idx + 1}`,
+      })),
+    };
+  }
+
+  if (ext === ".xlsx" || ext === ".xls") {
+    const workbook = XLSX.read(buffer, { type: "buffer" });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" }).slice(0, 20);
+    const lines = rows.map((r) => JSON.stringify(r));
+    return {
+      path: rel,
+      mimeType,
+      route: "read_excel_rows",
+      summary: `Excel parsed: sheet=${sheetName}, rows(sample)=${rows.length}`,
+      metadata: { ...baseMetadata, sheetName, sampledRows: rows.length },
+      fragments: lines.map((line, idx) => ({
+        text: line,
+        sourceType: "media-fallback",
+        sourceId,
+        location: `row:${idx + 1}`,
+      })),
+    };
+  }
+
+  if (ext === ".csv") {
+    const workbook = XLSX.read(buffer.toString("utf8"), { type: "string" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" }).slice(0, 30);
+    return {
+      path: rel,
+      mimeType,
+      route: "read_csv_rows",
+      summary: `CSV parsed rows(sample)=${rows.length}`,
+      metadata: { ...baseMetadata, sampledRows: rows.length },
+      fragments: rows.map((r, idx) => ({
+        text: JSON.stringify(r),
+        sourceType: "media-fallback",
+        sourceId,
+        location: `row:${idx + 1}`,
+      })),
+    };
+  }
+
+  if ([".drawio", ".mmd", ".puml", ".plantuml", ".mermaid"].includes(ext) || (ext === ".xml" && buffer.toString("utf8").includes("mxGraphModel"))) {
+    const parsed = parseDiagram(buffer.toString("utf8"));
+    const edgeLines = parsed.edges.slice(0, 30).map((e) => `${e.from} -> ${e.to}${e.label ? ` (${e.label})` : ""}`);
+    return {
+      path: rel,
+      mimeType,
+      route: "read_diagram",
+      summary: `Diagram parsed: nodes=${parsed.nodes.length}, edges=${parsed.edges.length}`,
+      metadata: { ...baseMetadata, nodes: parsed.nodes.length, edges: parsed.edges.length },
+      fragments: edgeLines.map((line, idx) => ({
+        text: line,
+        sourceType: "media-fallback",
+        sourceId,
+        location: `edge:${idx + 1}`,
+      })),
+    };
+  }
+
+  if ([".txt", ".md", ".json", ".yaml", ".yml", ".html", ".htm", ".xml"].includes(ext)) {
+    const text = buffer.toString("utf8").slice(0, maxChars);
+    const lines = splitRequirementLines(text, 30);
+    return {
+      path: rel,
+      mimeType,
+      route: "plain_text_fallback",
+      summary: `Plain text fallback for ${ext || "unknown extension"}`,
+      metadata: { ...baseMetadata, sampledChars: text.length },
+      fragments: lines.map((line, idx) => ({
+        text: line,
+        sourceType: "media-fallback",
+        sourceId,
+        location: `line:${idx + 1}`,
+      })),
+    };
+  }
+
+  return {
+    path: rel,
+    mimeType,
+    route: "metadata_only",
+    summary: "Unsupported binary type for extraction; metadata only",
+    metadata: baseMetadata,
+    fragments: [],
+  };
+}
+
+async function writeConsolidatedMarkdown(
+  root: string,
+  outputPath: string,
+  inputPath: string,
+  extractions: FileExtraction[]
+): Promise<string> {
+  const target = resolveWithinRoot(root, outputPath);
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  const generatedAt = new Date().toISOString();
+  const lines: string[] = [];
+  lines.push("# Media Requirement Extraction (Fallback)");
+  lines.push("");
+  lines.push(`- Input: ${inputPath}`);
+  lines.push(`- Generated At: ${generatedAt}`);
+  lines.push(`- Files Processed: ${extractions.length}`);
+  lines.push("");
+  for (const ex of extractions) {
+    lines.push(`## ${ex.path}`);
+    lines.push("");
+    lines.push(`- MIME Type: ${ex.mimeType}`);
+    lines.push(`- Route: ${ex.route}`);
+    lines.push(`- Summary: ${ex.summary}`);
+    lines.push("");
+    lines.push("### File Metadata");
+    lines.push("");
+    const metaEntries = Object.entries(ex.metadata ?? {});
+    if (metaEntries.length === 0) {
+      lines.push("- None");
+    } else {
+      for (const [k, v] of metaEntries) {
+        lines.push(`- ${k}: ${formatMetaValue(v)}`);
+      }
+    }
+    lines.push("");
+    lines.push("### Requirement Fragments");
+    lines.push("");
+    if (ex.fragments.length === 0) {
+      lines.push("- None extracted");
+    } else {
+      for (const fragment of ex.fragments) {
+        lines.push(`- [${fragment.location}] ${fragment.text}`);
+      }
+    }
+    lines.push("");
+  }
+  await fs.writeFile(target, lines.join("\n"), "utf8");
+  return path.relative(root, target).replace(/\\/g, "/");
 }
 
 startMcpHttpServer({
@@ -474,6 +775,72 @@ startMcpHttpServer({
             content = (await readFileWithLimit(target)).toString("utf8");
           }
           return textResult(parseDiagram(content!, format));
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "media_extract_requirements",
+      {
+        description:
+          "Unified local fallback extractor when native vision is unavailable. Auto-routes files by type " +
+          "(images -> ocr_image, scanned PDFs -> ocr_pdf, text PDFs -> read_pdf_text, DOCX -> read_docx_text, " +
+          "XLS/XLSX/CSV -> row parsing, diagrams -> read_diagram, text files -> plain text fallback) and writes " +
+          "one consolidated markdown report.",
+        inputSchema: {
+          inputPath: z.string().describe("File or directory path to extract from, relative to repo (or `project` repo if provided)"),
+          project: z.string().optional().describe("Manifest project name to resolve inputPath/outputPath against"),
+          outputPath: z
+            .string()
+            .optional()
+            .describe("Where to save consolidated markdown; default is <input>/requirements-extract.md or <file>.requirements.md"),
+          recurse: z.boolean().optional().describe("If inputPath is a directory, include subdirectories (default false)"),
+          maxFiles: z.number().optional().describe("Max files to process from a directory (default 25)"),
+          lang: z.string().optional().describe("OCR language code for image/scanned PDF routes (default eng)"),
+          maxChars: z.number().optional().describe("Max chars to read from text-like sources (default 12000)"),
+          ocrConfidenceThreshold: z.number().optional().describe("Confidence threshold for OCR warning notes (default 60)"),
+        },
+      },
+      async ({ inputPath, project, outputPath, recurse, maxFiles, lang, maxChars, ocrConfidenceThreshold }) => {
+        try {
+          const root = await resolveRoot(project);
+          const target = resolveWithinRoot(root, inputPath);
+          const files = await listFiles(target, recurse ?? false);
+          const limited = files.slice(0, Math.max(1, maxFiles ?? 25));
+
+          const extractions: FileExtraction[] = [];
+          const errors: Array<{ path: string; error: string }> = [];
+          for (const file of limited) {
+            try {
+              extractions.push(
+                await extractFromSingleFile(root, file, lang ?? "eng", Math.max(1000, maxChars ?? 12000), ocrConfidenceThreshold ?? 60)
+              );
+            } catch (err) {
+              errors.push({
+                path: path.relative(root, file).replace(/\\/g, "/"),
+                error: err instanceof Error ? err.message.slice(0, 300) : String(err).slice(0, 300),
+              });
+            }
+          }
+
+          const stat = await fs.stat(target);
+          const defaultOutput = stat.isDirectory()
+            ? path.join(inputPath, "requirements-extract.md")
+            : `${inputPath}.requirements.md`;
+          const savedTo = await writeConsolidatedMarkdown(root, outputPath ?? defaultOutput, inputPath, extractions);
+
+          const fragments = extractions.flatMap((e) => e.fragments);
+          return textResult({
+            inputPath,
+            savedTo,
+            filesProcessed: extractions.length,
+            filesRequested: limited.length,
+            totalFragments: fragments.length,
+            routesUsed: [...new Set(extractions.map((e) => e.route))],
+            errors,
+          });
         } catch (err) {
           return errorResult(err);
         }

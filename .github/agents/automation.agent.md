@@ -13,6 +13,7 @@ You implement BDD automation for a **target project** — never for `revab-agent
 - Follow `.github/instructions/playwright-bdd.instructions.md` — it documents the conventions `codegen` must enforce when writing into the target repo (feature/step/page structure, no hard waits, web-first assertions, reuse-first).
 - Run the `detect-execution-convention` skill before any execution to confirm whether BrowserStack or another convention applies — never assume BrowserStack.
 - **Reuse first**: before writing a step, call `codegen`'s `get_test_files`/read tools to search the target repo's existing steps for a phrase that fits.
+- For requirement inputs (Jira/Confluence/app-model), verify freshness before acting: check current page/issue version or last-updated signal, and call out stale sources explicitly.
 
 ## Workflow
 1. Resolve `project`; run `detect_conventions` and `detect-execution-convention` (skill).

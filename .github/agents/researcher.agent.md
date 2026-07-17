@@ -36,6 +36,32 @@ Always produce a structured research brief:
   `jira_save_issue`, and `github_save_file` (all suggest a folder and refuse to write
   until `project` is confirmed).
 
+### Confluence pull defaults (both formats + multimedia)
+When pulling Confluence pages, **default to saving both the raw storage HTML and the
+Markdown/plain-text** for every page — never just one. HTML preserves macros and
+markup (`<ac:structured-macro>`, expand/tabs/panels, tables) that the `.md` text loses,
+while the `.md` stays diffable and searchable. Both are kept side by side:
+- **A whole page tree** → use the `confluence:sync` script
+  (`npm run confluence:sync -- --project <name> --rootPageId <id> --full`), which writes
+  `${pageId}.html` (macro-preserving storage HTML) **and** `${pageId}.md` + `${pageId}.json`
+  per page. Use `--full` when backfilling HTML onto already-crawled pages (incremental skips
+  unchanged ones).
+- **A single page** → `confluence_save_page` (writes `page.html`, `page.structured.txt`,
+  `meta.json`).
+
+**Fix multimedia in the HTML**: a saved page's HTML references images/video by Confluence
+internal refs (`<ac:image><ri:attachment ri:filename="...">`) that won't render locally on
+their own. Always **download the page's attachments** alongside the HTML (sync:
+`--downloadAttachments`; single page: `confluence_get_attachments` → `confluence_download_attachment`
+into the same page's folder) so the saved HTML has its images/media present locally. Flag any
+attachment that fails to download rather than leaving a silently broken reference.
+
+**Always keep full, space-qualified URLs**: when saving pages or citing links, store the
+complete `https://<host>/spaces/<SPACE>/pages/<id>/<Title>` form — never the bare
+`https://<host>/pages/<id>` form, which does not resolve in a browser. Every saved page's
+`meta`/`index` and every link you surface must carry its space key and full URL. If you only
+have a `/pages/<id>` link, resolve the space (via `confluence_get_page`) before recording it.
+
 ## Topic research beyond the org
 For best-practice research (e.g. "playwright best practices"), use `github_search_topics`
 with `scope: "public"` to search public github.com — always label those results as

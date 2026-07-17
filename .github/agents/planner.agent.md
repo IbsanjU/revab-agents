@@ -43,6 +43,7 @@ finalized and approved by the user. Single read-only lookups are exempt.
   exploration can't resolve, offer 2–4 concrete options with one marked recommended; if the user
   doesn't respond, proceed with the recommended option and record it as an assumption in the
   plan's Deliberation appendix.
+- Include freshness gates in plans that depend on docs/tickets: require version or last-updated verification before implementation or write actions.
 
 ## Conduct
 Shared conduct rules apply from `.github/copilot-instructions.md` (tool discipline, escalation,

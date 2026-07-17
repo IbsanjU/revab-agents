@@ -48,7 +48,7 @@ Project-scoped work (running BDD suites, generating Allure reports, scaffolding 
 | jtmf | 7313 | repo-agnostic | `jtmf_get_test_case`, `jtmf_search_tests`, `jtmf_get_test_plan`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`, `jtmf_raw_get` |
 | github | 7320 | repo-agnostic | `github_search_code`, `github_search_repos`, `github_search_issues`, `github_search_commits`, `github_search_topics`, `github_get_file`, `github_save_file` |
 | artifacts | 7314 | this repo only | `list_files`, `read_repo_file`, `knowledge_append`, `knowledge_search` |
-| media | 7319 | this repo, or a manifest `project` | `get_file_metadata`, `read_pdf_text`, `read_docx_text`, `read_excel_rows`, `read_csv_rows`, `create_pdf`, `create_docx`, `ocr_image`, `ocr_pdf`, `read_diagram`, `create_diagram` |
+| media | 7319 | this repo, or a manifest `project` | `get_file_metadata`, `read_pdf_text`, `read_docx_text`, `read_excel_rows`, `read_csv_rows`, `create_pdf`, `create_docx`, `ocr_image`, `ocr_pdf`, `read_diagram`, `create_diagram`, `media_extract_requirements` |
 | notify | 7321 | target-agnostic | `notify_teams`, `notify_email` — both dryRun-first |
 | playwright-runner | 7316 | project-scoped | `run_bdd`, `run_playwright`, `get_test_files` |
 | allure-report | 7317 | project-scoped | `generate_report`, `allure_summary`, `get_result_json` |
@@ -67,6 +67,20 @@ the sources for X") and consolidates results into one linked **Sources** list, u
 ### Saving pulled data locally
 `confluence_save_page` and `jira_save_issue` pull a page/issue to disk (`downloads/confluence/<project>/...`, `downloads/jira/<project>/...`). If `project` is omitted, nothing is written — the tool returns a suggested folder name (e.g. `PROJ-XXX`, derived from the space/issue key) so the agent can ask the user to confirm or override it before saving. `confluence_get_page` and `confluence_save_page` also expand accordion/expand/tabs macros into a readable nested outline (`format: "structured"` / `page.structured.txt`) instead of flattening them away, and can return the raw storage HTML (`format: "html"` / `page.html`) for pages with rich layout.
 
+### Whole page-tree sync
+For pulling an entire Confluence page tree (not just one page), use
+`npm run confluence:sync -- --project <name> --rootPageId <id>` (`scripts/confluence-sync-project.ts`).
+It crawls descendants and same-space content links from the root page, writing
+`${pageId}.html` (raw storage HTML — preserves macros), `${pageId}.md`, and `${pageId}.json`
+per page into `projects/<project>/downloads/confluence/{pages,attachments,index}/`, plus a
+dated sync report under `projects/<project>/reports/`. Incremental by default (skips pages
+whose Confluence `version` hasn't changed since the last sync) — pass `--full` to force a
+re-crawl (e.g. to backfill HTML onto pages synced before this feature existed). Attachment
+download is opt-in (`--downloadAttachments`, with `--maxAttachmentBytes`/`--minAttachmentBytes`/
+`--attachmentMediaTypes`/`--attachmentExtensions` filters) so large binaries aren't pulled by
+default; unresolved (404) linked pages are recorded in the sync report and `links-graph.json`
+rather than failing the whole run.
+
 ### Media utilities
 The `media` server lets agents read and generate non-text-file content:
 - `get_file_metadata` — size, detected MIME type, and type-specific details (image width/height, PDF page count/info, DOCX word count) as JSON, ready to feed to Copilot as context.
@@ -77,6 +91,7 @@ The `media` server lets agents read and generate non-text-file content:
 - `ocr_pdf` — page-by-page OCR for scanned/image-only PDFs (`read_pdf_text` covers text-layer PDFs).
 - `read_diagram` — parse draw.io XML, Mermaid, or PlantUML sources into a `{ nodes, edges }` graph; raster diagrams fall back to `ocr_image` as best-effort.
 - `create_diagram` — render Mermaid source to SVG/PNG (via `@mermaid-js/mermaid-cli` through npx) for docs and Confluence pages.
+- `media_extract_requirements` — single fallback command for agents when native vision is unavailable: auto-routes a file or directory by type (OCR/parsers/diagram/text fallback) and writes one consolidated local markdown report. For a whole attachments folder tree that exceeds the tool's per-call file cap, use `npm run media:batch-extract -- --project <name>` (`scripts/batch-media-extract.ts`), which calls it once per subfolder and merges the results.
 
 ### Notifications
 The `notify` server posts to **Microsoft Teams** (Incoming Webhook / Power Automate URL, `TEAMS_WEBHOOK_URL`) and sends **Outlook email** (Microsoft Graph `sendMail` with `GRAPH_*` app-registration vars, or `smtp.office365.com` via `SMTP_*` as fallback). Both tools default to `dryRun: true` — preview, confirm with the user, then send. The orchestrator worker can also notify automatically when a task finishes: opt in per task with `{"notify":"teams"}` or `{"notify":{"channel":"email","to":["qa@co.com"]}}` in the payload (recipients default to `NOTIFY_EMAIL_TO`).

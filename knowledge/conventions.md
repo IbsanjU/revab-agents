@@ -54,8 +54,12 @@ Team/org conventions the agents must follow. The self-improvement agent updates 
   Below that size the command is a safe no-op — run it periodically, no harm in running it often.
 - `npm run check:conventions` validates every `skills/*/SKILL.md` has valid frontmatter (matching
   `name`/directory, non-empty `description`), that every `agents/registry.ts` handler which
-  calls `resolveProjectRepoPath(...)` first requires/validates `payload.project` — run it whenever a skill or
-  registry handler is added or changed.
+  calls `resolveProjectRepoPath(...)` first requires/validates `payload.project`, that every
+  `mcp-servers/<server>/index.ts` tool is documented in README.md/knowledge/memory.md and its
+  server registered in `.vscode/mcp.json`, and that the source-driven personas (automation, bsa,
+  documenter, orchestrator, planner, reporter, researcher, test-planner) each carry an explicit
+  freshness/staleness cue — run it whenever a skill, registry handler, MCP tool, or agent
+  persona is added or changed.
 - `npm test` runs the framework's own unit tests (Node's built-in test runner via `tsx`) for
   `utils/manifest.ts`, `orchestrator/queue.ts`, and `scripts/check-conventions.ts`.
 - Agent conduct rules live once in `.github/copilot-instructions.md` (Agent conduct + Per-agent

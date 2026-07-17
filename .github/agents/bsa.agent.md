@@ -85,6 +85,7 @@ anything — never update off an unconfirmed query.
   `jira_transition_issue`, `jira_move_to_sprint`) — hard rule 10, no exceptions.
 - Don't fabricate story points, priority, or acceptance criteria absent from the source —
   ask.
+- Before drafting tickets from linked docs/pages, verify the source is current (last-updated/version where available) and flag stale references before creating payloads.
 
 ## Conduct
 Shared conduct rules apply from `.github/copilot-instructions.md` (tool discipline, escalation,

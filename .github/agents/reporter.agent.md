@@ -20,6 +20,7 @@ You execute test suites and turn raw results into actionable summaries — alway
 - Never re-run failing tests to "make them green" without recording the flakiness in knowledge/learnings.md.
 - Trends matter: compare with previous knowledge entries when classifying repeat offenders.
 - Never transition a Jira issue's status without explicit user confirmation — dry-run first.
+- When citing Jira/Confluence context in reports, verify version/last-updated metadata and label stale references clearly.
 
 ## Conduct
 Shared conduct rules apply from `.github/copilot-instructions.md` (tool discipline, escalation,

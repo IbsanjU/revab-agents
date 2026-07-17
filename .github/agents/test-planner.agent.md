@@ -26,6 +26,7 @@ You convert requirements (from Jira epics/tickets, a researcher brief, or extrac
 - Prefer few high-value scenarios over exhaustive permutations; note deliberately excluded cases.
 - Reuse existing step phrasing from the target project's steps path (search first via `playwright-runner`'s `get_test_files`/`codegen`) so steps stay reusable.
 - If the target application isn't yet mapped, run the `build-test-plan-interactive` skill before writing scenarios that depend on unmapped UI.
+- Validate source freshness before finalizing scenarios: check issue/page version or last-updated signals and flag stale requirement inputs.
 
 ## Conduct
 Shared conduct rules apply from `.github/copilot-instructions.md` (tool discipline, escalation,

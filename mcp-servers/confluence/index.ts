@@ -26,6 +26,39 @@ interface ContentSearchResult {
   }>;
 }
 
+function trimTrailingSlash(url: string): string {
+  return url.replace(/\/+$/, "");
+}
+
+function extractTargetPageId(url: string): string | null {
+  const pathMatch = url.match(/\/pages\/(\d+)(?:\/|$)/);
+  if (pathMatch) return pathMatch[1];
+  const queryMatch = url.match(/[?&]pageId=(\d+)/);
+  return queryMatch ? queryMatch[1] : null;
+}
+
+function buildAbsoluteConfluenceUrl(baseUrl: string, href: string): string {
+  if (/^https?:\/\//i.test(href)) return href;
+  if (href.startsWith("/")) return `${trimTrailingSlash(baseUrl)}${href}`;
+  return href;
+}
+
+/**
+ * Keep the full space-qualified URL (e.g. /spaces/<SPACE>/pages/123/Title) when present —
+ * the bare /pages/<id> form does not resolve in a browser without the space key.
+ */
+function normalizeConfluenceUrl(baseUrl: string, href: string): string {
+  const absolute = buildAbsoluteConfluenceUrl(baseUrl, href);
+  if (/\/spaces\/[^/]+\/pages\/\d+/.test(absolute)) {
+    return absolute;
+  }
+  const pageId = extractTargetPageId(absolute);
+  if (pageId) {
+    return `${trimTrailingSlash(baseUrl)}/pages/${pageId}`;
+  }
+  return absolute;
+}
+
 startMcpHttpServer({
   name: "confluence",
   port: intEnv("CONFLUENCE_MCP_PORT", 7312),
@@ -56,7 +89,7 @@ startMcpHttpServer({
             id: r.id,
             title: r.title,
             space: r.space?.key,
-            url: r._links?.webui,
+            url: r._links?.webui ? normalizeConfluenceUrl(base(), r._links.webui) : undefined,
           }));
           return textResult(compact);
         } catch (err) {
@@ -336,7 +369,7 @@ startMcpHttpServer({
             title: data.title,
             space: data.space?.key,
             version: data.version?.number,
-            url: data._links?.webui,
+            url: data._links?.webui ? normalizeConfluenceUrl(base(), data._links.webui) : undefined,
             savedAt: new Date().toISOString(),
           };
 
@@ -493,8 +526,9 @@ startMcpHttpServer({
           );
           const html = data.body?.storage?.value ?? "";
           const links = [...html.matchAll(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)].map((m) => ({
-            href: m[1],
+            href: normalizeConfluenceUrl(base(), m[1]),
             text: stripHtml(m[2]).slice(0, 120),
+            targetPageId: extractTargetPageId(m[1]),
           }));
           const attachmentRefs = [...new Set([...html.matchAll(/ri:filename="([^"]+)"/gi)].map((m) => m[1]))];
           const linkedPages = [...new Set([...html.matchAll(/ri:content-title="([^"]+)"/gi)].map((m) => m[1]))];

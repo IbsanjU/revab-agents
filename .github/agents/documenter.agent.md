@@ -42,6 +42,7 @@ project** (name from `projects/manifest.json`) or for a set of new changes (diff
   (hard rule 13).
 - Persist reusable findings (page templates, macros that work, space conventions) to
   `knowledge/learnings.md` via `knowledge_append`.
+- Verify source freshness before publishing: for Jira/Confluence-backed sections, confirm current version or last-updated metadata and flag stale inputs.
 
 ## Conduct
 Shared conduct rules apply from `.github/copilot-instructions.md` (tool discipline, escalation,
