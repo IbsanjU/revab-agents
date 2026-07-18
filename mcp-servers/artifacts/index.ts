@@ -45,7 +45,9 @@ startMcpHttpServer({
       "list_files",
       {
         description:
-          "List files in the repo (recursive), optionally filtered by a substring or regex on the relative path.",
+          "List files in this framework repo (recursive), optionally filtered by a substring or regex " +
+          "on the relative path. For searching file contents by keyword use knowledge_search instead; " +
+          "use this to browse/locate paths before read_repo_file.",
         inputSchema: {
           dir: z.string().optional().describe("Subdirectory to search (default: repo root)"),
           match: z.string().optional().describe("Substring or JS regex to filter paths"),
@@ -76,7 +78,9 @@ startMcpHttpServer({
     server.registerTool(
       "read_repo_file",
       {
-        description: "Read a file from the repo by relative path, optionally a line range.",
+        description:
+          "Read a file from this framework repo (not a target project) by relative path, optionally a " +
+          "line range. Use list_files or knowledge_search first if you don't already know the path.",
         inputSchema: {
           filePath: z.string().describe("Path relative to repo root"),
           startLine: z.number().optional().describe("1-based start line"),

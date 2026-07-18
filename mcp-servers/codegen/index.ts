@@ -66,7 +66,9 @@ startMcpHttpServer({
     server.registerTool(
       "scaffold_step",
       {
-        description: "Write a TypeScript step-definition file into the target project's configured steps path.",
+        description:
+          "Write a TypeScript step-definition file into the target project's configured steps path. " +
+          "Skips (does not overwrite) if the file already exists.",
         inputSchema: {
           project: z.string().describe("Project name from projects.manifest.json"),
           fileName: z.string().describe("File name, e.g. 'checkout.steps.ts'"),
@@ -89,7 +91,9 @@ startMcpHttpServer({
     server.registerTool(
       "scaffold_page",
       {
-        description: "Write a TypeScript page-object file into the target project's configured pages path.",
+        description:
+          "Write a TypeScript page-object file into the target project's configured pages path. " +
+          "Skips (does not overwrite) if the file already exists.",
         inputSchema: {
           project: z.string().describe("Project name from projects.manifest.json"),
           fileName: z.string().describe("File name, e.g. 'checkout.page.ts'"),

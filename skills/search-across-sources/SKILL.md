@@ -1,6 +1,6 @@
 ---
 name: search-across-sources
-description: Federated topic search across Jira, Confluence, JTMF, and GitHub — given a keyword/topic, run all four source searches and return a consolidated list of matches with direct links (and connecting Confluence/GitHub links) so the requester gets every source needed for complete information. Use whenever the user asks to "find", "search", or "look up" a topic instead of citing an issue key, page id, or repo directly.
+description: Federated topic search across Jira, Confluence, JTMF, and GitHub — given a keyword/topic, run all four source searches and return a consolidated list of matches with direct links (and connecting Confluence/GitHub links) so the requester gets every source needed for complete information. Use whenever the user asks to "find", "search", or "look up" a topic instead of citing an issue key, page id, or repo directly. Skip when a specific issue key, page id, test case id, or repo/file is already given — call that source's own tool directly instead.
 ---
 # Search across sources
 
@@ -8,6 +8,16 @@ Composes the existing per-source search tools (`jira_search`, `confluence_search
 `jtmf_search_tests`, `github_search_code`/`github_search_repos`/`github_search_issues`/
 `github_search_commits`) — no new MCP server or I/O is needed, this is purely an
 orchestration playbook.
+
+## Disambiguating what the user actually gave you
+Decide by concrete signal, not by which word they used:
+
+| Signal observed | Treat as | Route to |
+|---|---|---|
+| Matches `[A-Z]+-\d+` | A specific issue/test-case key | `jira_get_issue`/`jtmf_get_test_case` directly — skip search |
+| Contains JQL operators (`AND`/`ORDER BY`/`~`/`=`) | A raw query, not a topic | Pass through as-is to `jql`/`cql`, don't re-wrap in `text ~ "..."` |
+| A bare word/phrase, no key pattern, no operators | A topic to search | The federated search flow below |
+| A URL to a Confluence page or GitHub file | Already-located content | Fetch directly (`confluence_get_page`/`github_get_file`), no search needed |
 
 ## Steps
 1. Turn the user's topic into per-source queries:

@@ -29,3 +29,9 @@ Respond with exactly these sections, in this order:
   changes reflect the user's process, not just test results; always confirm.
 - Status/field updates must cite the evidence (test case keys, Allure run id) in the
   accompanying comment so the change is auditable.
+
+## Definition of done (all must be true, not just "looks complete")
+1. For a transition, the valid-transitions list was actually read from the `dryRun: true` response — not guessed by name.
+2. The user's reply was an explicit affirmative to *that* previewed field/transition change, not a general "update it" from earlier in the task.
+3. The comment posted actually contains the evidence (test case keys / Allure run id) cited in step 4 — not a placeholder.
+4. The `knowledge/learnings.md` entry was actually appended, not just planned.

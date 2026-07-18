@@ -164,7 +164,9 @@ startMcpHttpServer({
     server.registerTool(
       "read_pdf_text",
       {
-        description: "Extract text from a local PDF file, optionally truncated to maxChars.",
+        description:
+          "Extract text from a local PDF's text layer, optionally truncated to maxChars. For " +
+          "scanned/image-only PDFs with no text layer, use ocr_pdf instead.",
         inputSchema: {
           filePath: z.string().describe("Path to the PDF, relative to the repo (or the project's repo if `project` is given)"),
           project: z.string().optional().describe("Manifest project name to resolve filePath against (default: this framework repo)"),
@@ -197,7 +199,9 @@ startMcpHttpServer({
     server.registerTool(
       "read_docx_text",
       {
-        description: "Extract plain text from a local DOCX file.",
+        description:
+          "Extract plain text from a local .docx file (via mammoth). Returns any conversion warnings " +
+          "alongside the text; for PDFs use read_pdf_text/ocr_pdf instead.",
         inputSchema: {
           filePath: z.string().describe("Path to the .docx file, relative to the repo (or the project's repo if `project` is given)"),
           project: z.string().optional().describe("Manifest project name to resolve filePath against (default: this framework repo)"),

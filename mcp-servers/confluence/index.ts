@@ -23,6 +23,7 @@ interface ContentSearchResult {
     title: string;
     _links?: { webui?: string };
     space?: { key: string };
+    version?: { number: number; when?: string };
   }>;
 }
 
@@ -34,7 +35,9 @@ startMcpHttpServer({
       "confluence_search",
       {
         description:
-          "Search Confluence pages. Accepts free text (uses siteSearch) or a raw CQL query.",
+          "Search Confluence pages by free text (siteSearch) or raw CQL. Returns id, title, space, " +
+          "a webui url, and lastUpdated (version.when) per match — freshness-compare candidates, then " +
+          "use confluence_get_page to fetch full content.",
         inputSchema: {
           query: z.string().describe('Free text, e.g. "checkout test strategy", or raw CQL'),
           spaceKey: z.string().optional().describe("Limit to a space key"),
@@ -50,13 +53,14 @@ startMcpHttpServer({
           const data = await apiGet<ContentSearchResult>(base(), "/rest/api/content/search", {
             cql,
             limit: limit ?? 15,
-            expand: "space",
+            expand: "space,version",
           });
           const compact = data.results.map((r) => ({
             id: r.id,
             title: r.title,
             space: r.space?.key,
             url: r._links?.webui,
+            lastUpdated: r.version?.when,
           }));
           return textResult(compact);
         } catch (err) {
@@ -69,10 +73,13 @@ startMcpHttpServer({
       "confluence_get_page",
       {
         description:
-          "Get a Confluence page by id. Returns title, version and body in the requested format: " +
+          "Get a Confluence page by id. Returns title, version, lastUpdated/lastUpdatedBy (for freshness " +
+          "comparison across sources), and body in the requested format: " +
           "'text' (default, plain-text stripped), 'html' (raw storage HTML — needed for pages with " +
           "accordions, expand panels, or tabs), or 'structured' (accordions/expand/tabs macros expanded " +
-          "into a readable nested plain-text outline instead of being flattened away).",
+          "into a readable nested plain-text outline instead of being flattened away). Cheapest first: " +
+          "default to 'text'; reach for 'structured' only when accordion/expand/tabs content is worth " +
+          "preserving; use 'html' only if the raw markup itself is needed.",
         inputSchema: {
           pageId: z.string().describe("Numeric page id"),
           format: z.enum(["text", "html", "structured"]).optional().describe("Body format (default: text)"),
@@ -84,7 +91,7 @@ startMcpHttpServer({
           const data = await apiGet<{
             id: string;
             title: string;
-            version?: { number: number };
+            version?: { number: number; when?: string; by?: { displayName?: string } };
             space?: { key: string };
             body?: { storage?: { value?: string } };
           }>(base(), `/rest/api/content/${encodeURIComponent(pageId)}`, {
@@ -103,6 +110,8 @@ startMcpHttpServer({
             title: data.title,
             space: data.space?.key,
             version: data.version?.number,
+            lastUpdated: data.version?.when,
+            lastUpdatedBy: data.version?.by?.displayName,
             format: effectiveFormat,
             body,
           });

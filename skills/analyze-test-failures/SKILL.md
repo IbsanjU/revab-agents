@@ -1,6 +1,6 @@
 ---
 name: analyze-test-failures
-description: Analyze failed BDD runs using Allure results — classify failures as product bug, test bug, environment, or data issues, and propose fixes. Use when tests fail, when asked "why did the run fail", or after a regression run completes.
+description: Analyze failed BDD runs using Allure results — classify failures as product bug, test bug, environment, or data issues, and propose fixes. Use when tests fail, when asked "why did the run fail", or after a regression run completes. Supports an optional depth: "quick" (default, single-pass classification) or "thorough" (adversarially re-checks each candidate classification before reporting it).
 ---
 # Analyze test failures
 
@@ -15,6 +15,11 @@ description: Analyze failed BDD runs using Allure results — classify failures 
 4. For test bugs, propose the concrete code fix (locator strategy, web-first assertion, isolation).
 5. For repeat offenders, check knowledge/learnings.md history; record new flaky tests there.
 6. Output the reporter-format table: scenario | classification | root cause | suggested fix/owner.
+7. **Thorough mode only** (when asked for a deeper pass, or classifications disagree with a cited
+   acceptance criterion): treat step 3's classification as a *candidate*, then run one adversarial
+   re-check per candidate — actively try to disprove it against the evidence (stack trace, Jira AC,
+   prior flaky history) before accepting it. Only report a classification that survives that check;
+   otherwise mark it "uncertain" and say what additional evidence would resolve it.
 
 ## Output
 Respond with exactly these sections, in this order, no preamble:
@@ -26,3 +31,6 @@ Respond with exactly these sections, in this order, no preamble:
 ## Anti-patterns to reject
 - Adding retries or sleeps to mask flakiness.
 - Marking failures as "flaky" without two observed alternating outcomes.
+- Watching only for a success marker in run output/status — a hang, crash, or unexpected exit
+  looks identical to "still running" if you only grep for the happy path. Any status check must
+  cover every terminal state (passed/failed/broken/cancelled/timeout), not just the pass marker.

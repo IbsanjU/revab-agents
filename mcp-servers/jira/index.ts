@@ -13,7 +13,7 @@ import { buildJiraIssueUrl } from "../../utils/jiraLinks.js";
 setAuthService("jira");
 
 const base = () => env("JIRA_BASE_URL");
-const DEFAULT_FIELDS = "summary,status,issuetype,assignee,priority,labels,fixVersions,parent";
+const DEFAULT_FIELDS = "summary,status,issuetype,assignee,priority,labels,fixVersions,parent,created,updated";
 const ROOT = path.resolve(process.cwd());
 const DEFAULT_SAVE_DIR = "downloads/jira";
 
@@ -204,7 +204,9 @@ startMcpHttpServer({
     server.registerTool(
       "jira_add_comment",
       {
-        description: "Add a comment to a Jira issue.",
+        description:
+          "Add a comment to a Jira issue. Posts immediately — unlike the other Jira write tools in " +
+          "this server, there is no dryRun preview.",
         inputSchema: {
           key: z.string().describe("Issue key, e.g. ABC-123"),
           body: z.string().describe("Comment text (plain text or Jira wiki markup)"),

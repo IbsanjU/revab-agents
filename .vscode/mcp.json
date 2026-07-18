@@ -40,6 +40,10 @@
       "type": "http",
       "url": "http://localhost:7320/mcp"
     },
+    "git": {
+      "type": "http",
+      "url": "http://localhost:7322/mcp"
+    },
     "notify": {
       "type": "http",
       "url": "http://localhost:7321/mcp"

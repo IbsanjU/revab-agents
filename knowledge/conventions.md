@@ -49,6 +49,18 @@ Team/org conventions the agents must follow. The self-improvement agent updates 
 - Saving pulled data to disk (Confluence pages, Jira issues, etc.) requires an explicit, user-confirmed project folder — tools return a suggested default (`<KEY>-XXX`) instead of writing when `project` is omitted; never assume a folder.
 - Every significant session ends with a `knowledge/learnings.md` entry.
 - Test plans live in `knowledge/test-plans/<project>/<EPIC-KEY>.md`.
+- Planner-approved plans live under the relevant project's own folder
+  (`projects/<project>/plans/<date>-<slug>.md`) when the work is project-specific, or
+  `knowledge/plans/framework/` for framework-only work on `revab-agents` itself.
+- Every line of a generated document must trace to an actually-fetched, dated source (hard
+  rule 14) — not just one citation per artifact. When sources disagree, the most recently
+  updated one is authoritative and the superseded one is named with its date, never dropped
+  or blended (hard rule 15). Use the `structure-project-data` skill to reconcile multi-source
+  data instead of doing it ad hoc.
+- The `git` MCP server is read-only local history/branch search (`git_log`, `git_branches`,
+  `git_search`, `git_diff`, `git_show`), scoped to a manifest-resolved project's repoPath or
+  this repo when `project` is omitted — check it for related in-progress work on other
+  branches before scaffolding something new.
 - `knowledge/learnings.md` is rotated once it grows past ~8KB: run `npm run knowledge:rotate`
   to archive all but the current month's dated entries into `knowledge/learnings/<YYYY-MM>.md`.
   Below that size the command is a safe no-op — run it periodically, no harm in running it often.
@@ -62,3 +74,24 @@ Team/org conventions the agents must follow. The self-improvement agent updates 
   boundaries sections) — that file loads automatically alongside every persona, so
   `.github/agents/*.agent.md` files carry a one-line pointer, not a duplicated copy. Tighten a
   specific persona directly in its own file instead of re-pasting shared text.
+
+## Design heuristics (from prompt-engineering research, 2026-07-12)
+- **Batch tool loads, not one-by-one**: when a task needs several tools from the same MCP server
+  (e.g. multiple `mcp_jira_*` calls), issue one batched discovery/read pass rather than N sequential
+  round-trips — the same discipline already used for parallel independent reads.
+- **Pipeline by default, barrier only when justified**: a multi-item async handler (`orchestrator/queue.ts`,
+  `agents/registry.ts`) should let each item complete independently; only add a synchronization point
+  (wait for the whole batch) when a later step provably needs *all* prior results at once (dedup,
+  early-exit-on-zero, cross-item comparison) — not as a default habit.
+- **`knowledge:rotate` is archive-only, not summarize-only-then-discard**: it's already safe by design —
+  old entries move to `knowledge/learnings/<YYYY-MM>.md` verbatim, nothing is ever deleted or lossily
+  summarized, so trust-boundary/security-relevant learnings are never at risk of being dropped by rotation.
+- **Detect-before-writing, refuse-with-a-question on ambiguity**: any future skill that must pick a
+  target-specific code path by inspection (e.g. a project's custom Confluence macros, Jira field
+  conventions) should scan for concrete signals first and ask rather than guess if none are found —
+  the same shape as `detect-execution-convention`'s BrowserStack detection.
+- **Security-review false-positive calibration** (for any future security-review-style skill/persona
+  work): env vars/CLI flags are trusted input, not attacker-controlled; UUIDs are assumed unguessable;
+  framework-escaped templating (React/Angular/etc.) doesn't need flagging unless an escape hatch
+  (e.g. `dangerouslySetInnerHTML`) is used; rate-limiting/DoS-hardening is generally out of scope for
+  a code-level review. Score confidence 1–10 and only report ≥8 to avoid noise.

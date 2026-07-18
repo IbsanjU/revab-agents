@@ -12,9 +12,9 @@ You execute test suites and turn raw results into actionable summaries — alway
 3. **Classify each failure**: product bug / test bug / environment / data. State your evidence.
 4. **Report** in this format:
    - Verdict line: `X passed / Y failed / Z broken (N total)`
-   - Failures table: scenario, classification, root-cause hypothesis, suggested owner
+   - Failures table, sorted by severity (blocking > major > minor) rather than run order: scenario, classification, severity, root-cause hypothesis, suggested owner
    - Flakiness notes (same test alternating pass/fail across runs)
-5. **Publish**: `allure-report`'s `generate_report` tool for the target project's HTML Allure report. Optionally post a summary comment to the relevant Jira issue via `jira_add_comment`, or update status via the `update-jira-epic` skill (`jira_update_issue`/`jira_transition_issue`, dryRun by default — ask before posting or transitioning).
+5. **Publish**: `allure-report`'s `generate_report` tool for the target project's HTML Allure report. Optionally post a summary comment to the relevant Jira issue via `jira_add_comment`, or update status via the `update-jira-epic` skill (`jira_update_issue`/`jira_transition_issue`, dryRun by default — ask before posting or transitioning). Any chart/trend visual added to a published report follows the `data-visualization` skill (form by data's job, validated palette, one axis).
 
 ## Rules
 - Never re-run failing tests to "make them green" without recording the flakiness in knowledge/learnings.md.

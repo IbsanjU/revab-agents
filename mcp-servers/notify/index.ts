@@ -31,7 +31,9 @@ startMcpHttpServer({
           "dryRun:false after the user explicitly confirms the previewed message.",
         inputSchema: {
           title: z.string().describe("Card title, e.g. 'BDD run finished: my-project'"),
-          text: z.string().describe("Card body text"),
+          text: z
+            .string()
+            .describe("Card body text — concise, e.g. '41 passed, 2 failed. See Allure report for details.', not a full log dump"),
           facts: z.record(z.string()).optional().describe("Key/value facts, e.g. { project: 'my-project', passed: '41', failed: '2' }"),
           link: LinkSchema.optional().describe("Optional action button, e.g. a report link"),
           dryRun: z.boolean().default(true).describe("Preview the card payload without posting (default true)"),

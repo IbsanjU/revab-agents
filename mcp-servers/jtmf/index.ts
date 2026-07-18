@@ -56,7 +56,9 @@ startMcpHttpServer({
       {
         description:
           "Search test-case issues with JQL. Automatically scopes to the configured test issue type unless " +
-          "the JQL already mentions issuetype. Returns a direct browse url per test case for citing sources.",
+          "the JQL already mentions issuetype. Returns a direct browse url per test case for citing sources. " +
+          "Use this (not jira_search) when you specifically need test-case coverage; use jira_search for " +
+          "general issues/epics.",
         inputSchema: {
           jql: z.string().describe('JQL fragment, e.g. \'project = ABC AND labels = regression\''),
           maxResults: z.number().optional(),
@@ -228,7 +230,9 @@ startMcpHttpServer({
       "jtmf_raw_get",
       {
         description:
-          "Escape hatch: GET any REST path on the Jira/JTMF base URL (e.g. org-specific JTMF endpoints). Path must start with /rest/.",
+          "Escape hatch for org-specific endpoints not covered by jtmf_get_test_case/jtmf_search_tests/ " +
+          "jtmf_get_test_plan — try those first. GET any REST path on the Jira/JTMF base URL (e.g. org-specific " +
+          "JTMF endpoints). Path must start with /rest/.",
         inputSchema: {
           path: z.string().describe("REST path starting with /rest/, e.g. /rest/jtmf/1.0/testrun/123"),
           params: z.record(z.string()).optional().describe("Optional query parameters"),

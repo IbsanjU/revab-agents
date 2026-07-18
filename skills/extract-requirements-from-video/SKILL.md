@@ -1,6 +1,6 @@
 ---
 name: extract-requirements-from-video
-description: Extract requirement text from a video or its transcript into citable, timestamped requirement fragments. Use when a manual input, Confluence attachment, or recording contains spoken/demonstrated requirements.
+description: Extract requirement text from a video or its transcript into citable, timestamped requirement fragments. Use when a manual input, Confluence attachment, or recording contains spoken/demonstrated requirements. Skip when a transcript-equivalent already exists as plain text/Confluence content — read it directly instead of routing through this skill.
 ---
 # Extract requirements from video / transcript
 

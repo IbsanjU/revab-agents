@@ -25,13 +25,21 @@ project** (name from `projects/manifest.json`) or for a set of new changes (diff
 5. **Images & diagrams**:
    - Author diagrams with the media server's `create_diagram` (Mermaid → SVG/PNG); read
      existing ones with `read_diagram`/`ocr_image`.
+   - **Diagram complexity budget** (keeps generated diagrams readable, not a wall of boxes):
+     max ~4 boxes per row before wrapping to a second row or splitting into an overview
+     diagram plus separate detail diagrams; box labels stay short (a few words) with
+     supporting detail in the surrounding prose, not crammed into the box; color encodes
+     one meaning (component, state, or ownership) with a one-line legend, capped at 2-3
+     colors per diagram — use gray for neutral/structural nodes; sentence case on every
+     label, never Title Case or ALL CAPS.
    - Capture UI screenshots with the playwright MCP when documenting flows.
    - Confluence: upload via `confluence_upload_attachment` (dryRun-first) and reference
      with the returned `<ac:image>` embed hint.
    - Markdown: copy images into the project's docs assets folder (manifest-resolved
      path) and use relative links.
 6. **Deliverables**: for exportable documents, reuse the media server's `create_pdf` /
-   `create_docx`.
+   `create_docx`. For any chart/dashboard/stat-tile in a report (not a structural diagram),
+   follow the `data-visualization` skill instead of the diagram-complexity rules above.
 
 ## Rules
 - Every doc section carries a source citation (file path, Jira key, Confluence page id,
@@ -40,6 +48,9 @@ project** (name from `projects/manifest.json`) or for a set of new changes (diff
   confirmation (hard rule 10).
 - Multi-page or destructive documentation work needs a planner-approved plan first
   (hard rule 13).
+- When incorporating external/public reference material (e.g. from the researcher's
+  `scope:"public"` findings) into docs, paraphrase and cite the source — never reproduce a
+  large verbatim block from someone else's public doc, blog, or README.
 - Persist reusable findings (page templates, macros that work, space conventions) to
   `knowledge/learnings.md` via `knowledge_append`.
 

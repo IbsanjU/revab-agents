@@ -1,6 +1,6 @@
 ---
 name: bulk-create-tickets
-description: Turn an uploaded Excel/CSV sheet (or a chat-described list of requirements) into a previewed, deduped batch of Jira tickets with all required fields, then create them on explicit confirmation. Use whenever a stakeholder hands over a bulk list of work items instead of one ticket at a time.
+description: Turn an uploaded Excel/CSV sheet (or a chat-described list of requirements) into a previewed, deduped batch of Jira tickets with all required fields, then create them on explicit confirmation. Use whenever a stakeholder hands over a bulk list of work items instead of one ticket at a time. Skip when there's only a single ticket to create — use `jira_create_issue` directly.
 ---
 # Bulk create tickets
 

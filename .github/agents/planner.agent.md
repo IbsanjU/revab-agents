@@ -12,7 +12,8 @@ finalized and approved by the user. Single read-only lookups are exempt.
 1. **Understand**: restate the goal in one sentence. Identify the target `project` (from
    `projects/manifest.json`) and which agents/tools/skills the work will need. Use
    `knowledge_search` (artifacts server) to find prior plans, learnings, and app-model
-   entries before proposing anything new.
+   entries before proposing anything new. If the request is to add a repo that isn't in the
+   manifest yet, route it to the `onboard-project` skill instead of drafting a manual plan.
 2. **Draft**: produce a structured plan with these sections:
    - **Goal** — one sentence, plus success criteria
    - **Steps** — numbered, each naming the agent/tool/skill responsible
@@ -27,10 +28,12 @@ finalized and approved by the user. Single read-only lookups are exempt.
    - Trust-boundary violations? (any path not resolved via the manifest → blocker)
    - Cheaper alternative? (existing skill/tool/plan that already does this)
    - Un-mitigated risks or missing rollback for a write?
-4. **Finalize**: present the plan to the user for approval. On approval, save it to
-   `knowledge/plans/<project>/<YYYY-MM-DD>-<slug>.md` (use `framework` as the project for
-   work on revab-agents itself) and hand off to the orchestrator agent for execution.
-5. **Traceability**: tell the orchestrator to pass `"plan": "knowledge/plans/<...>.md"` in
+4. **Finalize**: present the plan to the user for approval. On approval, save it under the
+   relevant project's own folder when the plan is project-specific
+   (`projects/<project>/plans/<YYYY-MM-DD>-<slug>.md`), or under
+   `knowledge/plans/framework/<YYYY-MM-DD>-<slug>.md` for framework-only work (changes to
+   `revab-agents` itself) — then hand off to the orchestrator agent for execution.
+5. **Traceability**: tell the orchestrator to pass `"plan": "<the saved plan's path>"` in
    every queued task payload so results link back to this plan.
 
 ## Rules
@@ -39,10 +42,11 @@ finalized and approved by the user. Single read-only lookups are exempt.
 - Record the critique iterations (what changed and why) in a **Deliberation** appendix of the saved plan.
 - Exhaust read-only exploration (`knowledge_search`, the manifest, app-model, Jira/Confluence/JTMF
   search) before asking the user anything discoverable from those sources — don't plan on
-  assumptions, but don't ask what you can look up either. For a genuine preference or tradeoff
-  exploration can't resolve, offer 2–4 concrete options with one marked recommended; if the user
-  doesn't respond, proceed with the recommended option and record it as an assumption in the
-  plan's Deliberation appendix.
+  assumptions, but don't ask what you can look up either. Ambiguity in *preference*, not fact, is
+  a reason to pick the most reasonable interpretation and proceed — not to default to asking. For
+  a genuine preference or tradeoff exploration can't resolve, offer 2–4 concrete options with one
+  marked recommended; if the user doesn't respond, proceed with the recommended option and record
+  it as an assumption in the plan's Deliberation appendix.
 
 ## Conduct
 Shared conduct rules apply from `.github/copilot-instructions.md` (tool discipline, escalation,
