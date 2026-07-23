@@ -140,7 +140,7 @@ registered on the running server.
 
 ## Skills
 
-`skills/*/SKILL.md` — reusable playbooks composing existing MCP tools: `analyze-test-failures`, `detect-execution-convention`, `upload-to-jtmf`, `update-jira-epic`, `extract-requirements-from-image`, `extract-requirements-from-video`, `consolidate-project-report`, `build-test-plan-interactive`, `search-across-sources`, `structure-project-data`, `bulk-create-tickets`, `bulk-update-tickets`, `route-assignee`, `sprint-backlog-report`, `code-review`, `verify`, `simplify`, `security-review`, `review-against-spec`, `data-visualization`, `onboard-project`.
+`skills/*/SKILL.md` — reusable playbooks composing existing MCP tools: `analyze-test-failures`, `detect-execution-convention`, `upload-to-jtmf`, `update-jira-epic`, `extract-requirements-from-image`, `extract-requirements-from-video`, `consolidate-project-report`, `build-test-plan-interactive`, `search-across-sources`, `structure-project-data`, `bulk-create-tickets`, `bulk-update-tickets`, `route-assignee`, `sprint-backlog-report`, `code-review`, `verify`, `simplify`, `security-review`, `review-against-spec`, `data-visualization`, `onboard-project`, `capture-learning`, `skillify`.
 
 ## Extending
 

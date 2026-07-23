@@ -68,6 +68,7 @@ export const AGENT_CONDUCT: ConductSection[] = [
   {
     title: "Memory hygiene",
     short: [
+      "Generalize before you store — rewrite a one-off observation into its reusable, parameterized form; store the rule behind it, never the diary entry (use the `capture-learning` skill).",
       "Store in `knowledge/learnings.md` only what is durable, generalizable, non-sensitive, and not trivially re-derivable from the code.",
       "Delete entries proven wrong instead of stacking corrections. Verify a recalled selector/endpoint/flag still matches current state before acting on it.",
     ],

@@ -56,6 +56,7 @@ Read `knowledge/memory.md` first (canonical framework facts, tool names, pending
 - Stop early only via the escalation template above — never because the remaining work is tedious or multi-step.
 
 ### Memory hygiene
+- Generalize before you store — rewrite a one-off observation into its reusable, parameterized form; store the rule behind it, never the diary entry (use the `capture-learning` skill).
 - Store in `knowledge/learnings.md` only what is durable, generalizable, non-sensitive, and not trivially re-derivable from the code.
 - Delete entries proven wrong instead of stacking corrections. Verify a recalled selector/endpoint/flag still matches current state before acting on it.
 
@@ -171,11 +172,12 @@ _Imports agents, prompts, skills, scripts, and utils from other repos into this 
 
 _Reviews the session, persists durable learnings, extracts reusables, and proposes agent/skill/script upgrades — runs every session._
 
-- **Owns:** Reviewing the session: what was built, what failed, what was repeated manually, which steps were awkward.; Persisting durable learnings to `knowledge/learnings.md` (consolidating, not duplicating) and conventions to `knowledge/conventions.md`.; Extracting any twice-written logic into `utils/`/`scripts/` and updating callers.; Proposing concrete upgrade diffs to `prompts/` (the agent source), skills, or scripts — applied only after approval..
+- **Owns:** Reviewing the session: what was built, what failed, what was repeated manually, which steps were awkward.; Capturing durable, generic learnings via the `capture-learning` skill (generalize first, then file to learnings/conventions/memory) — consolidating, never duplicating.; Promoting any repeated manual process into a reusable skill via `skillify`, and any twice-written logic into `utils/`/`scripts/`.; Proposing concrete upgrade diffs to `prompts/` (the agent source), skills, or scripts — applied only after approval..
 - **Does NOT (hand off):** Change a hard rule unilaterally → the user (propose the diff); Rewrite an agent wholesale without approval → the user (propose the diff).
 - **Tools:** `Read`, `Edit`, `Bash`, `mcp__artifacts__knowledge_append`, `mcp__artifacts__knowledge_search`.
-- **Flow:** 1) Review the session for learnings, failed approaches, and repeated manual steps. 2) Before writing, `knowledge_search` for an existing entry on the same fact — update/consolidate rather than append a duplicate. 3) Extract twice-written logic into generic modules; update callers. 4) Propose agent/skill/script upgrades as diffs to `prompts/**` (base persona/tool changes on tools actually invoked this session, not abstract guesses). 5) Update `knowledge/memory.md` if framework facts changed; run `npm run typecheck` and flag doc/reality drift.
-- **Hands off:** Hand proposed upgrade diffs to the user for approval; persisted learnings feed every future session's start.
+- **Flow:** 1) Review the session for learnings, failed approaches, and repeated manual steps. 2) For each learning, run `capture-learning`: generalize it into reusable form FIRST, apply the durable/generalizable/non-sensitive bar, `knowledge_search` for an existing entry, then update/consolidate rather than append a duplicate. 3) For each repeated process, run `skillify` to capture it as a generic `skills/<name>/SKILL.md`; extract twice-written logic into generic modules and update callers. 4) Propose agent/skill/script upgrades as diffs to `prompts/**` (base persona/tool changes on tools actually invoked this session, not abstract guesses). 5) Update `knowledge/memory.md` if framework facts changed; run `npm run typecheck` and flag doc/reality drift.
+- **Skills:** `capture-learning`, `skillify`.
+- **Hands off:** Hand proposed upgrade diffs to the user for approval; the generic learnings and new skills feed every future session's start.
 
 ## Skill / MCP tool / agent boundary
 - **MCP tool** (new I/O: shell exec, external file access, HTTP) → `mcp-servers/*`.
