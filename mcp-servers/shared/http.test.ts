@@ -71,3 +71,19 @@ test("an invalid auth mode is rejected", () => {
   process.env.JIRA_API_TOKEN = "x";
   assert.throws(() => authHeaders(), /Invalid auth mode/);
 });
+
+test("the bearer-PAT fallback applies to jtmf too (token only -> bearer)", () => {
+  setAuthService("jtmf");
+  process.env.JTMF_API_TOKEN = "jtmf-pat";
+  assert.equal(authHeaders().Authorization, "Bearer jtmf-pat");
+});
+
+test("jtmf still resolves basic when its own email + token are set", () => {
+  setAuthService("jtmf");
+  process.env.JTMF_EMAIL = "jtmf-bot@company.com";
+  process.env.JTMF_API_TOKEN = "jtmf-token";
+  assert.equal(
+    authHeaders().Authorization,
+    basicHeader("jtmf-bot@company.com", "jtmf-token"),
+  );
+});

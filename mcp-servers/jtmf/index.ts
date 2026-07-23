@@ -3,6 +3,7 @@ import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js
 import { env, intEnv, optionalEnv } from "../shared/config.js";
 import { apiGet, apiPost, apiPut, apiDelete, setAuthService } from "../shared/http.js";
 import { buildJiraIssueUrl } from "../../utils/jiraLinks.js";
+import { semanticBoolean } from "../../utils/semanticBoolean.js";
 
 /**
  * JTMF / test-management MCP server.
@@ -142,7 +143,7 @@ startMcpHttpServer({
           steps: z.string().optional().describe("Test steps text (written to JTMF_STEPS_FIELD if configured)"),
           description: z.string().optional(),
           labels: z.array(z.string()).optional(),
-          dryRun: z.boolean().optional().describe("If true (default), return the payload without creating anything"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the payload without creating anything"),
         },
       },
       async ({ projectKey, summary, steps, description, labels, dryRun }) => {
@@ -179,7 +180,7 @@ startMcpHttpServer({
           steps: z.string().optional().describe("Test steps text (written to JTMF_STEPS_FIELD if configured)"),
           description: z.string().optional(),
           labels: z.array(z.string()).optional(),
-          dryRun: z.boolean().optional().describe("If true (default), return the payload without updating anything"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the payload without updating anything"),
         },
       },
       async ({ key, summary, steps, description, labels, dryRun }) => {
@@ -210,7 +211,7 @@ startMcpHttpServer({
           "Delete a test-case issue. Destructive and irreversible. dryRun (default true) previews the deletion without applying it.",
         inputSchema: {
           key: z.string().describe("Test issue key, e.g. ABC-321"),
-          dryRun: z.boolean().optional().describe("If true (default), return the intended deletion without applying it"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the intended deletion without applying it"),
         },
       },
       async ({ key, dryRun }) => {
