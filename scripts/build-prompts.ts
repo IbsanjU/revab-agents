@@ -6,10 +6,10 @@
  *   npm run build:prompts -- --check # exit non-zero if any file is stale (CI guard)
  *
  * The generated files (.github/agents/*.agent.md, AGENTS.md,
- * .github/copilot-instructions.md, CLAUDE.md) are checked in so every host sees
+ * .github/copilot-instructions.md) are checked in so every host sees
  * real, self-contained content — but they must never be hand-edited. Edit the
  * source under `prompts/` and re-run this. See
- * knowledge/plans/framework/2026-07-21-claude-code-discipline.md.
+ * knowledge/plans/framework/2026-07-21-agent-prompt-discipline.md.
  */
 import { promises as fs } from "fs";
 import path from "path";

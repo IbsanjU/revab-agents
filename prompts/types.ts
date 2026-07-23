@@ -5,11 +5,11 @@
  * Each agent is a typed `AgentSpec`; `prompts/build.ts` renders the specs +
  * shared rule sources (`shared/hard-rules.ts`, `shared/conduct.ts`) through
  * `shared/skeleton.ts` into the model-facing files (`.github/agents/*.agent.md`,
- * `AGENTS.md`, `.github/copilot-instructions.md`, `CLAUDE.md`).
+ * `AGENTS.md`, `.github/copilot-instructions.md`).
  *
  * Editing a rule in one place regenerates it, physically inlined, into every
  * consumer file — so the rules are present for ANY model, not "auto-loaded" by
- * one host. See knowledge/plans/framework/2026-07-21-claude-code-discipline.md.
+ * one host. See knowledge/plans/framework/2026-07-21-agent-prompt-discipline.md.
  */
 
 /** Host-neutral tool vocabulary. MCP tools use the `mcp__<server>__<tool>` form. */

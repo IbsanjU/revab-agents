@@ -5,7 +5,6 @@
  *   - .github/agents/<name>.agent.md   — self-contained persona (VS Code / Copilot)
  *   - AGENTS.md                        — portable, host-neutral instructions (any agent tool)
  *   - .github/copilot-instructions.md  — regenerated from the same source (Copilot)
- *   - CLAUDE.md                        — thin pointer to AGENTS.md (Claude Code)
  *
  * `renderAll()` returns the full set as {path, content}; the CLI writes or checks them.
  */
@@ -116,7 +115,7 @@ export function renderAll(): GeneratedFile[] {
       "",
       "# revab-agents — agent instructions (portable, model-agnostic)",
       "",
-      "These instructions are the single source of truth for how the QE agents behave. They are host-neutral: any agentic tool (Claude Code, Copilot, Cursor, …) can load this file. The per-persona files in `.github/agents/` and `.github/copilot-instructions.md` are generated from the same `prompts/**` source.",
+      "These instructions are the single source of truth for how the QE agents behave. They are host-neutral: any agentic coding tool (Copilot, Cursor, and others) can load this file. The per-persona files in `.github/agents/` and `.github/copilot-instructions.md` are generated from the same `prompts/**` source.",
       "",
       body,
     ].join("\n"),
@@ -132,20 +131,6 @@ export function renderAll(): GeneratedFile[] {
       "Generated from `prompts/**` (same source as `AGENTS.md` and every `.github/agents/*.agent.md`). Edit the source, then run `npm run build:prompts`.",
       "",
       body,
-    ].join("\n"),
-  });
-
-  files.push({
-    path: "CLAUDE.md",
-    content: [
-      GENERATED_BANNER("prompts/**"),
-      "",
-      "# revab-agents",
-      "",
-      "Project instructions live in **[AGENTS.md](./AGENTS.md)** — a portable, model-agnostic file generated from `prompts/**`. Read it (and `knowledge/memory.md`) at session start.",
-      "",
-      "Agents are defined as typed specs in `prompts/agents/*.ts` and generated into `.github/agents/*.agent.md`; never hand-edit a generated file — edit the spec and run `npm run build:prompts`.",
-      "",
     ].join("\n"),
   });
 

@@ -3,8 +3,7 @@ import { z } from "zod";
 /**
  * Boolean that also accepts the string literals "true"/"false".
  *
- * Adapted from Claude Code's `src/utils/semanticBoolean.ts` (zod v4) to this
- * repo's zod v3. Tool inputs arrive as model-generated JSON, and models across
+ * Tool inputs arrive as model-generated JSON, and models across
  * hosts occasionally quote booleans — `"dryRun":"false"` instead of
  * `"dryRun":false`. Plain `z.boolean()` rejects that with a type error (the tool
  * call fails and the model flails); `z.coerce.boolean()` is worse, since JS

@@ -2,7 +2,7 @@
 
 # revab-agents — agent instructions (portable, model-agnostic)
 
-These instructions are the single source of truth for how the QE agents behave. They are host-neutral: any agentic tool (Claude Code, Copilot, Cursor, …) can load this file. The per-persona files in `.github/agents/` and `.github/copilot-instructions.md` are generated from the same `prompts/**` source.
+These instructions are the single source of truth for how the QE agents behave. They are host-neutral: any agentic coding tool (Copilot, Cursor, and others) can load this file. The per-persona files in `.github/agents/` and `.github/copilot-instructions.md` are generated from the same `prompts/**` source.
 
 ## Overview
 revab-agents is a centralized multi-agent QE automation framework: local MCP servers (Jira, Confluence, JTMF, Artifacts, Media, GitHub, Git, Notify, Playwright-runner, Allure-report, Codegen) on localhost, an async file-queue orchestrator, agent personas, and skills. **This repo is framework-only** — it never executes tests against itself; all test authoring/execution/reporting happens in a **target project** resolved from the `projects/` manifest and operated on via MCP tools.
