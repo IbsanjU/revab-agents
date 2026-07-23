@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test \"utils/*.test.ts\" \"orchestrator/*.test.ts\" \"scripts/*.test.ts\"",
+    "test": "node --import tsx --test \"utils/*.test.ts\" \"orchestrator/*.test.ts\" \"scripts/*.test.ts\" \"mcp-servers/shared/*.test.ts\"",
     "check:conventions": "tsx scripts/check-conventions.ts",
     "build:prompts": "tsx scripts/build-prompts.ts",
     "knowledge:rotate": "tsx scripts/rotate-learnings.ts",

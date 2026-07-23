@@ -17,30 +17,49 @@ export function setAuthService(service: AtlassianService): void {
   currentService = service;
 }
 
+export type AuthMode = "basic" | "bearer";
+
 /**
  * Resolve mode/email/token for the service set via setAuthService, preferring a
  * per-service override (a JIRA_, CONFLUENCE_, or JTMF_ prefixed var) and falling back to
  * the shared ATLASSIAN_ prefixed vars so a single-token .env setup keeps working unchanged.
+ *
+ * Auth mode: an explicit `<SERVICE>_AUTH_MODE` (or shared `ATLASSIAN_AUTH_MODE`) always wins.
+ * When none is set, the mode is inferred from what's configured — a per-platform Personal
+ * Access Token is used as the fallback:
+ *   - email + token present  -> "basic"  (Cloud: email + API token)
+ *   - token only (no email)  -> "bearer" (Server / Data Center: Personal Access Token)
+ * So a PAT-only .env authenticates via bearer without also having to set AUTH_MODE, while
+ * every existing basic (email + token) setup keeps resolving to basic exactly as before.
  */
-function resolveAuthConfig(): { mode: string; token: string; email?: string } {
+function resolveAuthConfig(): { mode: AuthMode; token: string; email?: string } {
   if (!currentService) {
     throw new Error(
       "No Atlassian service configured for this process — call setAuthService('jira'|'confluence'|'jtmf') at server startup before making any request."
     );
   }
   const prefix = currentService.toUpperCase();
-  const mode = optionalEnv(`${prefix}_AUTH_MODE`) ?? optionalEnv("ATLASSIAN_AUTH_MODE") ?? "basic";
   const token = optionalEnv(`${prefix}_API_TOKEN`) ?? optionalEnv("ATLASSIAN_API_TOKEN");
   if (!token) {
     throw new Error(
       `Missing API token for "${currentService}": set ${prefix}_API_TOKEN (per-service, recommended) or ATLASSIAN_API_TOKEN (shared fallback) in .env.`
     );
   }
-  if (mode === "bearer") return { mode, token };
   const email = optionalEnv(`${prefix}_EMAIL`) ?? optionalEnv("ATLASSIAN_EMAIL");
+
+  const explicitMode = optionalEnv(`${prefix}_AUTH_MODE`) ?? optionalEnv("ATLASSIAN_AUTH_MODE");
+  if (explicitMode && explicitMode !== "basic" && explicitMode !== "bearer") {
+    throw new Error(
+      `Invalid auth mode "${explicitMode}" for "${currentService}": set ${prefix}_AUTH_MODE (or ATLASSIAN_AUTH_MODE) to "basic" (Cloud: email + API token) or "bearer" (Server/DC: Personal Access Token).`
+    );
+  }
+  // No explicit mode -> infer, preferring a per-platform PAT (bearer) when no email is set.
+  const mode: AuthMode = (explicitMode as AuthMode | undefined) ?? (email ? "basic" : "bearer");
+
+  if (mode === "bearer") return { mode, token };
   if (!email) {
     throw new Error(
-      `Missing email for "${currentService}" (basic auth mode): set ${prefix}_EMAIL (per-service) or ATLASSIAN_EMAIL (shared fallback) in .env.`
+      `Missing email for "${currentService}" (basic auth mode): set ${prefix}_EMAIL (per-service) or ATLASSIAN_EMAIL (shared fallback) in .env — or use a Personal Access Token by setting ${prefix}_AUTH_MODE=bearer (bearer is also inferred automatically when no email is configured).`
     );
   }
   return { mode, token, email };
