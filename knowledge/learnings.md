@@ -9,6 +9,12 @@ Entry format:
 
 ---
 
+### 2026-07-21
+- Agents wandered across VS Code models because their rules were *referenced*, not present: every persona deferred conduct to `.github/copilot-instructions.md` "which loads automatically" — true only in default Copilot, so on other models the agent ran with no hard rules. Fix: rules are now **inlined** into each generated persona.
+- Adopted a "md → code" prompt system (mirrors Claude Code's content/registration split): agents are typed specs in `prompts/agents/*.ts`; `prompts/shared/{hard-rules,conduct,skeleton}.ts` hold the single source; `scripts/build-prompts.ts` (`npm run build:prompts`, `-- --check` in CI) regenerates `.github/agents/*.agent.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `CLAUDE.md`. **Never hand-edit a generated file** — edit the spec and rebuild.
+- Portable tool vocabulary (`Read/Grep/Glob/Edit/Write/Bash/Task/WebFetch` + `mcp__server__tool`); the portable→host (Copilot) mapping lives once in `prompts/shared/skeleton.ts`. Per-agent tool lists are now minimal (no wildcards); orchestrator holds no exec/write tools so it must delegate.
+- Copied Claude's coercion utils to `utils/semanticBoolean.ts` + `semanticNumber.ts` (zod v3 adaptation) and wrapped the jira server's boolean/`dryRun` fields — a quoted `"dryRun":"false"` now coerces to `false` instead of erroring/defeating the guard. Follow-up: roll the same wrapping out to confluence/jtmf/notify and to number fields; upgrade remaining MCP tool descriptions per `PROMPT_STYLE.md`.
+
 ### 2026-07-02
 - Framework scaffolded: 4 local MCP servers (jira 7311, confluence 7312, jtmf 7313, artifacts 7314), file-queue orchestrator, Playwright+Cucumber+Allure skeleton, 7 agent chat modes.
 - JTMF custom fields are org-specific: set `JTMF_STEPS_FIELD` in `.env` before test-case tools return steps.

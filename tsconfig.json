@@ -16,6 +16,7 @@
     "mcp-servers/**/*.ts",
     "orchestrator/**/*.ts",
     "agents/**/*.ts",
+    "prompts/**/*.ts",
     "scripts/**/*.ts",
     "utils/**/*.ts"
   ]
