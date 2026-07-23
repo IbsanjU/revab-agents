@@ -7,6 +7,7 @@ import { apiGet, apiPost, apiPut, apiDelete, setAuthService } from "../shared/ht
 import { resolveWithinRoot } from "../../utils/fsSafety.js";
 import { buildSaveConfirmationPrompt } from "../../utils/saveSuggestion.js";
 import { buildJiraIssueUrl } from "../../utils/jiraLinks.js";
+import { semanticBoolean } from "../../utils/semanticBoolean.js";
 
 // Authenticate as "jira" — prefers JIRA_EMAIL/JIRA_API_TOKEN/JIRA_AUTH_MODE, falling back to
 // the shared ATLASSIAN_* vars (see mcp-servers/shared/http.ts).
@@ -273,7 +274,7 @@ startMcpHttpServer({
           description: z.string().optional(),
           labels: z.array(z.string()).optional(),
           fields: z.record(z.unknown()).optional().describe("Additional raw Jira fields to merge in"),
-          dryRun: z.boolean().optional().describe("If true (default), return the payload without creating anything"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the payload without creating anything"),
         },
       },
       async ({ projectKey, issueType, summary, description, labels, fields, dryRun }) => {
@@ -310,8 +311,8 @@ startMcpHttpServer({
           "(applied only on a real, non-duplicate create; a transition failure doesn't undo the create).",
         inputSchema: {
           issues: z.array(BulkIssueDraft).min(1).describe("Issue drafts to create"),
-          skipDedupe: z.boolean().optional().describe("Skip the pre-create duplicate search (default false)"),
-          dryRun: z.boolean().optional().describe("If true (default), return the full batch preview without creating anything"),
+          skipDedupe: semanticBoolean(z.boolean().optional()).describe("Skip the pre-create duplicate search (default false)"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the full batch preview without creating anything"),
         },
       },
       async ({ issues, skipDedupe, dryRun }) => {
@@ -396,7 +397,7 @@ startMcpHttpServer({
             .array(BulkUpdateDraft)
             .min(1)
             .describe("Update rows: { key, fields?, transitionName?, comment? } — fields and/or transitionName required per row"),
-          dryRun: z.boolean().optional().describe("If true (default), return the full batch preview without applying anything"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the full batch preview without applying anything"),
         },
       },
       async ({ updates, dryRun }) => {
@@ -473,8 +474,8 @@ startMcpHttpServer({
           "Delete a Jira issue. Destructive and irreversible. dryRun (default true) previews the deletion without applying it.",
         inputSchema: {
           key: z.string().describe("Issue key, e.g. ABC-123"),
-          deleteSubtasks: z.boolean().optional().describe("Also delete subtasks (default false)"),
-          dryRun: z.boolean().optional().describe("If true (default), return the intended deletion without applying it"),
+          deleteSubtasks: semanticBoolean(z.boolean().optional()).describe("Also delete subtasks (default false)"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the intended deletion without applying it"),
         },
       },
       async ({ key, deleteSubtasks, dryRun }) => {
@@ -500,7 +501,7 @@ startMcpHttpServer({
         inputSchema: {
           key: z.string().describe("Issue key, e.g. ABC-123"),
           fields: z.record(z.unknown()).describe("Jira field map to update, e.g. { summary: 'New title' }"),
-          dryRun: z.boolean().optional().describe("If true (default), return the payload without updating anything"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the payload without updating anything"),
         },
       },
       async ({ key, fields, dryRun }) => {
@@ -525,7 +526,7 @@ startMcpHttpServer({
           key: z.string().describe("Issue key, e.g. ABC-123"),
           transitionName: z.string().describe("Target status/transition name, e.g. 'Done' (case-insensitive match)"),
           comment: z.string().optional().describe("Optional comment to add with the transition"),
-          dryRun: z.boolean().optional().describe("If true (default), only list available transitions without applying"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), only list available transitions without applying"),
         },
       },
       async ({ key, transitionName, comment, dryRun }) => {
@@ -558,7 +559,7 @@ startMcpHttpServer({
         inputSchema: {
           key: z.string().describe("Issue key, e.g. ABC-123"),
           accountId: z.string().describe("Jira accountId of the assignee (from jira_search_users), or 'unassign' to clear"),
-          dryRun: z.boolean().optional().describe("If true (default), preview without applying"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), preview without applying"),
         },
       },
       async ({ key, accountId, dryRun }) => {
@@ -656,7 +657,7 @@ startMcpHttpServer({
         inputSchema: {
           sprintId: z.number().describe("Target sprint id, from jira_get_sprints"),
           issueKeys: z.array(z.string()).min(1).describe("Issue keys to move, e.g. ['ABC-1','ABC-2']"),
-          dryRun: z.boolean().optional().describe("If true (default), preview without applying"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), preview without applying"),
         },
       },
       async ({ sprintId, issueKeys, dryRun }) => {
