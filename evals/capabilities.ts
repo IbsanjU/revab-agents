@@ -91,6 +91,41 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
     ],
   },
   {
+    agent: "test-planner",
+    mustHave: [
+      {
+        tool: "Write",
+        because:
+          "its flow saves the plan to `projects/<project>/test-plans/<EPIC-KEY>.md` — without a write tool that step is impossible, the same defect class as the orchestrator's stripped terminal",
+      },
+      {
+        tool: "mcp__playwright-runner__get_test_files",
+        because:
+          "it is told to reuse the project's existing step phrasing, which requires actually reading those steps",
+      },
+      {
+        tool: "mcp__codegen__scaffold_feature",
+        because: "scenarios are persisted into the target project through codegen, never written directly",
+      },
+      {
+        tool: "mcp__confluence__confluence_get_page",
+        because: "acceptance criteria frequently live in Confluence, not only in Jira",
+      },
+    ],
+    mustNotHave: [
+      { tool: "Bash", because: "planning never executes anything — running tests belongs to automation/reporter" },
+      { tool: "mcp__codegen__scaffold_step", because: "step/page implementation belongs to automation" },
+    ],
+    mustState: [
+      {
+        text: "projects/<project>/test-plans",
+        because:
+          "plans live under the project's own folder; an agent told to write to `knowledge/test-plans/` would violate the manifest layout",
+      },
+      { text: "test-design-techniques", because: "coverage must be derived by a named technique, not improvised" },
+    ],
+  },
+  {
     agent: "reporter",
     mustHave: [
       { tool: "mcp__allure-report__allure_summary", because: "failure analysis reads Allure results" },
