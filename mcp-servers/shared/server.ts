@@ -34,7 +34,34 @@ export function errorResult(err: unknown) {
  * processes); .vscode/mcp.json passes it via the server's `headers` entry.
  * Register it in .vscode/mcp.json as { "type": "http", "url": "http://localhost:<port>/mcp" }.
  */
+/**
+ * Collect mode — lets the gateway host every server in one process.
+ *
+ * Each `mcp-servers/*\/index.ts` calls `startMcpHttpServer(...)` at import time. When
+ * collect mode is on, that call records its definition and returns WITHOUT binding a
+ * port, so the gateway can simply import all the server modules and receive their
+ * registrations. This keeps the individual servers completely unchanged — they still
+ * run standalone (`npm run serve:jira`) when collect mode is off.
+ */
+const collected: McpHttpServerOptions[] = [];
+let collecting = false;
+
+/** Turn on collect mode. Call before importing any server module. */
+export function beginCollecting(): void {
+  collecting = true;
+  collected.length = 0;
+}
+
+/** Definitions recorded while collect mode was on, in import order. */
+export function collectedServers(): McpHttpServerOptions[] {
+  return [...collected];
+}
+
 export function startMcpHttpServer(opts: McpHttpServerOptions): void {
+  if (collecting) {
+    collected.push(opts);
+    return;
+  }
   const app = express();
   app.use(express.json({ limit: "4mb" }));
 

@@ -39,6 +39,28 @@ npm run typecheck                                    # typechecks revab-agents i
 
 Project-scoped work (running BDD suites, generating Allure reports, scaffolding features/steps/pages) goes through the `playwright-runner`, `allure-report`, and `codegen` MCP tools, or the equivalent orchestrator task types — always with a `project` argument.
 
+## Gateway — one process, MCP + REST
+
+`npm run serve:gateway` hosts **every tool from all 11 servers in a single process** on
+`http://localhost:7300`, instead of running 11 servers on 11 ports. It exposes each tool twice:
+
+| Surface | Endpoint | Use when |
+| --- | --- | --- |
+| MCP | `POST /mcp` | normal editor use — register just this one entry in `.vscode/mcp.json` |
+| REST | `POST /api/<server>/<tool>` | **MCP isn't available** — no org enablement, a CI job, curl, a non-MCP editor |
+| Discovery | `GET /api/tools` | list every tool, its server, its endpoint, and its input schema |
+| Health | `GET /health` | liveness + hosted tool count |
+
+```powershell
+npm run serve:gateway
+curl http://localhost:7300/api/tools
+curl -X POST http://localhost:7300/api/jira/jira_search -H "Content-Type: application/json" -d '{"jql":"project = ABC"}'
+```
+
+Both surfaces call the **same handler**, so the manifest trust boundary, dryRun-first defaults, and
+input coercion apply identically — REST is a different door to the same room, never a bypass. The
+individual `npm run serve:<name>` scripts still work unchanged for debugging a single server.
+
 ## MCP servers & ports
 
 | Server | Port | Scope | Tools |

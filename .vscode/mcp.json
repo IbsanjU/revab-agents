@@ -1,5 +1,9 @@
 {
   "servers": {
+    "gateway": {
+      "type": "http",
+      "url": "http://localhost:7300/mcp"
+    },
     "jira": {
       "type": "http",
       "url": "http://localhost:7311/mcp"
