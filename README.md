@@ -15,6 +15,22 @@ Centralized multi-agent QE automation framework — works in VS Code **without**
 | Knowledge | `knowledge/` | persistent learnings, conventions, per-project app models, and consolidated reports — the framework's memory |
 | Reusables | `utils/`, `scripts/`, `skills/` | generic modules, CLIs, and agent skills |
 
+## Install for your team
+
+Packaged with a `revab` CLI so a teammate goes from clone to running without reading this file:
+
+```powershell
+npm install          # or: npm install -g @your-org/revab-agents
+npx revab init       # scaffold .env, register the gateway in .vscode/mcp.json, seed the manifest
+# fill in .env — base URLs + one token per service (or a shared ATLASSIAN token)
+npx revab doctor     # verify env, auth per service, projects, and gateway health
+npx revab start      # run the gateway: all tools, one process, MCP + REST
+```
+
+`revab doctor` is the first thing to run when something misbehaves — most "the agent is broken"
+reports are a missing base URL, a token for the wrong service, or a project whose `repoPath` has
+moved. It names the variable and the fix, and exits non-zero so it can gate CI or onboarding.
+
 ## Quickstart
 
 ```powershell

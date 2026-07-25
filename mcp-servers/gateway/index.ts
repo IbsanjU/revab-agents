@@ -158,7 +158,8 @@ export function buildApp(tools: CapturedTool[]): express.Express {
   return app;
 }
 
-async function main(): Promise<void> {
+/** Boot the gateway. Exported so the `revab start` CLI can reuse it. */
+export async function startGateway(): Promise<void> {
   const tools = await captureAllTools();
   const app = buildApp(tools);
   const servers = new Set(tools.map((t) => t.server)).size;
@@ -183,7 +184,7 @@ function isMainModule(): boolean {
 }
 
 if (isMainModule()) {
-  main().catch((err) => {
+  startGateway().catch((err) => {
     console.error("[gateway] failed to start:", err);
     process.exit(1);
   });
