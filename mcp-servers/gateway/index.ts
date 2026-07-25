@@ -28,6 +28,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { intEnv, optionalEnv } from "../shared/config.js";
 import { captureAllTools, type CapturedTool } from "./tools.js";
+import { classifyTool } from "../../utils/toolClassification.js";
 
 const PORT = intEnv("GATEWAY_MCP_PORT", 7300);
 
@@ -73,6 +74,9 @@ export function buildApp(tools: CapturedTool[]): express.Express {
         server: t.server,
         name: t.name,
         description: t.description,
+        // read-only tools are safe to auto-approve in a client; writes must stay
+        // behind a confirmation. Exposed here so clients don't re-implement it.
+        risk: classifyTool(t.name),
         endpoint: `/api/${t.server}/${t.name}`,
         inputs: Object.entries(t.inputSchema).map(([field, schema]) => ({
           field,

@@ -55,6 +55,14 @@ npm run typecheck                                    # typechecks revab-agents i
 
 Project-scoped work (running BDD suites, generating Allure reports, scaffolding features/steps/pages) goes through the `playwright-runner`, `allure-report`, and `codegen` MCP tools, or the equivalent orchestrator task types — always with a `project` argument.
 
+## VS Code extension
+
+`extension/` packages the gateway for the editor: it auto-starts on workspace open, registers the
+tools with VS Code MCP (falling back to `.vscode/mcp.json`), shows status, and can write approval
+defaults that auto-approve read-only tools while leaving every write confirmed. See
+[extension/README.md](extension/README.md) — including its honest note on what an extension can and
+cannot do about approval prompts.
+
 ## Gateway — one process, MCP + REST
 
 `npm run serve:gateway` hosts **every tool from all 11 servers in a single process** on
