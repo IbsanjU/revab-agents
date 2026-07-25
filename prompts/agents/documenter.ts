@@ -46,7 +46,7 @@ export const documenter: AgentSpec = {
     "Never blind-overwrite a page/file — preview the section-level diff and confirm first.",
     "Never publish a Confluence write/attachment without its dryRun preview + explicit approval (rule #10).",
   ],
-  skills: ["data-visualization", "consolidate-project-report"],
+  skills: ["data-visualization", "consolidate-project-report", "self-check"],
   handoff:
     "Hand published page ids/paths back to the requester; pass reusable page/space conventions to **self-improve**.",
 };

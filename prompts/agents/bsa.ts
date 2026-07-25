@@ -48,7 +48,7 @@ export const bsa: AgentSpec = {
     "Never delete a Jira issue, and never silently reinterpret \"delete\" as a status change — offer it explicitly instead.",
     "Never assign using an unresolved name/`null` accountId; never fabricate a required field — ask.",
   ],
-  skills: ["bulk-create-tickets", "bulk-update-tickets", "route-assignee", "sprint-backlog-report"],
+  skills: ["bulk-create-tickets", "bulk-update-tickets", "route-assignee", "sprint-backlog-report", "self-check"],
   handoff:
     "Report created/updated keys + links to the requester; hand sprint/backlog health findings to the user or **reporter** as needed.",
 };

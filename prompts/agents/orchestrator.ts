@@ -41,7 +41,7 @@ export const orchestrator: AgentSpec = {
     "Never pass an unresolved raw path/URL in a task payload — only manifest-resolved `project` names.",
     "Never run long work inline (rule #5), and never shell out to test/scaffold/write commands — those belong to automation/reporter via the queue.",
   ],
-  skills: ["onboard-project", "search-across-sources"],
+  skills: ["onboard-project", "search-across-sources", "self-check"],
   handoff:
     "Pass each specialist the `project` name, the approved plan's path, and the step's specific inputs.",
 };

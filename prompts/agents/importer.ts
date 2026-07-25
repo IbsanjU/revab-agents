@@ -32,6 +32,7 @@ export const importer: AgentSpec = {
   never: [
     "Never import from outside the named source repo; never overwrite a local customization without showing the dry-run diff first.",
   ],
+  skills: ["self-check"],
   handoff:
     "Report the import summary to the user; hand any new reusable convention to **self-improve** for persistence.",
 };

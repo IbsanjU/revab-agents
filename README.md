@@ -140,7 +140,26 @@ registered on the running server.
 
 ## Skills
 
-`skills/*/SKILL.md` — reusable playbooks composing existing MCP tools: `analyze-test-failures`, `detect-execution-convention`, `upload-to-jtmf`, `update-jira-epic`, `extract-requirements-from-image`, `extract-requirements-from-video`, `consolidate-project-report`, `build-test-plan-interactive`, `search-across-sources`, `structure-project-data`, `bulk-create-tickets`, `bulk-update-tickets`, `route-assignee`, `sprint-backlog-report`, `code-review`, `verify`, `simplify`, `security-review`, `review-against-spec`, `data-visualization`, `onboard-project`, `capture-learning`, `skillify`.
+`skills/*/SKILL.md` — reusable playbooks composing existing MCP tools: `analyze-test-failures`, `detect-execution-convention`, `upload-to-jtmf`, `update-jira-epic`, `extract-requirements-from-image`, `extract-requirements-from-video`, `consolidate-project-report`, `build-test-plan-interactive`, `search-across-sources`, `structure-project-data`, `bulk-create-tickets`, `bulk-update-tickets`, `route-assignee`, `sprint-backlog-report`, `code-review`, `verify`, `simplify`, `security-review`, `review-against-spec`, `data-visualization`, `onboard-project`, `capture-learning`, `skillify`, `capture-correction`, `build-capability`, `self-check`.
+
+## Getting better over time
+
+The framework improves through a measured loop rather than prompt guesswork:
+
+```powershell
+npm run correction -- log --agent <name> --task "..." --observed "..." --expected "..." --rule "..." --severity high
+npm run correction -- list        # open corrections, most-corrected agent first
+npm run eval                      # structural capability evals (also runs in CI)
+npm run eval -- --list            # plus the behavioral cases to run by hand/LLM
+```
+
+1. **Capture** — every correction becomes a record in `knowledge/corrections/<YYYY-MM>.jsonl` (`capture-correction` skill), generalized into a reusable rule.
+2. **Fold in** — the rule goes into that agent's spec (`prompts/agents/<name>.ts`), then `npm run build:prompts`, then `npm run correction -- applied <id>`.
+3. **Prove** — add an eval so it can't regress: structural (a tool the agent must/must not hold) in `evals/capabilities.ts`, or behavioral (a task + must/must-not rubric) in `evals/behavior/*.md`.
+4. **Grow** — `build-capability` researches a missing ability, routes it to the right artifact (skill / MCP tool / util), validates it on real inputs, and wires it into the consuming agents.
+5. **Guard** — agents run `self-check` against their own rules before delivering.
+
+`npm run eval` is the regression net for agent behavior: it catches the class of change where a prompt "improvement" silently removes a capability an agent needs.
 
 ## Extending
 

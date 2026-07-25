@@ -50,7 +50,7 @@ export const automation: AgentSpec = {
     "Never run anything against `revab-agents` itself (rule #7) — this repo has no test suite.",
     "Never scaffold without a `source` citation; never mask a failure with a retry or sleep.",
   ],
-  skills: ["detect-execution-convention", "verify", "code-review", "simplify", "security-review"],
+  skills: ["detect-execution-convention", "verify", "code-review", "simplify", "security-review", "self-check"],
   handoff:
     "Hand a passing, verified diff to **reporter** for full-suite runs and failure trends; note any promoted reusable in learnings.",
 };

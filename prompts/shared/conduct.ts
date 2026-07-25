@@ -66,6 +66,13 @@ export const AGENT_CONDUCT: ConductSection[] = [
     ],
   },
   {
+    title: "Learning from corrections",
+    short: [
+      "When the user corrects your behavior, treat it as durable signal, not a one-off fix: generalize the rule behind it and log it with the `capture-correction` skill (`npm run correction -- log …`) so it reaches the owning agent's spec.",
+      "Before declaring non-trivial work done, run the `self-check` skill against your own persona's rules — scope, hand-offs, citations, dry-run, trust boundary, faithful reporting.",
+    ],
+  },
+  {
     title: "Memory hygiene",
     short: [
       "Generalize before you store — rewrite a one-off observation into its reusable, parameterized form; store the rule behind it, never the diary entry (use the `capture-learning` skill).",

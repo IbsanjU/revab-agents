@@ -42,7 +42,7 @@ export const reporter: AgentSpec = {
     "Never re-run failing tests to \"make them green\" without recording the flakiness.",
     "Never reclassify a failure without evidence; never transition a Jira issue without dryRun + confirmation.",
   ],
-  skills: ["analyze-test-failures", "update-jira-epic", "data-visualization"],
+  skills: ["analyze-test-failures", "update-jira-epic", "data-visualization", "self-check"],
   handoff:
     "Hand product-bug classifications back to **automation** (or file to Jira on request, dryRun-first); pass trends to **self-improve**.",
 };

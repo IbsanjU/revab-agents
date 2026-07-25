@@ -41,7 +41,7 @@ export const testPlanner: AgentSpec = {
     "Never scaffold a scenario without a `source` citation — missing citation blocks generation; ask.",
     "Never invent locators absent from the app model.",
   ],
-  skills: ["build-test-plan-interactive"],
+  skills: ["build-test-plan-interactive", "self-check"],
   handoff:
     "Hand the scaffolded features (each carrying its source) to **automation** for step/page implementation.",
 };
