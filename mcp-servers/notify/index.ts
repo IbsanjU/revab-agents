@@ -2,6 +2,7 @@ import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { intEnv } from "../shared/config.js";
 import { buildTeamsPayload, sendTeams, sendEmail, emailTransport, type TeamsMessage, type EmailMessage } from "../../utils/notify.js";
+import { semanticBoolean } from "../../utils/semanticBoolean.js";
 
 /**
  * Notify MCP server: Microsoft Teams (Incoming Webhook / Power Automate workflow URL)
@@ -36,7 +37,7 @@ startMcpHttpServer({
             .describe("Card body text — concise, e.g. '41 passed, 2 failed. See Allure report for details.', not a full log dump"),
           facts: z.record(z.string()).optional().describe("Key/value facts, e.g. { project: 'my-project', passed: '41', failed: '2' }"),
           link: LinkSchema.optional().describe("Optional action button, e.g. a report link"),
-          dryRun: z.boolean().default(true).describe("Preview the card payload without posting (default true)"),
+          dryRun: semanticBoolean(z.boolean().default(true)).describe("Preview the card payload without posting (default true)"),
         },
       },
       async ({ title, text, facts, link, dryRun }) => {
@@ -68,7 +69,7 @@ startMcpHttpServer({
           to: z.array(z.string().email()).min(1).describe("Recipient email addresses"),
           subject: z.string().describe("Email subject"),
           body: z.string().describe("Plain-text email body"),
-          dryRun: z.boolean().default(true).describe("Preview the email without sending (default true)"),
+          dryRun: semanticBoolean(z.boolean().default(true)).describe("Preview the email without sending (default true)"),
         },
       },
       async ({ to, subject, body, dryRun }) => {

@@ -4,6 +4,7 @@ import { env, intEnv, optionalEnv } from "../shared/config.js";
 import { apiGet, apiPost, apiPut, apiDelete, setAuthService } from "../shared/http.js";
 import { buildJiraIssueUrl } from "../../utils/jiraLinks.js";
 import { semanticBoolean } from "../../utils/semanticBoolean.js";
+import { semanticNumber } from "../../utils/semanticNumber.js";
 
 /**
  * JTMF / test-management MCP server.
@@ -62,7 +63,7 @@ startMcpHttpServer({
           "general issues/epics.",
         inputSchema: {
           jql: z.string().describe('JQL fragment, e.g. \'project = ABC AND labels = regression\''),
-          maxResults: z.number().optional(),
+          maxResults: semanticNumber(z.number().optional()),
         },
       },
       async ({ jql, maxResults }) => {

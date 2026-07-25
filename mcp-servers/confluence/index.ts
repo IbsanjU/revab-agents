@@ -7,6 +7,8 @@ import { apiGet, apiGetBinary, apiPost, apiPut, apiDelete, stripHtml, authHeader
 import { resolveWithinRoot } from "../../utils/fsSafety.js";
 import { buildSaveConfirmationPrompt } from "../../utils/saveSuggestion.js";
 import { expandConfluenceMacros } from "../../utils/confluenceMacros.js";
+import { semanticBoolean } from "../../utils/semanticBoolean.js";
+import { semanticNumber } from "../../utils/semanticNumber.js";
 
 // Authenticate as "confluence" — prefers CONFLUENCE_EMAIL/CONFLUENCE_API_TOKEN/
 // CONFLUENCE_AUTH_MODE, falling back to the shared ATLASSIAN_* vars.
@@ -41,8 +43,8 @@ startMcpHttpServer({
         inputSchema: {
           query: z.string().describe('Free text, e.g. "checkout test strategy", or raw CQL'),
           spaceKey: z.string().optional().describe("Limit to a space key"),
-          isCql: z.boolean().optional().describe("Set true if query is raw CQL"),
-          limit: z.number().optional().describe("Max results (default 15)"),
+          isCql: semanticBoolean(z.boolean().optional()).describe("Set true if query is raw CQL"),
+          limit: semanticNumber(z.number().optional()).describe("Max results (default 15)"),
         },
       },
       async ({ query, spaceKey, isCql, limit }) => {
@@ -83,7 +85,7 @@ startMcpHttpServer({
         inputSchema: {
           pageId: z.string().describe("Numeric page id"),
           format: z.enum(["text", "html", "structured"]).optional().describe("Body format (default: text)"),
-          raw: z.boolean().optional().describe("Deprecated alias for format: 'html'"),
+          raw: semanticBoolean(z.boolean().optional()).describe("Deprecated alias for format: 'html'"),
         },
       },
       async ({ pageId, format, raw }) => {
@@ -127,7 +129,7 @@ startMcpHttpServer({
         description: "List child pages of a Confluence page (for navigating page trees).",
         inputSchema: {
           pageId: z.string().describe("Numeric parent page id"),
-          limit: z.number().optional(),
+          limit: semanticNumber(z.number().optional()),
         },
       },
       async ({ pageId, limit }) => {
@@ -152,7 +154,7 @@ startMcpHttpServer({
           "List attachments on a Confluence page (images, PDFs, videos, docs) with media type, size and download link.",
         inputSchema: {
           pageId: z.string().describe("Numeric page id"),
-          limit: z.number().optional(),
+          limit: semanticNumber(z.number().optional()),
         },
       },
       async ({ pageId, limit }) => {
@@ -228,7 +230,7 @@ startMcpHttpServer({
           filePath: z.string().describe("Path to the local file, relative to this repo"),
           fileName: z.string().optional().describe("Override the attachment file name (default: the local file's name)"),
           comment: z.string().optional().describe("Optional attachment version comment"),
-          dryRun: z.boolean().optional().describe("If true (default), return the intended upload without sending it"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the intended upload without sending it"),
         },
       },
       async ({ pageId, filePath, fileName, comment, dryRun }) => {
@@ -274,7 +276,7 @@ startMcpHttpServer({
         description: "Get comments (memos/notes) on a Confluence page as plain text.",
         inputSchema: {
           pageId: z.string().describe("Numeric page id"),
-          limit: z.number().optional(),
+          limit: semanticNumber(z.number().optional()),
         },
       },
       async ({ pageId, limit }) => {
@@ -376,7 +378,7 @@ startMcpHttpServer({
           title: z.string().describe("Page title"),
           body: z.string().describe("Page body as Confluence storage-format HTML"),
           parentPageId: z.string().optional().describe("Optional parent page id to nest under"),
-          dryRun: z.boolean().optional().describe("If true (default), return the payload without creating anything"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the payload without creating anything"),
         },
       },
       async ({ spaceKey, title, body, parentPageId, dryRun }) => {
@@ -406,10 +408,10 @@ startMcpHttpServer({
           "Update an existing Confluence page's title and/or body. Requires the page's current version number (from confluence_get_page) — Confluence rejects updates with a stale version. dryRun (default true) previews the payload without sending it.",
         inputSchema: {
           pageId: z.string().describe("Numeric page id"),
-          currentVersion: z.number().describe("Current version number from confluence_get_page"),
+          currentVersion: semanticNumber(z.number()).describe("Current version number from confluence_get_page"),
           title: z.string().optional().describe("New title (defaults to unchanged if omitted, requires refetch)"),
           body: z.string().optional().describe("New body as Confluence storage-format HTML"),
-          dryRun: z.boolean().optional().describe("If true (default), return the payload without updating anything"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the payload without updating anything"),
         },
       },
       async ({ pageId, currentVersion, title, body, dryRun }) => {
@@ -440,7 +442,7 @@ startMcpHttpServer({
         inputSchema: {
           pageId: z.string().describe("Numeric page id to comment on"),
           body: z.string().describe("Comment body as Confluence storage-format HTML"),
-          dryRun: z.boolean().optional().describe("If true (default), return the payload without creating anything"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the payload without creating anything"),
         },
       },
       async ({ pageId, body, dryRun }) => {
@@ -468,7 +470,7 @@ startMcpHttpServer({
           "Delete a Confluence page. Destructive and irreversible (moves to trash, depending on space settings). dryRun (default true) previews the deletion without applying it.",
         inputSchema: {
           pageId: z.string().describe("Numeric page id"),
-          dryRun: z.boolean().optional().describe("If true (default), return the intended deletion without applying it"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the intended deletion without applying it"),
         },
       },
       async ({ pageId, dryRun }) => {
