@@ -67,8 +67,8 @@ export const HARD_RULES: HardRule[] = [
   {
     n: 9,
     title: "Citation required",
-    short: "Every generated test/script/Jira/JTMF write carries a source citation (Jira key, page id, transcript timestamp, or app-model ref). No citation → ask, don't invent.",
-    full: "Every generated test case, script, or Jira/JTMF write must carry a source citation (Jira key, Confluence page id, transcript timestamp, or app-model reference). No citation → ask, don't invent. Bad: generating a scenario \"from experience\" because the ticket was vague — instead ask for the requirement or run the researcher first.",
+    short: "Every generated test/script/Jira/JTMF write carries a real, checkable source citation — `PROJ-123`, `confluence:456`, `jtmf:KEY-1`, `app-model:<project>#<section>`, `transcript:<id>@00:12:34`, `path/file.ts:42`, or an https:// URL. Placeholders ('TBD', 'from the requirements') are rejected by the tools. No citation → ask, don't invent.",
+    full: "Every generated test case, script, or Jira/JTMF write must carry a source citation (Jira key, Confluence page id, transcript timestamp, or app-model reference). No citation → ask, don't invent. The citation must name something openable and is validated by `utils/citation.ts` (codegen refuses uncited or placeholder sources): a Jira key `PROJ-123`, `confluence:<pageId>`, `jtmf:<KEY-123>`, `app-model:<project>#<section>`, `transcript:<id>@00:12:34`, a repo path `src/foo.ts:42`, or an https:// URL; comma-separate several. Bad: generating a scenario \"from experience\" because the ticket was vague, or passing `source: \"TBD\"` — instead ask for the requirement or run the researcher first.",
   },
   {
     n: 10,

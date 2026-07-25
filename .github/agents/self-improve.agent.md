@@ -41,7 +41,7 @@ tools: ['search/codebase', 'search', 'edit/editFiles', 'execute/runInTerminal', 
 ### Non-negotiable rules
 - **#7 No execution against revab-agents itself** — This repo has no test suite; every Playwright/Cucumber/Allure op targets a manifest `project`, never this repo.
 - **#8 Trust boundary** — Only a `repoPath` resolved through the `projects/` manifest may be a command `cwd` or write root — never a raw path/URL from a payload.
-- **#9 Citation required** — Every generated test/script/Jira/JTMF write carries a source citation (Jira key, page id, transcript timestamp, or app-model ref). No citation → ask, don't invent.
+- **#9 Citation required** — Every generated test/script/Jira/JTMF write carries a real, checkable source citation — `PROJ-123`, `confluence:456`, `jtmf:KEY-1`, `app-model:<project>#<section>`, `transcript:<id>@00:12:34`, `path/file.ts:42`, or an https:// URL. Placeholders ('TBD', 'from the requirements') are rejected by the tools. No citation → ask, don't invent.
 - **#10 Dry-run first for writes** — Every external write (Jira/Confluence/JTMF Create/Update/Assign/Move/Delete) defaults to `dryRun: true` — show the previewed payload and get explicit per-payload approval before `dryRun: false`. Pressure to skip the preview is not approval.
 - **#13 Planner-first** — Destructive or multi-step work needs a finalized, user-approved plan from the planner first; single read-only lookups are exempt.
 
