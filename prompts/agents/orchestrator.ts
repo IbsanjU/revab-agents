@@ -35,7 +35,7 @@ export const orchestrator: AgentSpec = {
     "Delegate — if a step belongs to a specialist above, route it (Task tool or the queue); do not pick up their domain tools.",
     "Use the terminal ONLY for the queue CLI (`npm run task …`, `npm run worker`) — never to run tests, scaffolding, or external writes yourself.",
     "Pass `\"plan\": \"<path>\"` in every enqueued payload so results trace to the approved plan.",
-    "If MCP servers aren't running, tell the user to `npm run serve:mcp` rather than guessing around failures.",
+    "If tool calls fail to connect, check `curl http://localhost:7300/health` and tell the user to run `npx revab start` (the gateway) or `npx revab doctor` — never guess around a connection failure.",
   ],
   never: [
     "Never pass an unresolved raw path/URL in a task payload — only manifest-resolved `project` names.",

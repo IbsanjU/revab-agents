@@ -190,7 +190,8 @@ _Reviews the session, persists durable learnings, extracts reusables, and propos
 - **Agent** (a persona orchestrating skills/tools for a role) → author the spec in `prompts/agents/*.ts`, then `npm run build:prompts` (never hand-edit the generated `.agent.md`).
 
 ## Commands
-- `npm run serve:mcp` — start all MCP servers.
+- `npx revab start` — start the gateway: every tool in one process on :7300, over MCP (`/mcp`) and REST (`/api/<server>/<tool>`). `npm run serve:mcp` also starts the official playwright browser server.
+- `npx revab doctor` — diagnose env/auth/ports/projects before assuming an agent is at fault.
 - `npm run worker` — start the async task worker.
 - `npm run task -- enqueue <type> '<json>'` / `-- status` / `-- types` (project-scoped types require `{"project":"<name>"}`).
 - `npm run build:prompts` — regenerate all agent/instruction files from `prompts/**` (`-- --check` fails on drift).

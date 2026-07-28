@@ -48,11 +48,18 @@ async function ensureEnv(root: string, force: boolean): Promise<void> {
 async function ensureMcpConfig(root: string, port: number): Promise<void> {
   const target = path.join(root, ".vscode", "mcp.json");
   const gateway = { type: "http", url: `http://localhost:${port}/mcp` };
+  // The official @playwright/mcp browser server is NOT hosted by our gateway, so it
+  // needs its own entry (started by `npm run serve:playwright`).
+  const playwright = { type: "http", url: "http://localhost:7315/mcp" };
 
   if (!(await exists(target))) {
     await fs.mkdir(path.dirname(target), { recursive: true });
-    await fs.writeFile(target, JSON.stringify({ servers: { gateway } }, null, 2) + "\n", "utf8");
-    report("created", ".vscode/mcp.json", "gateway registered");
+    await fs.writeFile(
+      target,
+      JSON.stringify({ servers: { gateway, playwright } }, null, 2) + "\n",
+      "utf8",
+    );
+    report("created", ".vscode/mcp.json", "gateway + playwright registered");
     return;
   }
 

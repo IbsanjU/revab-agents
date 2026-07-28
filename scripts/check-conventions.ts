@@ -12,7 +12,8 @@
  *
  *  3. Docs drift: every `registerTool("name", ...)` in mcp-servers/<server>/index.ts
  *     must be documented in README.md and knowledge/memory.md, and every server must
- *     be registered in .vscode/mcp.json.
+ *     be reachable from the editor — either registered directly in .vscode/mcp.json or
+ *     hosted by the gateway (mcp-servers/gateway/tools.ts).
  *
  * Run with: npm run check:conventions
  * Exits non-zero (and prints every violation) if any rule is broken.
@@ -154,6 +155,12 @@ async function checkDocsDrift(): Promise<Violation[]> {
     return violations; // docs not present — nothing to check against
   }
 
+  // Servers the gateway imports — these are reachable through the single gateway entry.
+  const gatewaySource = await fs.readFile(path.resolve("mcp-servers/gateway/tools.ts"), "utf8").catch(() => "");
+  const gatewayHosted = new Set(
+    [...gatewaySource.matchAll(/"\.\.\/([\w-]+)\/index\.js"/g)].map((m) => m[1]),
+  );
+
   for (const entry of entries) {
     if (!entry.isDirectory() || entry.name === "shared") continue;
     const indexFile = path.join(serversDir, entry.name, "index.ts");
@@ -165,8 +172,17 @@ async function checkDocsDrift(): Promise<Violation[]> {
       continue;
     }
 
-    if (!new RegExp(`"${entry.name}"\\s*:`).test(mcpJson)) {
-      violations.push({ file: ".vscode/mcp.json", message: `MCP server "${entry.name}" is not registered` });
+    // A server is reachable from the editor either through its own entry in mcp.json
+    // or via the gateway, which hosts every server in `mcp-servers/gateway/tools.ts`.
+    // Requiring an individual entry once the gateway exists would force the duplicate
+    // registrations the gateway was built to remove.
+    const registeredDirectly = new RegExp(`"${entry.name}"\\s*:`).test(mcpJson);
+    const hostedByGateway = gatewayHosted.has(entry.name);
+    if (!registeredDirectly && !hostedByGateway) {
+      violations.push({
+        file: ".vscode/mcp.json",
+        message: `MCP server "${entry.name}" is neither registered directly nor hosted by the gateway — add it to mcp-servers/gateway/tools.ts, or give it its own entry`,
+      });
     }
 
     const toolNames = [...source.matchAll(/registerTool\(\s*\r?\n?\s*"([^"]+)"/g)].map((m) => m[1]);
