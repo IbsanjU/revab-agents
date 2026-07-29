@@ -3,6 +3,8 @@ import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { intEnv } from "../shared/config.js";
 import { resolveProjectRepoPath } from "../../utils/manifest.js";
+import { semanticBoolean } from "../../utils/semanticBoolean.js";
+import { semanticNumber } from "../../utils/semanticNumber.js";
 
 /**
  * Git MCP server — read-only local git history/branch/diff search.
@@ -74,8 +76,8 @@ startMcpHttpServer({
         inputSchema: {
           project: z.string().optional().describe("Project name from the manifest; omit to use this repo"),
           path: z.string().optional().describe("Repo-relative file/dir to scope history to"),
-          maxCount: z.number().optional().describe("Max commits to return (default 20)"),
-          allBranches: z.boolean().optional().describe("Search across all branches (--all), not just the current one"),
+          maxCount: semanticNumber(z.number().optional()).describe("Max commits to return (default 20)"),
+          allBranches: semanticBoolean(z.boolean().optional()).describe("Search across all branches (--all), not just the current one"),
           since: z.string().optional().describe("Only commits after this date, e.g. '2 weeks ago' or '2026-06-01'"),
           author: z.string().optional().describe("Filter by author name/email substring"),
         },
@@ -106,8 +108,8 @@ startMcpHttpServer({
           "date and subject. Check this before starting new work to see if a relevant branch already exists.",
         inputSchema: {
           project: z.string().optional().describe("Project name from the manifest; omit to use this repo"),
-          includeRemote: z.boolean().optional().describe("Include remote-tracking branches (default true)"),
-          maxCount: z.number().optional().describe("Max branches to return (default 30)"),
+          includeRemote: semanticBoolean(z.boolean().optional()).describe("Include remote-tracking branches (default true)"),
+          maxCount: semanticNumber(z.number().optional()).describe("Max branches to return (default 30)"),
         },
       },
       async ({ project, includeRemote, maxCount }) => {
@@ -148,7 +150,7 @@ startMcpHttpServer({
           query: z.string().describe("Search text (plain substring or basic regex)"),
           mode: z.enum(["messages", "content"]).optional().describe("Default: messages"),
           ref: z.string().optional().describe("For mode:content — which ref to search (default HEAD)"),
-          maxResults: z.number().optional().describe("Max matches to return (default 20)"),
+          maxResults: semanticNumber(z.number().optional()).describe("Max matches to return (default 20)"),
         },
       },
       async ({ project, query, mode, ref, maxResults }) => {

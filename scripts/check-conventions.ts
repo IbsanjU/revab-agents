@@ -12,7 +12,8 @@
  *
  *  3. Docs drift: every `registerTool("name", ...)` in mcp-servers/<server>/index.ts
  *     must be documented in README.md and knowledge/memory.md, and every server must
- *     be registered in .vscode/mcp.json.
+ *     be reachable from the editor — either registered directly in .vscode/mcp.json or
+ *     hosted by the gateway (mcp-servers/gateway/tools.ts).
  *
  * Run with: npm run check:conventions
  * Exits non-zero (and prints every violation) if any rule is broken.
@@ -154,6 +155,12 @@ async function checkDocsDrift(): Promise<Violation[]> {
     return violations; // docs not present — nothing to check against
   }
 
+  // Servers the gateway imports — these are reachable through the single gateway entry.
+  const gatewaySource = await fs.readFile(path.resolve("mcp-servers/gateway/tools.ts"), "utf8").catch(() => "");
+  const gatewayHosted = new Set(
+    [...gatewaySource.matchAll(/"\.\.\/([\w-]+)\/index\.js"/g)].map((m) => m[1]),
+  );
+
   for (const entry of entries) {
     if (!entry.isDirectory() || entry.name === "shared") continue;
     const indexFile = path.join(serversDir, entry.name, "index.ts");
@@ -165,8 +172,17 @@ async function checkDocsDrift(): Promise<Violation[]> {
       continue;
     }
 
-    if (!new RegExp(`"${entry.name}"\\s*:`).test(mcpJson)) {
-      violations.push({ file: ".vscode/mcp.json", message: `MCP server "${entry.name}" is not registered` });
+    // A server is reachable from the editor either through its own entry in mcp.json
+    // or via the gateway, which hosts every server in `mcp-servers/gateway/tools.ts`.
+    // Requiring an individual entry once the gateway exists would force the duplicate
+    // registrations the gateway was built to remove.
+    const registeredDirectly = new RegExp(`"${entry.name}"\\s*:`).test(mcpJson);
+    const hostedByGateway = gatewayHosted.has(entry.name);
+    if (!registeredDirectly && !hostedByGateway) {
+      violations.push({
+        file: ".vscode/mcp.json",
+        message: `MCP server "${entry.name}" is neither registered directly nor hosted by the gateway — add it to mcp-servers/gateway/tools.ts, or give it its own entry`,
+      });
     }
 
     const toolNames = [...source.matchAll(/registerTool\(\s*\r?\n?\s*"([^"]+)"/g)].map((m) => m[1]);
@@ -183,16 +199,68 @@ async function checkDocsDrift(): Promise<Violation[]> {
   return violations;
 }
 
+/**
+ * Rule 4 (input coercion): every boolean/number field in an MCP tool's inputSchema must be
+ * wrapped with `semanticBoolean`/`semanticNumber` (utils/).
+ *
+ * Models across hosts sometimes emit quoted scalars — `"dryRun":"false"`, `"maxResults":"25"`.
+ * A bare `z.boolean()` rejects that outright (the call fails and the model starts guessing),
+ * and `z.coerce.boolean()` is worse: JS truthiness turns the string "false" into `true`, which
+ * would silently defeat a dryRun guard on a destructive tool. The wrappers coerce correctly
+ * while still advertising a plain boolean/number to the model.
+ */
+async function checkInputCoercion(): Promise<Violation[]> {
+  const violations: Violation[] = [];
+  const serversDir = path.resolve("mcp-servers");
+  let entries;
+  try {
+    entries = await fs.readdir(serversDir, { withFileTypes: true });
+  } catch {
+    return violations;
+  }
+
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name === "shared") continue;
+    const indexFile = path.join(serversDir, entry.name, "index.ts");
+    let source: string;
+    try {
+      source = await fs.readFile(indexFile, "utf8");
+    } catch {
+      continue;
+    }
+    const rel = `mcp-servers/${entry.name}/index.ts`;
+
+    for (const [kind, pattern, wrapper] of [
+      ["boolean", /z\.boolean\(\)/g, "semanticBoolean"],
+      ["number", /z\.number\(\)/g, "semanticNumber"],
+    ] as const) {
+      for (const match of source.matchAll(pattern)) {
+        const start = match.index ?? 0;
+        // Wrapped call sites read `semanticBoolean(z.boolean()...` — look just behind the match.
+        const preceding = source.slice(Math.max(0, start - wrapper.length - 1), start);
+        if (preceding.endsWith(`${wrapper}(`)) continue;
+        const line = source.slice(0, start).split("\n").length;
+        violations.push({
+          file: `${rel}:${line}`,
+          message: `Unwrapped \`z.${kind}()\` — wrap it with \`${wrapper}(...)\` so a quoted value from a model coerces instead of erroring (or, for booleans, silently defeating a dryRun guard)`,
+        });
+      }
+    }
+  }
+  return violations;
+}
+
 async function main(): Promise<void> {
   const violations = [
     ...(await checkSkillFrontmatter()),
     ...(await checkRegistryProjectGuard()),
     ...(await checkDocsDrift()),
+    ...(await checkInputCoercion()),
   ];
 
   if (violations.length === 0) {
     console.log(
-      "check:conventions — OK (skill frontmatter + registry project guards + docs/tool lists all valid)"
+      "check:conventions — OK (skill frontmatter + registry project guards + docs/tool lists + input coercion all valid)"
     );
     return;
   }

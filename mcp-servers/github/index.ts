@@ -5,6 +5,7 @@ import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js
 import { githubGet, githubMcpPort, defaultGithubOrg } from "../shared/githubHttp.js";
 import { resolveWithinRoot } from "../../utils/fsSafety.js";
 import { buildSaveConfirmationPrompt } from "../../utils/saveSuggestion.js";
+import { semanticNumber } from "../../utils/semanticNumber.js";
 
 /**
  * GitHub MCP server: read-only search across an organization's repos (code, repo
@@ -89,7 +90,7 @@ startMcpHttpServer({
           repo: z.string().optional().describe("Limit to a single repo, e.g. owner/repo (overrides org)"),
           language: z.string().optional().describe("Limit to a language, e.g. typescript"),
           path: z.string().optional().describe("Limit to a path prefix"),
-          maxResults: z.number().optional().describe("Max items to return (default 20, max 100)"),
+          maxResults: semanticNumber(z.number().optional()).describe("Max items to return (default 20, max 100)"),
         },
       },
       async ({ query, org, repo, language, path, maxResults }) => {
@@ -126,7 +127,7 @@ startMcpHttpServer({
           query: z.string().describe('Search terms, e.g. "checkout service" or GitHub qualifiers'),
           org: z.string().optional().describe("Limit to an org (overrides GITHUB_ORG default)"),
           language: z.string().optional().describe("Limit to a language"),
-          maxResults: z.number().optional().describe("Max items to return (default 20, max 100)"),
+          maxResults: semanticNumber(z.number().optional()).describe("Max items to return (default 20, max 100)"),
         },
       },
       async ({ query, org, language, maxResults }) => {
@@ -164,7 +165,7 @@ startMcpHttpServer({
           repo: z.string().optional().describe("Limit to a single repo, e.g. owner/repo (overrides org)"),
           type: z.enum(["issue", "pr"]).optional().describe("Limit to issues or pull requests only"),
           state: z.enum(["open", "closed"]).optional(),
-          maxResults: z.number().optional().describe("Max items to return (default 20, max 100)"),
+          maxResults: semanticNumber(z.number().optional()).describe("Max items to return (default 20, max 100)"),
         },
       },
       async ({ query, org, repo, type, state, maxResults }) => {
@@ -202,7 +203,7 @@ startMcpHttpServer({
           query: z.string().describe('Search terms, e.g. "fix race condition"'),
           org: z.string().optional().describe("Limit to an org (overrides GITHUB_ORG default)"),
           repo: z.string().optional().describe("Limit to a single repo, e.g. owner/repo (overrides org)"),
-          maxResults: z.number().optional().describe("Max items to return (default 20, max 100)"),
+          maxResults: semanticNumber(z.number().optional()).describe("Max items to return (default 20, max 100)"),
         },
       },
       async ({ query, org, repo, maxResults }) => {
@@ -277,7 +278,7 @@ startMcpHttpServer({
           topic: z.string().describe("Topic or keywords, e.g. 'playwright' or 'bdd cucumber'"),
           scope: z.enum(["org", "public"]).optional().describe("'org' (default, GITHUB_ORG only) or 'public' (all of github.com)"),
           language: z.string().optional().describe("Limit to a language, e.g. typescript"),
-          maxResults: z.number().optional().describe("Max items to return (default 20, max 100)"),
+          maxResults: semanticNumber(z.number().optional()).describe("Max items to return (default 20, max 100)"),
         },
       },
       async ({ topic, scope, language, maxResults }) => {

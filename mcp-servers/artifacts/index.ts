@@ -3,6 +3,7 @@ import path from "path";
 import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { intEnv } from "../shared/config.js";
+import { semanticNumber } from "../../utils/semanticNumber.js";
 
 /**
  * Artifacts MCP server: file search/read and knowledge persistence for the
@@ -51,7 +52,7 @@ startMcpHttpServer({
         inputSchema: {
           dir: z.string().optional().describe("Subdirectory to search (default: repo root)"),
           match: z.string().optional().describe("Substring or JS regex to filter paths"),
-          limit: z.number().optional().describe("Max entries (default 200)"),
+          limit: semanticNumber(z.number().optional()).describe("Max entries (default 200)"),
         },
       },
       async ({ dir, match, limit }) => {
@@ -83,8 +84,8 @@ startMcpHttpServer({
           "line range. Use list_files or knowledge_search first if you don't already know the path.",
         inputSchema: {
           filePath: z.string().describe("Path relative to repo root"),
-          startLine: z.number().optional().describe("1-based start line"),
-          endLine: z.number().optional().describe("1-based end line (inclusive)"),
+          startLine: semanticNumber(z.number().optional()).describe("1-based start line"),
+          endLine: semanticNumber(z.number().optional()).describe("1-based end line (inclusive)"),
         },
       },
       async ({ filePath, startLine, endLine }) => {
@@ -138,7 +139,7 @@ startMcpHttpServer({
           "file paths and line numbers.",
         inputSchema: {
           query: z.string().describe("Substring or JS regex to search for (case-insensitive)"),
-          maxResults: z.number().optional().describe("Max matching lines to return (default 50)"),
+          maxResults: semanticNumber(z.number().optional()).describe("Max matching lines to return (default 50)"),
         },
       },
       async ({ query, maxResults }) => {

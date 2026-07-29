@@ -7,6 +7,8 @@ import { apiGet, apiPost, apiPut, apiDelete, setAuthService } from "../shared/ht
 import { resolveWithinRoot } from "../../utils/fsSafety.js";
 import { buildSaveConfirmationPrompt } from "../../utils/saveSuggestion.js";
 import { buildJiraIssueUrl } from "../../utils/jiraLinks.js";
+import { semanticBoolean } from "../../utils/semanticBoolean.js";
+import { semanticNumber } from "../../utils/semanticNumber.js";
 
 // Authenticate as "jira" — prefers JIRA_EMAIL/JIRA_API_TOKEN/JIRA_AUTH_MODE, falling back to
 // the shared ATLASSIAN_* vars (see mcp-servers/shared/http.ts).
@@ -86,7 +88,7 @@ startMcpHttpServer({
           "browse url (for citing sources / linking back to complete information) for each match.",
         inputSchema: {
           jql: z.string().describe('JQL query, e.g. \'project = ABC AND sprint in openSprints()\''),
-          maxResults: z.number().optional().describe("Max issues to return (default 25)"),
+          maxResults: semanticNumber(z.number().optional()).describe("Max issues to return (default 25)"),
           fields: z.string().optional().describe("Comma-separated field list to return"),
         },
       },
@@ -183,7 +185,7 @@ startMcpHttpServer({
         description: "List all issues that belong to an epic (children / Epic Link).",
         inputSchema: {
           epicKey: z.string().describe("Epic key, e.g. ABC-100"),
-          maxResults: z.number().optional(),
+          maxResults: semanticNumber(z.number().optional()),
         },
       },
       async ({ epicKey, maxResults }) => {
@@ -234,7 +236,7 @@ startMcpHttpServer({
         inputSchema: {
           query: z.string().describe("Name or email fragment to search for"),
           projectKey: z.string().optional().describe("Restrict to users assignable to this Jira project"),
-          maxResults: z.number().optional().describe("Max results (default 20)"),
+          maxResults: semanticNumber(z.number().optional()).describe("Max results (default 20)"),
         },
       },
       async ({ query, projectKey, maxResults }) => {
@@ -273,7 +275,7 @@ startMcpHttpServer({
           description: z.string().optional(),
           labels: z.array(z.string()).optional(),
           fields: z.record(z.unknown()).optional().describe("Additional raw Jira fields to merge in"),
-          dryRun: z.boolean().optional().describe("If true (default), return the payload without creating anything"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the payload without creating anything"),
         },
       },
       async ({ projectKey, issueType, summary, description, labels, fields, dryRun }) => {
@@ -310,8 +312,8 @@ startMcpHttpServer({
           "(applied only on a real, non-duplicate create; a transition failure doesn't undo the create).",
         inputSchema: {
           issues: z.array(BulkIssueDraft).min(1).describe("Issue drafts to create"),
-          skipDedupe: z.boolean().optional().describe("Skip the pre-create duplicate search (default false)"),
-          dryRun: z.boolean().optional().describe("If true (default), return the full batch preview without creating anything"),
+          skipDedupe: semanticBoolean(z.boolean().optional()).describe("Skip the pre-create duplicate search (default false)"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the full batch preview without creating anything"),
         },
       },
       async ({ issues, skipDedupe, dryRun }) => {
@@ -396,7 +398,7 @@ startMcpHttpServer({
             .array(BulkUpdateDraft)
             .min(1)
             .describe("Update rows: { key, fields?, transitionName?, comment? } — fields and/or transitionName required per row"),
-          dryRun: z.boolean().optional().describe("If true (default), return the full batch preview without applying anything"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the full batch preview without applying anything"),
         },
       },
       async ({ updates, dryRun }) => {
@@ -473,8 +475,8 @@ startMcpHttpServer({
           "Delete a Jira issue. Destructive and irreversible. dryRun (default true) previews the deletion without applying it.",
         inputSchema: {
           key: z.string().describe("Issue key, e.g. ABC-123"),
-          deleteSubtasks: z.boolean().optional().describe("Also delete subtasks (default false)"),
-          dryRun: z.boolean().optional().describe("If true (default), return the intended deletion without applying it"),
+          deleteSubtasks: semanticBoolean(z.boolean().optional()).describe("Also delete subtasks (default false)"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the intended deletion without applying it"),
         },
       },
       async ({ key, deleteSubtasks, dryRun }) => {
@@ -500,7 +502,7 @@ startMcpHttpServer({
         inputSchema: {
           key: z.string().describe("Issue key, e.g. ABC-123"),
           fields: z.record(z.unknown()).describe("Jira field map to update, e.g. { summary: 'New title' }"),
-          dryRun: z.boolean().optional().describe("If true (default), return the payload without updating anything"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the payload without updating anything"),
         },
       },
       async ({ key, fields, dryRun }) => {
@@ -525,7 +527,7 @@ startMcpHttpServer({
           key: z.string().describe("Issue key, e.g. ABC-123"),
           transitionName: z.string().describe("Target status/transition name, e.g. 'Done' (case-insensitive match)"),
           comment: z.string().optional().describe("Optional comment to add with the transition"),
-          dryRun: z.boolean().optional().describe("If true (default), only list available transitions without applying"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), only list available transitions without applying"),
         },
       },
       async ({ key, transitionName, comment, dryRun }) => {
@@ -558,7 +560,7 @@ startMcpHttpServer({
         inputSchema: {
           key: z.string().describe("Issue key, e.g. ABC-123"),
           accountId: z.string().describe("Jira accountId of the assignee (from jira_search_users), or 'unassign' to clear"),
-          dryRun: z.boolean().optional().describe("If true (default), preview without applying"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), preview without applying"),
         },
       },
       async ({ key, accountId, dryRun }) => {
@@ -585,7 +587,7 @@ startMcpHttpServer({
           "jira_get_sprints / jira_get_backlog.",
         inputSchema: {
           projectKey: z.string().optional().describe("Restrict to boards for this project"),
-          maxResults: z.number().optional().describe("Max results (default 50)"),
+          maxResults: semanticNumber(z.number().optional()).describe("Max results (default 50)"),
         },
       },
       async ({ projectKey, maxResults }) => {
@@ -606,9 +608,9 @@ startMcpHttpServer({
         description:
           "List sprints on a board (active/future/closed). Use jira_get_boards first to find the boardId.",
         inputSchema: {
-          boardId: z.number().describe("Board id, from jira_get_boards"),
+          boardId: semanticNumber(z.number()).describe("Board id, from jira_get_boards"),
           state: z.string().optional().describe("Comma-separated states to filter: active, future, closed (default: active,future)"),
-          maxResults: z.number().optional().describe("Max results (default 50)"),
+          maxResults: semanticNumber(z.number().optional()).describe("Max results (default 50)"),
         },
       },
       async ({ boardId, state, maxResults }) => {
@@ -629,8 +631,8 @@ startMcpHttpServer({
       {
         description: "List issues in a board's backlog (not yet assigned to a sprint). Use jira_get_boards first to find the boardId.",
         inputSchema: {
-          boardId: z.number().describe("Board id, from jira_get_boards"),
-          maxResults: z.number().optional().describe("Max results (default 100)"),
+          boardId: semanticNumber(z.number()).describe("Board id, from jira_get_boards"),
+          maxResults: semanticNumber(z.number().optional()).describe("Max results (default 100)"),
           fields: z.string().optional().describe("Comma-separated field list to return"),
         },
       },
@@ -654,9 +656,9 @@ startMcpHttpServer({
           "Move one or more issues into a sprint. Use jira_get_sprints to find the sprintId. dryRun " +
           "(default true) previews the move without applying it.",
         inputSchema: {
-          sprintId: z.number().describe("Target sprint id, from jira_get_sprints"),
+          sprintId: semanticNumber(z.number()).describe("Target sprint id, from jira_get_sprints"),
           issueKeys: z.array(z.string()).min(1).describe("Issue keys to move, e.g. ['ABC-1','ABC-2']"),
-          dryRun: z.boolean().optional().describe("If true (default), preview without applying"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), preview without applying"),
         },
       },
       async ({ sprintId, issueKeys, dryRun }) => {
@@ -679,8 +681,8 @@ startMcpHttpServer({
           "Summarize a sprint's tickets for tracking: counts by status, unassigned issues, and issues missing " +
           "a description or priority (a proxy for 'not ready' tickets). Use jira_get_sprints to find the sprintId.",
         inputSchema: {
-          sprintId: z.number().describe("Sprint id, from jira_get_sprints"),
-          maxResults: z.number().optional().describe("Max issues to scan (default 200)"),
+          sprintId: semanticNumber(z.number()).describe("Sprint id, from jira_get_sprints"),
+          maxResults: semanticNumber(z.number().optional()).describe("Max issues to scan (default 200)"),
         },
       },
       async ({ sprintId, maxResults }) => {

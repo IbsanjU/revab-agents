@@ -17,6 +17,7 @@ import { resolveWithinRoot } from "../../utils/fsSafety.js";
 import { resolveProjectRepoPath } from "../../utils/manifest.js";
 import { parseDiagram } from "../../utils/diagramParse.js";
 import { execCommand } from "../../utils/exec.js";
+import { semanticNumber } from "../../utils/semanticNumber.js";
 
 /**
  * Media MCP server: reads/writes multimedia and document files so their content
@@ -170,7 +171,7 @@ startMcpHttpServer({
         inputSchema: {
           filePath: z.string().describe("Path to the PDF, relative to the repo (or the project's repo if `project` is given)"),
           project: z.string().optional().describe("Manifest project name to resolve filePath against (default: this framework repo)"),
-          maxChars: z.number().optional().describe("Truncate extracted text to this many characters"),
+          maxChars: semanticNumber(z.number().optional()).describe("Truncate extracted text to this many characters"),
         },
       },
       async ({ filePath, project, maxChars }) => {
@@ -232,7 +233,7 @@ startMcpHttpServer({
           filePath: z.string().describe("Path to the .xlsx/.xls file, relative to the repo (or the project's repo if `project` is given)"),
           project: z.string().optional().describe("Manifest project name to resolve filePath against (default: this framework repo)"),
           sheetName: z.string().optional().describe("Sheet to read (default: first sheet in the workbook)"),
-          maxRows: z.number().optional().describe("Cap the number of data rows returned (default: all)"),
+          maxRows: semanticNumber(z.number().optional()).describe("Cap the number of data rows returned (default: all)"),
         },
       },
       async ({ filePath, project, sheetName, maxRows }) => {
@@ -272,7 +273,7 @@ startMcpHttpServer({
         inputSchema: {
           filePath: z.string().describe("Path to the .csv file, relative to the repo (or the project's repo if `project` is given)"),
           project: z.string().optional().describe("Manifest project name to resolve filePath against (default: this framework repo)"),
-          maxRows: z.number().optional().describe("Cap the number of data rows returned (default: all)"),
+          maxRows: semanticNumber(z.number().optional()).describe("Cap the number of data rows returned (default: all)"),
         },
       },
       async ({ filePath, project, maxRows }) => {
@@ -419,7 +420,7 @@ startMcpHttpServer({
           filePath: z.string().describe("Path to the PDF, relative to the repo (or the project's repo if `project` is given)"),
           project: z.string().optional().describe("Manifest project name to resolve filePath against (default: this framework repo)"),
           lang: z.string().optional().describe("Tesseract language code (default: eng)"),
-          maxPages: z.number().optional().describe("OCR at most this many pages (default 10)"),
+          maxPages: semanticNumber(z.number().optional()).describe("OCR at most this many pages (default 10)"),
         },
       },
       async ({ filePath, project, lang, maxPages }) => {

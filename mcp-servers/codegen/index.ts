@@ -4,6 +4,7 @@ import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { intEnv } from "../shared/config.js";
 import { resolveProjectRepoPath, getProject, assertWithinRepo } from "../../utils/manifest.js";
+import { requireCitation } from "../../utils/citation.js";
 
 /**
  * Codegen MCP server.
@@ -45,12 +46,18 @@ startMcpHttpServer({
           content: z.string().describe("Full Gherkin content"),
           source: z
             .string()
-            .describe("Citation for traceability, e.g. 'Jira ABC-123' or 'Confluence page 456' — required"),
+            .describe(
+              "Required source citation, validated for shape (hard rule #9): a Jira key (ABC-123), " +
+                "confluence:<pageId>, jtmf:<KEY-123>, app-model:<project>#<section>, " +
+                "transcript:<id>@00:12:34, a repo path (src/foo.ts:42), or an https:// URL. " +
+                "Comma-separate multiple sources. Placeholders like 'TBD' are rejected — if you have no " +
+                "real source, ask for one instead of generating uncited scenarios."
+            ),
         },
       },
       async ({ project, fileName, content, source }) => {
         try {
-          if (!source.trim()) throw new Error("source citation is required — do not generate uncited scenarios");
+          requireCitation(source);
           const repoRoot = await resolveProjectRepoPath(project);
           const config = await getProject(project);
           const target = path.resolve(repoRoot, config.testPaths.features, path.basename(fileName));

@@ -15,29 +15,106 @@ Centralized multi-agent QE automation framework — works in VS Code **without**
 | Knowledge | `knowledge/` | persistent learnings, conventions, per-project app models, and consolidated reports — the framework's memory |
 | Reusables | `utils/`, `scripts/`, `skills/` | generic modules, CLIs, and agent skills |
 
-## Quickstart
+## How to run it
+
+**Two things run: the gateway (always) and the worker (only for async tasks).** Nothing else.
+
+### First time
 
 ```powershell
 npm install
-Copy-Item .env.example .env       # then fill in Jira/Confluence auth
-npm run serve:mcp                 # start all MCP servers (keep running)
-npm run worker                    # start the async task worker (second terminal)
+npx revab init          # writes .env, .vscode/mcp.json, projects/manifest.json
+# now edit .env — set JIRA_BASE_URL, CONFLUENCE_BASE_URL, and one token per service
+npx revab doctor        # tells you exactly what is still missing, and how to fix it
 ```
 
-Add your project(s) under `projects/` — copy the `projects/my-project/` placeholder folder, rename it, fill in its `project.json`, and list the name in `projects/manifest.json`. Then in VS Code: the servers in `.vscode/mcp.json` become available as MCP tools; pick an agent from the chat-mode dropdown (e.g. **orchestrator**) and tell it which `project` to work on.
-
-## Everyday commands
+### Every day
 
 ```powershell
-npm run task -- enqueue run-bdd '{"project":"my-project","tags":"@smoke"}'   # async run via queue
+npx revab start         # terminal 1 — the gateway: all 76 tools, one process. Leave it running.
+npm run worker          # terminal 2 — ONLY if you enqueue async tasks (test runs, reports)
+```
+
+Then in VS Code: reload the window, and the tools appear from the single **gateway** entry in
+`.vscode/mcp.json`. Pick an agent from the chat-mode dropdown (start with **orchestrator**) and tell
+it which `project` to work on.
+
+### Is it working?
+
+```powershell
+curl http://localhost:7300/health      # {"ok":true,"tools":76}
+npx revab doctor                       # full config + connectivity report
+```
+
+If something misbehaves, **run `npx revab doctor` first** — most failures are a missing base URL, a
+token for the wrong service, or a project whose `repoPath` moved. It names the variable and the fix.
+
+### What runs where
+
+| You run | What it is | Needed when |
+| --- | --- | --- |
+| `npx revab start` | The **gateway** — every tool, one process, on `:7300` | Always |
+| `npm run worker` | Async task worker (file queue) | Only for `npm run task -- enqueue …` |
+| `npm run serve:playwright` | Official `@playwright/mcp` browser server on `:7315` | Only for live browser automation |
+| `npm run serve:mcp` | Convenience: gateway + playwright together | Instead of the two above |
+| `npm run serve:mcp:individual` | The 11 servers on their own ports | Debugging one server in isolation |
+
+**Only one MCP entry for our tools.** `.vscode/mcp.json` lists **gateway** (which hosts all 11 of our
+servers) and **playwright** (the official browser server, which the gateway does not host). Do not
+register the individual servers as well — that duplicates every tool in the editor.
+
+### Working with agents
+
+```powershell
+npm run task -- enqueue run-bdd '{"project":"my-project","tags":"@smoke"}'   # async run
 npm run task -- enqueue generate-report '{"project":"my-project"}'
 npm run task -- status                              # queue status
 npm run task -- types                               # available task types
-npm run import:agents -- C:\path\to\other-repo --dry-run  # import agents/conventions from another repo
-npm run typecheck                                    # typechecks revab-agents itself only
 ```
 
-Project-scoped work (running BDD suites, generating Allure reports, scaffolding features/steps/pages) goes through the `playwright-runner`, `allure-report`, and `codegen` MCP tools, or the equivalent orchestrator task types — always with a `project` argument.
+Add a project: copy `projects/my-project/`, rename it, fill in its `project.json`, and list the name
+in `projects/manifest.json`.
+
+### Maintaining the framework
+
+```powershell
+npm run build:prompts        # regenerate agent files after editing prompts/agents/*.ts
+npm run eval                 # check no agent lost a capability it needs
+npm run correction -- list   # open corrections backlog
+npm test                     # unit tests
+npm run typecheck
+npm run check:conventions
+```
+
+## VS Code extension
+
+`extension/` packages the gateway for the editor: it auto-starts on workspace open, registers the
+tools with VS Code MCP (falling back to `.vscode/mcp.json`), shows status, and can write approval
+defaults that auto-approve read-only tools while leaving every write confirmed. See
+[extension/README.md](extension/README.md) — including its honest note on what an extension can and
+cannot do about approval prompts.
+
+## Gateway — one process, MCP + REST
+
+`npm run serve:gateway` hosts **every tool from all 11 servers in a single process** on
+`http://localhost:7300`, instead of running 11 servers on 11 ports. It exposes each tool twice:
+
+| Surface | Endpoint | Use when |
+| --- | --- | --- |
+| MCP | `POST /mcp` | normal editor use — register just this one entry in `.vscode/mcp.json` |
+| REST | `POST /api/<server>/<tool>` | **MCP isn't available** — no org enablement, a CI job, curl, a non-MCP editor |
+| Discovery | `GET /api/tools` | list every tool, its server, its endpoint, and its input schema |
+| Health | `GET /health` | liveness + hosted tool count |
+
+```powershell
+npm run serve:gateway
+curl http://localhost:7300/api/tools
+curl -X POST http://localhost:7300/api/jira/jira_search -H "Content-Type: application/json" -d '{"jql":"project = ABC"}'
+```
+
+Both surfaces call the **same handler**, so the manifest trust boundary, dryRun-first defaults, and
+input coercion apply identically — REST is a different door to the same room, never a bypass. The
+individual `npm run serve:<name>` scripts still work unchanged for debugging a single server.
 
 ## MCP servers & ports
 
@@ -140,7 +217,26 @@ registered on the running server.
 
 ## Skills
 
-`skills/*/SKILL.md` — reusable playbooks composing existing MCP tools: `analyze-test-failures`, `detect-execution-convention`, `upload-to-jtmf`, `update-jira-epic`, `extract-requirements-from-image`, `extract-requirements-from-video`, `consolidate-project-report`, `build-test-plan-interactive`, `search-across-sources`, `structure-project-data`, `bulk-create-tickets`, `bulk-update-tickets`, `route-assignee`, `sprint-backlog-report`, `code-review`, `verify`, `simplify`, `security-review`, `review-against-spec`, `data-visualization`, `onboard-project`.
+`skills/*/SKILL.md` — reusable playbooks composing existing MCP tools: `analyze-test-failures`, `detect-execution-convention`, `upload-to-jtmf`, `update-jira-epic`, `extract-requirements-from-image`, `extract-requirements-from-video`, `consolidate-project-report`, `build-test-plan-interactive`, `search-across-sources`, `structure-project-data`, `bulk-create-tickets`, `bulk-update-tickets`, `route-assignee`, `sprint-backlog-report`, `code-review`, `verify`, `simplify`, `security-review`, `review-against-spec`, `data-visualization`, `onboard-project`, `capture-learning`, `skillify`, `capture-correction`, `build-capability`, `self-check`, `test-design-techniques`.
+
+## Getting better over time
+
+The framework improves through a measured loop rather than prompt guesswork:
+
+```powershell
+npm run correction -- log --agent <name> --task "..." --observed "..." --expected "..." --rule "..." --severity high
+npm run correction -- list        # open corrections, most-corrected agent first
+npm run eval                      # structural capability evals (also runs in CI)
+npm run eval -- --list            # plus the behavioral cases to run by hand/LLM
+```
+
+1. **Capture** — every correction becomes a record in `knowledge/corrections/<YYYY-MM>.jsonl` (`capture-correction` skill), generalized into a reusable rule.
+2. **Fold in** — the rule goes into that agent's spec (`prompts/agents/<name>.ts`), then `npm run build:prompts`, then `npm run correction -- applied <id>`.
+3. **Prove** — add an eval so it can't regress: structural (a tool the agent must/must not hold) in `evals/capabilities.ts`, or behavioral (a task + must/must-not rubric) in `evals/behavior/*.md`.
+4. **Grow** — `build-capability` researches a missing ability, routes it to the right artifact (skill / MCP tool / util), validates it on real inputs, and wires it into the consuming agents.
+5. **Guard** — agents run `self-check` against their own rules before delivering.
+
+`npm run eval` is the regression net for agent behavior: it catches the class of change where a prompt "improvement" silently removes a capability an agent needs.
 
 ## Extending
 
