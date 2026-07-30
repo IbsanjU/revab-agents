@@ -7,7 +7,16 @@ independently re-tested against this exact codebase with a real `claude` CLI ses
 2026-07-30, not assumed from the docs. Facts marked **[not independently re-tested]**
 come from vendor documentation only, because this environment has no way to drive the
 relevant UI (there is no VS Code editor available here) — don't treat those as weaker
-claims about what the vendor ships, only as claims this repo hasn't itself confirmed.
+claims about what the vendor ships, only as claims this repo hasn't itself confirmed. A
+real attempt was made on 2026-07-30 to close that gap via GitHub Copilot CLI (same
+`.github/agents/*.agent.md` format, different frontend from VS Code's GUI): it failed
+outright with `Error: No authentication information found` — this environment's
+`GH_TOKEN`/`GITHUB_TOKEN` are placeholders for a different integration, not a real
+Copilot-scoped credential, and no VS Code binary or display server exists here either.
+**[`RUNBOOK.md` §3c](./RUNBOOK.md#3c-verify-the-vs-code--copilot-dispatch-yourself)** has
+a copy-pasteable prompt (both a VS Code GUI version and a Copilot-CLI version) for
+whoever next has real Copilot access to close this out — please update the labels below
+once someone has.
 
 ## 1. Vocabulary
 
@@ -124,7 +133,9 @@ reference; it states the capability exists but doesn't publish a concurrency num
 exact trigger syntax, and this environment has no VS Code UI to confirm it against this
 repo's generated files directly. Practically: give `orchestrator.agent.md`'s body an
 instruction naming which of its steps are independent (mirroring the Claude Code
-guidance below), and let VS Code's own coordinator behavior parallelize them.
+guidance below), and let VS Code's own coordinator behavior parallelize them. Use
+[`RUNBOOK.md` §3c](./RUNBOOK.md#3c-verify-the-vs-code--copilot-dispatch-yourself) to test
+this directly against this repo's `orchestrator.agent.md`.
 
 ### What this framework's orchestrator spec now says
 
@@ -235,10 +246,14 @@ specifically *"to prevent unintended modifications"*), and independently, a file
 issue (microsoft/vscode-copilot-release#12647) shows a user who declared `editFiles` in
 their custom chat mode but found file-editing still unavailable at runtime — i.e. there
 is at least one documented case of the declared tool list and the actual runtime tool
-list disagreeing. This repo has no VS Code UI available to test against directly, so
-treat VS Code's tool-scoping enforcement as *documented* but not independently confirmed
-here, and re-verify it yourself in your own VS Code + Copilot install before relying on it
-for anything security-sensitive.
+list disagreeing. This repo has no VS Code UI available to test against directly (and a
+same-session attempt via GitHub Copilot CLI failed on authentication — see the top of
+this document), so treat VS Code's tool-scoping enforcement as *documented* but not
+independently confirmed here. [`RUNBOOK.md` §3c](./RUNBOOK.md#3c-verify-the-vs-code--copilot-dispatch-yourself)
+has a prompt you can use to check this directly (ask a dispatched specialist to
+self-report its own tools, the same way the Claude Code test in this section did) —
+re-verify it yourself in your own VS Code + Copilot install before relying on it for
+anything security-sensitive.
 
 ## 7. Nesting depth and fork mode (Claude Code)
 

@@ -80,9 +80,65 @@ claude -p "Use the researcher subagent to find existing test coverage for 'my-pr
    `agents: ['planner', 'researcher', 'test-planner', 'automation', 'reporter',
    'documenter', 'bsa', 'importer', 'self-improve']` plus `'agent'` in its `tools:` list —
    VS Code's own requirement for a custom agent to actually dispatch named subagents
-   (see `multi-agent-architecture.md` §2). This was not independently re-tested from this
-   environment (no VS Code UI here) — re-verify locally once, the same way §4 was
-   verified for Claude Code, and note anything that disagrees with the docs.
+   (see `multi-agent-architecture.md` §2).
+
+### 3c. Verify the VS Code / Copilot dispatch yourself
+
+**Status as of 2026-07-30: documented but not independently re-tested from this repo's
+CI/agent sandbox.** That environment has no VS Code binary, no display server, and no way
+to complete Copilot's interactive OAuth login — a real attempt was made via GitHub
+Copilot CLI (`npm install -g @github/copilot`, same `.github/agents/*.agent.md` format
+and `agents:` dispatch mechanism, different frontend from VS Code's GUI) and it failed
+outright with `Error: No authentication information found` — the sandbox's `GH_TOKEN`/
+`GITHUB_TOKEN` are placeholder values for a different integration, not a real
+Copilot-scoped credential, and this failure happened even with no `--agent` flag at all,
+so it isn't specific to custom agents. There was no path to a real Copilot completion
+from that environment, full stop.
+
+Use one of these two to actually confirm it yourself, and please update this file (or
+`multi-agent-architecture.md` §2/§4/§6) with what you observe — right or wrong, it should
+stop saying "not independently re-tested" once someone has:
+
+**Option A — VS Code GUI, closest to real usage:**
+
+1. Open this repo in VS Code with Copilot Chat v1.106+.
+2. Pick **orchestrator** from the chat agent dropdown.
+3. Send this prompt (deliberately mirrors the Claude Code test in §4, so the two results
+   are directly comparable):
+
+   ```
+   Use 'my-project'. I have two independent needs: (1) research existing test
+   coverage for the login flow, and (2) draft an approval plan for onboarding a
+   second test environment. Dispatch researcher and planner IN PARALLEL if you
+   can. Tell me exactly which subagents you dispatched and whether it happened
+   in parallel or sequentially.
+   ```
+
+4. Watch for: does the chat UI show a subagent/agent invocation for `researcher` and one
+   for `planner` (VS Code surfaces running subagents in the response); does the final
+   answer name both; does it happen as one coordinated turn or two separate exchanges. If
+   `orchestrator` instead reads Confluence/Jira directly or writes a file itself, that's
+   the exact regression this framework's design is meant to prevent — see
+   `evals/behavior/orchestrator-delegates.md`.
+
+**Option B — GitHub Copilot CLI, scriptable and easy to paste back verbatim:**
+
+If you have a GitHub Copilot subscription, this is faster to run and share than a GUI
+screenshot — it reads the identical `.github/agents/*.agent.md` files:
+
+```bash
+npm install -g @github/copilot
+export GITHUB_TOKEN=<your real GitHub token with the "Copilot Requests" permission>
+cd revab-agents
+copilot --agent orchestrator -p "Use 'my-project'. Dispatch researcher and planner
+IN PARALLEL to (1) research login-flow test coverage and (2) draft a second-
+environment onboarding plan. Tell me exactly which subagents you dispatched and
+whether it was parallel or sequential." --allow-all-tools
+```
+
+Compare the output to the Claude Code transcript quoted in §4 — same prompt shape, same
+`my-project` stub, so the two are meant to be an apples-to-apples comparison of the two
+hosts' dispatch mechanisms.
 
 ## 4. Worked example: parallel dispatch, end to end
 

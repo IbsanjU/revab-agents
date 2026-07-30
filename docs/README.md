@@ -15,5 +15,9 @@ Code platform behavior (parallel dispatch, background execution, nesting depth, 
 limits, tool scoping) was pulled from each product's own current documentation on
 2026-07-30 and, where practical, independently re-tested against this exact repo with a
 real `claude` CLI session rather than assumed. Where a claim could not be independently
-re-tested (e.g. VS Code's parallel-subagent execution, since this environment has no VS
-Code UI), the document says so explicitly instead of presenting it as verified.
+re-tested (VS Code's parallel-subagent execution and tool-scoping enforcement), the
+document says so explicitly instead of presenting it as verified — a real attempt was
+made via GitHub Copilot CLI (same agent-file format, different frontend from VS Code's
+GUI) and it failed on missing Copilot-scoped authentication, not on anything specific to
+this repo's agent files. `RUNBOOK.md` §3c has a ready-to-run prompt for whoever next has
+real VS Code/Copilot access to close that gap.
