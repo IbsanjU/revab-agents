@@ -4,6 +4,8 @@ Centralized multi-agent QE automation framework — works in VS Code **without**
 
 **This repo is framework-only.** It holds no `tests/` of its own and never executes Playwright/Cucumber/Allure against itself. All test authoring, execution, and reporting happens in a **target project** — any other repo you point it at — resolved through the `projects/` manifest (`projects/manifest.json` + `projects/<name>/project.json`; legacy single-file `projects.manifest.json` still supported) and operated on exclusively via MCP tools. See [Known limitations](#known-limitations).
 
+**Multi-agent internals and a full operational runbook live in [`docs/`](docs/README.md)** — how delegation, parallel dispatch, and background execution actually work on each host (Claude Code, VS Code), a worked end-to-end example, and how to extend the framework.
+
 ## What's inside
 
 | Area | Location | Purpose |
@@ -35,9 +37,14 @@ npx revab start         # terminal 1 — the gateway: all 76 tools, one process.
 npm run worker          # terminal 2 — ONLY if you enqueue async tasks (test runs, reports)
 ```
 
-Then in VS Code: reload the window, and the tools appear from the single **gateway** entry in
-`.vscode/mcp.json`. Pick an agent from the chat-mode dropdown (start with **orchestrator**) and tell
-it which `project` to work on.
+Then, on either host:
+
+- **VS Code**: reload the window, and the tools appear from the single **gateway** entry in
+  `.vscode/mcp.json`. Pick an agent from the chat-mode dropdown (start with **orchestrator**) and tell
+  it which `project` to work on.
+- **Claude Code**: from this repo's root, `claude --agent orchestrator` runs the whole session as the
+  orchestrator persona (`.claude/agents/orchestrator.md`), which dispatches to the other 9 personas via
+  its Task tool. See [`docs/RUNBOOK.md`](docs/RUNBOOK.md#3-run-it-per-host) for a full worked example.
 
 ### Is it working?
 
@@ -240,10 +247,12 @@ npm run eval -- --list            # plus the behavioral cases to run by hand/LLM
 
 ## Extending
 
+See [`docs/RUNBOOK.md`](docs/RUNBOOK.md#5-extend-the-framework) for the full step-by-step version of each of these. Summary:
+
 - **New MCP tool**: add `server.registerTool(...)` in `mcp-servers/*/index.ts` (reuse `mcp-servers/shared/`); take a `project` argument and resolve via `utils/manifest.ts` if it touches a target repo.
 - **New MCP server**: new folder + `startMcpHttpServer(...)`, register port in `.vscode/mcp.json`, `.env.example`, and a `serve:` script.
 - **New async task type**: add a handler in `agents/registry.ts`.
-- **New agent**: add `.github/agents/<name>.agent.md`.
+- **New agent**: author a spec in `prompts/agents/<name>.ts`, register it in `prompts/agents/index.ts`, then run `npm run build:prompts` — this generates BOTH `.github/agents/<name>.agent.md` (VS Code/Copilot) and `.claude/agents/<name>.md` (Claude Code) and wires it into every other persona's dispatchable-subagent list automatically. Never hand-edit either generated file directly.
 - **New skill**: add `skills/<name>/SKILL.md` — no new I/O, only composes existing tools.
 - **New project's team roster**: copy `projects/my-project/team-roster.json` into the new `projects/<name>/` folder and fill in real Jira `accountId`s (resolve via `jira_search_users`) before the `route-assignee` skill relies on it.
 
