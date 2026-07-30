@@ -74,7 +74,7 @@ bsa: standalone intake (chat/Excel/CSV/doc/image) → dryRun Jira bulk-create; n
 
 The orchestrator holds no execution/write tools — it must delegate. Each specialist's "You do NOT" section names who takes over, so no agent quietly does another's job.
 
-**Delegation mechanism.** On a host with the Task tool (e.g. Claude Code), every specialist below is a native subagent under `.claude/agents/<name>.md` (generated 1:1 from its `prompts/agents/<name>.ts` spec, same rules as its `.github/agents/<name>.agent.md` Copilot persona) — the orchestrator dispatches with `subagent_type: "<name>"`. Without a Task tool, it falls back to the async queue (`npm run task -- enqueue <type> …`). If neither is available, it must stop and name the specialist for the user to invoke by hand — never do that specialist's job inline.
+**Delegation mechanism.** On Claude Code, every persona has a native subagent under `.claude/agents/<name>.md` (generated 1:1 from its `prompts/agents/<name>.ts` spec, same rules as its `.github/agents/<name>.agent.md` Copilot persona). Run `claude --agent orchestrator` to make the root session itself the orchestrator; it dispatches each specialist with the Task tool's `subagent_type: "<name>"`. On a host without a Task-style subagent tool, it falls back to the async queue (`npm run task -- enqueue <type> …`). If neither is available, it must stop and name the specialist for the user to invoke by hand — never do that specialist's job inline.
 
 ## Agents
 ### planner

@@ -171,22 +171,26 @@ export function renderAgentMarkdown(spec: AgentSpec): string {
 
 /**
  * Render one agent to its `.claude/agents/<name>.md` content — a native Claude Code
- * subagent, invoked by the orchestrator's Task tool with `subagent_type: "<name>"`.
- * Every non-orchestrator persona gets one (see `prompts/build.ts`), generated from the
- * same spec as `.github/agents/<name>.agent.md` so the two hosts never drift apart.
- * The portable tool vocabulary (`types.ts`) already matches Claude Code's own tool
- * names 1:1 (`Read`, `Grep`, `Glob`, `Edit`, `Write`, `Bash`, `WebFetch`,
- * `mcp__server__tool`), so no host-tool mapping is needed here — unlike
- * `renderAgentMarkdown`'s Copilot mapping.
+ * subagent. Every persona gets one (see `prompts/build.ts`), generated from the same
+ * spec as `.github/agents/<name>.agent.md` so the two hosts never drift apart. The
+ * portable tool vocabulary (`types.ts`) already matches Claude Code's own tool names
+ * 1:1 (`Read`, `Grep`, `Glob`, `Edit`, `Write`, `Bash`, `WebFetch`, `mcp__server__tool`,
+ * and `Task` — aliased to the current `Agent` tool by Claude Code itself), so no
+ * host-tool mapping is needed here — unlike `renderAgentMarkdown`'s Copilot mapping.
+ *
+ * `orchestrator` is the one persona meant to run as the ROOT session
+ * (`claude --agent orchestrator`), not as a dispatch target — it keeps its `Task`
+ * tool so it can dispatch every other file here via `subagent_type: "<name>"`; every
+ * other persona is a pure dispatch target and never itself calls Task.
  */
 export function renderClaudeSubagentMarkdown(spec: AgentSpec): string {
-  const claudeTools = spec.tools.filter((t) => t !== "Task");
+  const isOrchestrator = spec.name === "orchestrator";
 
   const parts: string[] = [];
   parts.push("---");
   parts.push(`name: ${spec.name}`);
   parts.push(`description: '${spec.description.replace(/'/g, "’")}'`);
-  parts.push(`tools: ${claudeTools.join(", ")}`);
+  parts.push(`tools: ${spec.tools.join(", ")}`);
   parts.push(`model: ${spec.model ?? "inherit"}`);
   parts.push("---");
   parts.push(GENERATED_BANNER(`prompts/agents/${spec.name}.ts`));
@@ -205,7 +209,7 @@ export function renderClaudeSubagentMarkdown(spec: AgentSpec): string {
   parts.push("");
 
   parts.push("## Tools (only these — nothing else)");
-  parts.push(claudeTools.map((t) => `\`${t}\``).join(", "));
+  parts.push(spec.tools.map((t) => `\`${t}\``).join(", "));
   parts.push("");
 
   parts.push("## Flow");
@@ -243,11 +247,17 @@ export function renderClaudeSubagentMarkdown(spec: AgentSpec): string {
   parts.push("## Hand off");
   parts.push(spec.handoff);
   parts.push("");
-  parts.push(
-    "You were dispatched by **orchestrator** via the Task tool (`subagent_type: \"" +
-      spec.name +
-      "\"`) — return your result to it. You do not talk to the user directly, and you never pick up another specialist's tools to finish work that isn't yours.",
-  );
+  if (isOrchestrator) {
+    parts.push(
+      "Run the whole session as this persona with `claude --agent orchestrator` — you ARE the root session, not a dispatch target; nothing dispatches into you. Delegate each step via the Task tool (`subagent_type: \"<name>\"` — one of the other `.claude/agents/*.md` personas alongside this file), exactly as described above.",
+    );
+  } else {
+    parts.push(
+      "You were dispatched by **orchestrator** via the Task tool (`subagent_type: \"" +
+        spec.name +
+        "\"`) — return your result to it. You do not talk to the user directly, and you never pick up another specialist's tools to finish work that isn't yours.",
+    );
+  }
   parts.push("");
 
   return parts.join("\n");

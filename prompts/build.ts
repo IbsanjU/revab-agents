@@ -3,9 +3,10 @@
  *
  * Outputs (all carry a GENERATED banner; never hand-edit them):
  *   - .github/agents/<name>.agent.md   — self-contained persona (VS Code / Copilot)
- *   - .claude/agents/<name>.md         — native Claude Code subagent (every persona
- *                                        except orchestrator, which stays the router and
- *                                        dispatches these via Task `subagent_type: "<name>"`)
+ *   - .claude/agents/<name>.md         — native Claude Code subagent, one per persona;
+ *                                        `orchestrator`'s is meant to run the whole
+ *                                        session (`claude --agent orchestrator`) and
+ *                                        dispatch the rest via `subagent_type: "<name>"`
  *   - AGENTS.md                        — portable, host-neutral instructions (any agent tool)
  *   - .github/copilot-instructions.md  — regenerated from the same source (Copilot)
  *
@@ -69,7 +70,7 @@ function renderAgentFlow(): string {
     "",
     "The orchestrator holds no execution/write tools — it must delegate. Each specialist's \"You do NOT\" section names who takes over, so no agent quietly does another's job.",
     "",
-    "**Delegation mechanism.** On a host with the Task tool (e.g. Claude Code), every specialist below is a native subagent under `.claude/agents/<name>.md` (generated 1:1 from its `prompts/agents/<name>.ts` spec, same rules as its `.github/agents/<name>.agent.md` Copilot persona) — the orchestrator dispatches with `subagent_type: \"<name>\"`. Without a Task tool, it falls back to the async queue (`npm run task -- enqueue <type> …`). If neither is available, it must stop and name the specialist for the user to invoke by hand — never do that specialist's job inline.",
+    "**Delegation mechanism.** On Claude Code, every persona has a native subagent under `.claude/agents/<name>.md` (generated 1:1 from its `prompts/agents/<name>.ts` spec, same rules as its `.github/agents/<name>.agent.md` Copilot persona). Run `claude --agent orchestrator` to make the root session itself the orchestrator; it dispatches each specialist with the Task tool's `subagent_type: \"<name>\"`. On a host without a Task-style subagent tool, it falls back to the async queue (`npm run task -- enqueue <type> …`). If neither is available, it must stop and name the specialist for the user to invoke by hand — never do that specialist's job inline.",
   ].join("\n");
 }
 
@@ -112,14 +113,14 @@ export function renderAll(): GeneratedFile[] {
       content: renderAgentMarkdown(spec),
     });
 
-    // Every specialist gets a native Claude Code subagent, dispatched by the
-    // orchestrator's Task tool — orchestrator itself is the router, not a subagent.
-    if (spec.name !== "orchestrator") {
-      files.push({
-        path: `.claude/agents/${spec.name}.md`,
-        content: renderClaudeSubagentMarkdown(spec),
-      });
-    }
+    // Every persona gets a native Claude Code subagent file. Specialists are pure
+    // dispatch targets (`Task(subagent_type: "<name>")`); orchestrator's own file is
+    // meant to run the whole session (`claude --agent orchestrator`) and dispatch the
+    // rest — see renderClaudeSubagentMarkdown's isOrchestrator branch.
+    files.push({
+      path: `.claude/agents/${spec.name}.md`,
+      content: renderClaudeSubagentMarkdown(spec),
+    });
   }
 
   const body = renderInstructionBody();
