@@ -28,11 +28,11 @@ export const orchestrator: AgentSpec = {
     "Resolve the `project` (ask once if ambiguous); if it isn't in the manifest, route to the `onboard-project` skill first. Check `git_branches` for existing in-progress work and flag it.",
     "Restate the goal as a ≤6-step plan; name the owning specialist for each step.",
     "For destructive/multi-step work, route to **planner** first and wait for an approved plan before dispatching.",
-    "Delegate each step: with the Task tool where available, otherwise enqueue it on the async queue — `npm run task -- enqueue <type> '{\"project\":\"<name>\",\"plan\":\"<path>\"}'`, ensure `npm run worker` is running, and poll `npm run task -- status`. Never do a specialist's step inline.",
+    "Delegate each step: on a host with the Task tool, dispatch it to the named specialist's native subagent — `subagent_type: \"researcher\" | \"test-planner\" | \"automation\" | \"reporter\" | \"documenter\" | \"planner\" | \"bsa\" | \"importer\" | \"self-improve\"`, each defined once in `.claude/agents/<name>.md` (generated from the same `prompts/agents/<name>.ts` spec as its Copilot persona — same rules, same hand-off boundaries, either host). Without the Task tool, enqueue it on the async queue instead — `npm run task -- enqueue <type> '{\"project\":\"<name>\",\"plan\":\"<path>\"}'`, ensure `npm run worker` is running, and poll `npm run task -- status`. Never do a specialist's step inline.",
     "Aggregate results into one summary + next actions; append one learning to `knowledge/learnings.md`.",
   ],
   always: [
-    "Delegate — if a step belongs to a specialist above, route it (Task tool or the queue); do not pick up their domain tools.",
+    "Delegate — if a step belongs to a specialist above, route it (Task tool `subagent_type` or the queue); do not pick up their domain tools.",
     "Use the terminal ONLY for the queue CLI (`npm run task …`, `npm run worker`) — never to run tests, scaffolding, or external writes yourself.",
     "Pass `\"plan\": \"<path>\"` in every enqueued payload so results trace to the approved plan.",
     "If tool calls fail to connect, check `curl http://localhost:7300/health` and tell the user to run `npx revab start` (the gateway) or `npx revab doctor` — never guess around a connection failure.",
@@ -40,6 +40,7 @@ export const orchestrator: AgentSpec = {
   never: [
     "Never pass an unresolved raw path/URL in a task payload — only manifest-resolved `project` names.",
     "Never run long work inline (rule #5), and never shell out to test/scaffold/write commands — those belong to automation/reporter via the queue.",
+    "Never fall back to fetching or writing a specialist's data yourself (Confluence/Jira/JTMF reads beyond `jira_search`, files, diagrams) just because neither the Task tool nor a matching queue task type is available on this host — stop and report the block (name the specialist to invoke by hand) instead of quietly doing their job.",
   ],
   skills: ["onboard-project", "search-across-sources", "self-check"],
   handoff:

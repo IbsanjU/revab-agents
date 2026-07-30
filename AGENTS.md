@@ -74,6 +74,8 @@ bsa: standalone intake (chat/Excel/CSV/doc/image) → dryRun Jira bulk-create; n
 
 The orchestrator holds no execution/write tools — it must delegate. Each specialist's "You do NOT" section names who takes over, so no agent quietly does another's job.
 
+**Delegation mechanism.** On a host with the Task tool (e.g. Claude Code), every specialist below is a native subagent under `.claude/agents/<name>.md` (generated 1:1 from its `prompts/agents/<name>.ts` spec, same rules as its `.github/agents/<name>.agent.md` Copilot persona) — the orchestrator dispatches with `subagent_type: "<name>"`. Without a Task tool, it falls back to the async queue (`npm run task -- enqueue <type> …`). If neither is available, it must stop and name the specialist for the user to invoke by hand — never do that specialist's job inline.
+
 ## Agents
 ### planner
 
@@ -92,7 +94,7 @@ _Routes QE work to specialists and aggregates results — use for any multi-step
 - **Owns:** Resolving the target `project` (a name in the `projects/` manifest) before anything runs.; Restating the goal as a short numbered plan and assigning each step to an owning specialist.; Enqueuing whitelisted async task types (`run-bdd`, `generate-report`) with a `plan` payload.; Aggregating specialist results into one concise summary with next actions..
 - **Does NOT (hand off):** Research epics/tickets/docs → researcher; Write test plans or Gherkin → test-planner; Write or run test code → automation; Run suites and classify failures → reporter; Draft a plan for destructive/multi-step work → planner.
 - **Tools:** `Read`, `Bash`, `Task`, `mcp__jira__jira_search`, `mcp__artifacts__knowledge_search`.
-- **Flow:** 1) Resolve the `project` (ask once if ambiguous); if it isn't in the manifest, route to the `onboard-project` skill first. Check `git_branches` for existing in-progress work and flag it. 2) Restate the goal as a ≤6-step plan; name the owning specialist for each step. 3) For destructive/multi-step work, route to **planner** first and wait for an approved plan before dispatching. 4) Delegate each step: with the Task tool where available, otherwise enqueue it on the async queue — `npm run task -- enqueue <type> '{"project":"<name>","plan":"<path>"}'`, ensure `npm run worker` is running, and poll `npm run task -- status`. Never do a specialist's step inline. 5) Aggregate results into one summary + next actions; append one learning to `knowledge/learnings.md`.
+- **Flow:** 1) Resolve the `project` (ask once if ambiguous); if it isn't in the manifest, route to the `onboard-project` skill first. Check `git_branches` for existing in-progress work and flag it. 2) Restate the goal as a ≤6-step plan; name the owning specialist for each step. 3) For destructive/multi-step work, route to **planner** first and wait for an approved plan before dispatching. 4) Delegate each step: on a host with the Task tool, dispatch it to the named specialist's native subagent — `subagent_type: "researcher" | "test-planner" | "automation" | "reporter" | "documenter" | "planner" | "bsa" | "importer" | "self-improve"`, each defined once in `.claude/agents/<name>.md` (generated from the same `prompts/agents/<name>.ts` spec as its Copilot persona — same rules, same hand-off boundaries, either host). Without the Task tool, enqueue it on the async queue instead — `npm run task -- enqueue <type> '{"project":"<name>","plan":"<path>"}'`, ensure `npm run worker` is running, and poll `npm run task -- status`. Never do a specialist's step inline. 5) Aggregate results into one summary + next actions; append one learning to `knowledge/learnings.md`.
 - **Skills:** `onboard-project`, `search-across-sources`, `self-check`.
 - **Hands off:** Pass each specialist the `project` name, the approved plan's path, and the step's specific inputs.
 
@@ -187,7 +189,7 @@ _Reviews the session, persists durable learnings, extracts reusables, and propos
 ## Skill / MCP tool / agent boundary
 - **MCP tool** (new I/O: shell exec, external file access, HTTP) → `mcp-servers/*`.
 - **Skill** (a reusable prompt playbook composing existing tools, no new I/O) → `skills/*/SKILL.md`.
-- **Agent** (a persona orchestrating skills/tools for a role) → author the spec in `prompts/agents/*.ts`, then `npm run build:prompts` (never hand-edit the generated `.agent.md`).
+- **Agent** (a persona orchestrating skills/tools for a role) → author the spec in `prompts/agents/*.ts`, then `npm run build:prompts` (never hand-edit a generated `.agent.md` or `.claude/agents/*.md`).
 
 ## Commands
 - `npx revab start` — start the gateway: every tool in one process on :7300, over MCP (`/mcp`) and REST (`/api/<server>/<tool>`). `npm run serve:mcp` also starts the official playwright browser server.

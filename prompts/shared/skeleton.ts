@@ -169,6 +169,90 @@ export function renderAgentMarkdown(spec: AgentSpec): string {
   return parts.join("\n");
 }
 
+/**
+ * Render one agent to its `.claude/agents/<name>.md` content — a native Claude Code
+ * subagent, invoked by the orchestrator's Task tool with `subagent_type: "<name>"`.
+ * Every non-orchestrator persona gets one (see `prompts/build.ts`), generated from the
+ * same spec as `.github/agents/<name>.agent.md` so the two hosts never drift apart.
+ * The portable tool vocabulary (`types.ts`) already matches Claude Code's own tool
+ * names 1:1 (`Read`, `Grep`, `Glob`, `Edit`, `Write`, `Bash`, `WebFetch`,
+ * `mcp__server__tool`), so no host-tool mapping is needed here — unlike
+ * `renderAgentMarkdown`'s Copilot mapping.
+ */
+export function renderClaudeSubagentMarkdown(spec: AgentSpec): string {
+  const claudeTools = spec.tools.filter((t) => t !== "Task");
+
+  const parts: string[] = [];
+  parts.push("---");
+  parts.push(`name: ${spec.name}`);
+  parts.push(`description: '${spec.description.replace(/'/g, "’")}'`);
+  parts.push(`tools: ${claudeTools.join(", ")}`);
+  parts.push(`model: ${spec.model ?? "inherit"}`);
+  parts.push("---");
+  parts.push(GENERATED_BANNER(`prompts/agents/${spec.name}.ts`));
+  parts.push("");
+  parts.push(`# ${titleCase(spec.name)} agent`);
+  parts.push("");
+  parts.push(`**Role.** ${spec.role}`);
+  parts.push("");
+
+  parts.push("## You own");
+  parts.push(bullets(spec.owns));
+  parts.push("");
+
+  parts.push("## You do NOT — hand off instead");
+  parts.push(bullets(spec.doesNot.map((d) => `${d.what} → **${d.to}**`)));
+  parts.push("");
+
+  parts.push("## Tools (only these — nothing else)");
+  parts.push(claudeTools.map((t) => `\`${t}\``).join(", "));
+  parts.push("");
+
+  parts.push("## Flow");
+  parts.push(spec.flow.map((s, i) => `${i + 1}. ${s}`).join("\n"));
+  parts.push("");
+
+  parts.push("## Always");
+  parts.push(
+    bullets([
+      ...(spec.always ?? []),
+      "Follow the non-negotiable rules below — they are inlined here on purpose; do not assume a separate rules file is loaded.",
+    ]),
+  );
+  parts.push("");
+  parts.push("### Non-negotiable rules");
+  parts.push(nonNegotiableBlock());
+  parts.push("");
+
+  if (spec.never && spec.never.length) {
+    parts.push("## Never");
+    parts.push(bullets(spec.never));
+    parts.push("");
+  }
+
+  if (spec.skills && spec.skills.length) {
+    parts.push("## Skills (use these — don't improvise their steps)");
+    parts.push(spec.skills.map((s) => `\`${s}\``).join(", "));
+    parts.push("");
+  }
+
+  parts.push("## Conduct");
+  parts.push(conductBlock());
+  parts.push("");
+
+  parts.push("## Hand off");
+  parts.push(spec.handoff);
+  parts.push("");
+  parts.push(
+    "You were dispatched by **orchestrator** via the Task tool (`subagent_type: \"" +
+      spec.name +
+      "\"`) — return your result to it. You do not talk to the user directly, and you never pick up another specialist's tools to finish work that isn't yours.",
+  );
+  parts.push("");
+
+  return parts.join("\n");
+}
+
 /** Render one agent as a section inside AGENTS.md (portable, host-neutral). */
 export function renderAgentSection(spec: AgentSpec): string {
   const parts: string[] = [];
