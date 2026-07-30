@@ -15,9 +15,14 @@ export const GENERATED_BANNER = (source: string): string =>
   `<!-- GENERATED FROM ${source} — edit the source, then run \`npm run build:prompts\`. Do not edit by hand. -->`;
 
 /**
- * Map the portable tool vocabulary to the tokens the VS Code / Copilot host
- * understands (so the generated `.agent.md` still binds real tools there).
- * MCP tools (`mcp__server__tool`) become the host's `server/tool` form.
+ * Map the portable tool vocabulary to the tokens VS Code's custom-agents system
+ * (code.visualstudio.com/docs/agent-customization/custom-agents, the `#toolset/tool`
+ * scheme shipped in v1.106+) actually understands, verified against its live tool
+ * reference (code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet) —
+ * NOT guessed. `execute/runTask` and `read/getTaskOutput` do not exist on that
+ * reference; `execute/createAndRunTask` is the only task-running tool. MCP tools
+ * (`mcp__server__tool`) become the host's `server/tool` form (confirmed by the docs'
+ * own `<server name>/*` wildcard example).
  */
 function toHostTool(tool: ToolName): string[] {
   if (tool.startsWith("mcp__")) {
@@ -26,26 +31,29 @@ function toHostTool(tool: ToolName): string[] {
   }
   switch (tool) {
     case "Read":
+      return ["read/readFile"];
     case "Grep":
+      return ["search/textSearch"];
     case "Glob":
-      return ["search/codebase", "search"];
+      return ["search/fileSearch", "search/listDirectory"];
     case "Edit":
-    case "Write":
       return ["edit/editFiles"];
+    case "Write":
+      return ["edit/editFiles", "edit/createFile"];
     case "Bash":
       return [
         "execute/runInTerminal",
         "execute/getTerminalOutput",
         "execute/createAndRunTask",
-        "execute/runTask",
-        "read/getTaskOutput",
+        "read/terminalLastCommand",
         "read/problems",
       ];
     case "WebFetch":
       return ["web/fetch"];
     case "Task":
-      // No host tool token — delegation is described in the body instead.
-      return [];
+      // Real dispatch tool (v1.106+): paired with the `agents:` frontmatter field
+      // (see renderAgentMarkdown) that names which custom agents are dispatchable.
+      return ["agent"];
     default:
       return [];
   }
@@ -90,8 +98,13 @@ function nonNegotiableBlock(): string {
     .join("\n");
 }
 
-/** Render one agent to its `.github/agents/<name>.agent.md` content. */
-export function renderAgentMarkdown(spec: AgentSpec): string {
+/**
+ * Render one agent to its `.github/agents/<name>.agent.md` content.
+ * `siblingNames` is every OTHER agent's `spec.name` (i.e. `AGENTS` minus this one) —
+ * used only when this spec holds `Task`, to populate the real `agents:` frontmatter
+ * field VS Code's custom-agents system uses to authorize subagent dispatch.
+ */
+export function renderAgentMarkdown(spec: AgentSpec, siblingNames: string[] = []): string {
   const hostTools = hostToolList(spec.tools);
   const toolsFrontmatter = hostTools.map((t) => `'${t}'`).join(", ");
   const portableTools = spec.tools.map((t) => `\`${t}\``).join(", ");
@@ -99,8 +112,12 @@ export function renderAgentMarkdown(spec: AgentSpec): string {
 
   const parts: string[] = [];
   parts.push("---");
+  parts.push(`name: ${spec.name}`);
   parts.push(`description: '${spec.description.replace(/'/g, "’")}'`);
   parts.push(`tools: [${toolsFrontmatter}]`);
+  if (usesTask) {
+    parts.push(`agents: [${siblingNames.map((n) => `'${n}'`).join(", ")}]`);
+  }
   parts.push("---");
   parts.push(GENERATED_BANNER(`prompts/agents/${spec.name}.ts`));
   parts.push("");
@@ -124,7 +141,7 @@ export function renderAgentMarkdown(spec: AgentSpec): string {
   if (usesTask) {
     parts.push("");
     parts.push(
-      "You delegate with the **Task** tool. On a host without it, name the target agent and hand the work back to the user to route — never do the specialist's work yourself.",
+      "You delegate with the **Task** (VS Code: `agent`) tool. This file's `agents:` frontmatter names every specialist below as a real dispatch target on VS Code's custom-agents system (v1.106+) — this is an actual tool call, not just a naming convention. On a host with neither, name the target agent and hand the work back to the user to route — never do the specialist's work yourself.",
     );
   }
   parts.push("");

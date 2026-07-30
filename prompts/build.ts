@@ -2,7 +2,10 @@
  * Renders every model-facing file from the typed specs + shared rule sources.
  *
  * Outputs (all carry a GENERATED banner; never hand-edit them):
- *   - .github/agents/<name>.agent.md   — self-contained persona (VS Code / Copilot)
+ *   - .github/agents/<name>.agent.md   — self-contained persona (VS Code / Copilot);
+ *                                        orchestrator's carries a real `agents: [...]`
+ *                                        field naming every other persona as a
+ *                                        dispatchable subagent (v1.106+ custom agents)
  *   - .claude/agents/<name>.md         — native Claude Code subagent, one per persona;
  *                                        `orchestrator`'s is meant to run the whole
  *                                        session (`claude --agent orchestrator`) and
@@ -70,7 +73,7 @@ function renderAgentFlow(): string {
     "",
     "The orchestrator holds no execution/write tools — it must delegate. Each specialist's \"You do NOT\" section names who takes over, so no agent quietly does another's job.",
     "",
-    "**Delegation mechanism.** On Claude Code, every persona has a native subagent under `.claude/agents/<name>.md` (generated 1:1 from its `prompts/agents/<name>.ts` spec, same rules as its `.github/agents/<name>.agent.md` Copilot persona). Run `claude --agent orchestrator` to make the root session itself the orchestrator; it dispatches each specialist with the Task tool's `subagent_type: \"<name>\"`. On a host without a Task-style subagent tool, it falls back to the async queue (`npm run task -- enqueue <type> …`). If neither is available, it must stop and name the specialist for the user to invoke by hand — never do that specialist's job inline.",
+    "**Delegation mechanism.** Both generated hosts give the orchestrator a REAL dispatch tool, not just prose: on Claude Code, `claude --agent orchestrator` makes the root session the orchestrator persona (`.claude/agents/orchestrator.md`), dispatching each specialist with the Task tool's `subagent_type: \"<name>\"` against its own `.claude/agents/<name>.md`. On VS Code (v1.106+ custom-agents system), `.github/agents/orchestrator.agent.md` carries a real `agents: [...]` frontmatter field naming every specialist plus the `agent` tool, so dispatch is an actual tool call there too. Both are generated 1:1 from the same `prompts/agents/<name>.ts` spec, so neither host drifts from the other. On a host with neither mechanism, it falls back to the async queue (`npm run task -- enqueue <type> …`); if that has no matching task type either, it must stop and name the specialist for the user to invoke by hand — never do that specialist's job inline.",
   ].join("\n");
 }
 
@@ -108,9 +111,10 @@ export function renderAll(): GeneratedFile[] {
   const files: GeneratedFile[] = [];
 
   for (const spec of AGENTS) {
+    const siblingNames = AGENTS.filter((s) => s.name !== spec.name).map((s) => s.name);
     files.push({
       path: `.github/agents/${spec.name}.agent.md`,
-      content: renderAgentMarkdown(spec),
+      content: renderAgentMarkdown(spec, siblingNames),
     });
 
     // Every persona gets a native Claude Code subagent file. Specialists are pure

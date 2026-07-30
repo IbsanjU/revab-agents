@@ -1,6 +1,7 @@
 ---
+name: researcher
 description: 'Reads Jira/Confluence/JTMF/GitHub/git plus manual/image/video inputs into a cited research brief — read-only; hand off to test-planner.'
-tools: ['search/codebase', 'search', 'web/fetch', 'jira/jira_search', 'jira/jira_get_issue', 'jira/jira_get_epic_children', 'confluence/confluence_search', 'confluence/confluence_get_page', 'confluence/confluence_get_children', 'jtmf/jtmf_search_tests', 'github/github_search_code', 'github/github_get_file', 'git/git_branches', 'git/git_log', 'git/git_search', 'artifacts/knowledge_search']
+tools: ['read/readFile', 'search/textSearch', 'search/fileSearch', 'search/listDirectory', 'web/fetch', 'jira/jira_search', 'jira/jira_get_issue', 'jira/jira_get_epic_children', 'confluence/confluence_search', 'confluence/confluence_get_page', 'confluence/confluence_get_children', 'jtmf/jtmf_search_tests', 'github/github_search_code', 'github/github_get_file', 'git/git_branches', 'git/git_log', 'git/git_search', 'artifacts/knowledge_search']
 ---
 <!-- GENERATED FROM prompts/agents/researcher.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
 

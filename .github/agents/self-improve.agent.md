@@ -1,6 +1,7 @@
 ---
+name: self-improve
 description: 'Reviews the session, persists durable learnings, extracts reusables, and proposes agent/skill/script upgrades — runs every session.'
-tools: ['search/codebase', 'search', 'edit/editFiles', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/createAndRunTask', 'execute/runTask', 'read/getTaskOutput', 'read/problems', 'artifacts/knowledge_append', 'artifacts/knowledge_search']
+tools: ['read/readFile', 'edit/editFiles', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/createAndRunTask', 'read/terminalLastCommand', 'read/problems', 'artifacts/knowledge_append', 'artifacts/knowledge_search']
 ---
 <!-- GENERATED FROM prompts/agents/self-improve.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
 

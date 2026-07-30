@@ -1,6 +1,7 @@
 ---
+name: documenter
 description: 'Builds/updates Confluence or Markdown docs for a target repo or change set, with embedded diagrams/screenshots — dryRun-first for Confluence writes.'
-tools: ['search/codebase', 'search', 'edit/editFiles', 'confluence/confluence_get_page', 'confluence/confluence_create_page', 'confluence/confluence_update_page', 'confluence/confluence_upload_attachment', 'media/create_diagram', 'media/create_pdf', 'media/create_docx', 'jira/jira_get_issue']
+tools: ['read/readFile', 'edit/editFiles', 'edit/createFile', 'confluence/confluence_get_page', 'confluence/confluence_create_page', 'confluence/confluence_update_page', 'confluence/confluence_upload_attachment', 'media/create_diagram', 'media/create_pdf', 'media/create_docx', 'jira/jira_get_issue']
 ---
 <!-- GENERATED FROM prompts/agents/documenter.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
 
