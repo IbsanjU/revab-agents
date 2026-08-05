@@ -102,8 +102,15 @@ stop saying "not independently re-tested" once someone has:
 **Option A — VS Code GUI, closest to real usage:**
 
 1. Open this repo in VS Code with Copilot Chat v1.106+.
-2. Pick **orchestrator** from the chat agent dropdown.
-3. Send this prompt (deliberately mirrors the Claude Code test in §4, so the two results
+2. **Check the agent dropdown first, before anything else**: it should list only
+   `orchestrator`. Every specialist (`researcher`, `test-planner`, `automation`,
+   `reporter`, `documenter`, `planner`, `bsa`, `importer`, `self-improve`) sets
+   `user-invocable: false` in its generated `.github/agents/<name>.agent.md` frontmatter
+   specifically to keep it out of this list — if any of them show up, that's a real bug to
+   report (check the file's frontmatter actually has `user-invocable: false` and that
+   VS Code/Copilot Chat is new enough to honor it).
+3. Pick **orchestrator** from the chat agent dropdown.
+4. Send this prompt (deliberately mirrors the Claude Code test in §4, so the two results
    are directly comparable):
 
    ```
@@ -114,7 +121,7 @@ stop saying "not independently re-tested" once someone has:
    in parallel or sequentially.
    ```
 
-4. Watch for: does the chat UI show a subagent/agent invocation for `researcher` and one
+5. Watch for: does the chat UI show a subagent/agent invocation for `researcher` and one
    for `planner` (VS Code surfaces running subagents in the response); does the final
    answer name both; does it happen as one coordinated turn or two separate exchanges. If
    `orchestrator` instead reads Confluence/Jira directly or writes a file itself, that's
@@ -189,6 +196,31 @@ broader than `.claude/agents/researcher.md`'s `tools:` line, something is miscon
 that mismatch is exactly the failure class this whole framework's tool-scoping exists to
 prevent.
 
+## 4a. Worked example: orchestrator as manager (routing + review), not a worker
+
+This confirms orchestrator uses `route-to-specialist` before dispatching and
+`review-delegated-work` before aggregating — not just delegating once and passing
+whatever comes back straight through.
+
+```bash
+claude --agent orchestrator -p "Use 'my-project'. I need to know what test coverage
+exists for the login flow. Before you dispatch anything, tell me which specialist
+you're routing this to and why (per the route-to-specialist skill). After the
+specialist returns, explicitly run the review-delegated-work check on its result and
+tell me the outcome, before giving me your final summary."
+```
+
+**What actually happened** (verbatim, this exact run, 2026-08-05):
+
+> **Specialist routing:** Researcher — *"This is a read-only discovery task requiring me
+> to search across multiple sources... The researcher agent is designed exactly for
+> this."*
+
+Then, after dispatch, the review ran as an explicit table (scope / citations /
+completeness / accuracy), each row checked against the researcher's actual citations
+(e.g. `project.json:3-4`, `app-model.md:1-7`) — outcome **APPROVED** — before the final
+summary was produced. `git status --short` was empty afterward.
+
 ## 5. Extend the framework
 
 All of the following start the same way: **edit the spec, never the generated file.**
@@ -252,6 +284,8 @@ existing tools; it isn't new I/O (that's an MCP tool) and it isn't a new persona
 | MCP tool calls fail to connect | `curl http://localhost:7300/health` should return `{"ok":true,"tools":76}`; if not, run `npx revab start` (gateway) or `npx revab doctor` |
 | A queue task never completes | `npm run task -- status`; confirm `npm run worker` is actually running in a separate terminal |
 | Capability eval fails after a spec edit | `npm run eval` names exactly which tool/statement is missing and why (`evals/capabilities.ts`'s `because` field is written for this) |
+| A specialist shows up in VS Code's agent dropdown (should be hidden) | Check its `.github/agents/<name>.agent.md` has `user-invocable: false` — regenerate with `npm run build:prompts` if missing; see `multi-agent-architecture.md` §8 |
+| You corrected the same agent for a similar reason more than once | `npm run correction -- log ...` prints a `⚠ REPEATED PATTERN` notice the moment that happens — act on it in that turn (`skills/capture-correction/SKILL.md` Phase 3.5), don't wait for `self-improve`'s end-of-session pass |
 
 ## Sources
 

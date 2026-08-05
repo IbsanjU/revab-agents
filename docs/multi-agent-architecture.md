@@ -272,7 +272,7 @@ anything security-sensitive.
   --agent` can restrict which subagent types it's allowed to spawn with
   `tools: Agent(worker, researcher), Read, Bash` syntax. This repo's orchestrator currently
   lists bare `Task` (equivalent to unrestricted `Agent`), not an explicit allow-list of the
-  9 specialist names — see the note in §8 for why, and how to tighten it if you want that
+  9 specialist names — see the note in §9 for why, and how to tighten it if you want that
   extra guard rail.
 - **Fork mode** (`/subtask`, `CLAUDE_CODE_FORK_SUBAGENT`) spawns a subagent that inherits
   the *entire* parent conversation instead of starting fresh, useful for a side task that
@@ -284,7 +284,50 @@ anything security-sensitive.
 Source: [Create custom subagents — "Let subagents spawn their own subagents" /
 "Restrict which subagents can be spawned" / "Fork the current conversation"](https://code.claude.com/docs/en/sub-agents#let-subagents-spawn-their-own-subagents).
 
-## 8. Known gaps / deliberately not done
+## 8. User-facing visibility: only `orchestrator` is selectable
+
+The intent: a user picking an agent from a chat UI should only ever see `orchestrator` —
+every specialist should still be dispatchable *by* orchestrator, just not directly
+pickable *by a person* browsing the agent list.
+
+**VS Code — implemented, [not independently re-tested].** Every specialist's
+`.github/agents/<name>.agent.md` now sets two real, documented frontmatter fields
+(`renderAgentMarkdown` in `prompts/shared/skeleton.ts`):
+
+- `user-invocable: false` — *"Optional boolean flag to control whether the agent appears
+  in the agents dropdown in chat (default is `true`)."*
+- `disable-model-invocation: true` — *"Optional boolean flag to prevent the agent from
+  being invoked as a subagent by other agents (default is `false`)."*
+
+`orchestrator.agent.md` sets neither (stays visible, stays the only pickable entry), and
+its `agents: [...]` list explicitly names every specialist — which the docs state
+overrides `disable-model-invocation: true` on the target (*"Explicitly listing an agent in
+the `agents` array overrides `disable-model-invocation: true`"*), so orchestrator can still
+reach every specialist even though nothing else (including the user's own picker) can.
+This wasn't re-tested against a live VS Code instance for the same reason as everything
+else in §6/§9 below — no VS Code UI in this environment. Use
+[`RUNBOOK.md` §3c](./RUNBOOK.md#3c-verify-the-vs-code--copilot-dispatch-yourself) to
+confirm the dropdown actually only shows `orchestrator`.
+
+**Claude Code — confirmed NOT possible, by design, as of this writing.** Read the complete
+"Supported frontmatter fields" table in
+[Create custom subagents](https://code.claude.com/docs/en/sub-agents#write-subagent-files)
+end to end: `name`, `description`, `tools`, `disallowedTools`, `model`, `permissionMode`,
+`maxTurns`, `skills`, `mcpServers`, `hooks`, `memory`, `background`, `effort`, `isolation`,
+`color`, `initialPrompt` — no visibility/picker field exists. The docs are explicit that
+every subagent, built-in or custom, is discoverable: *"Claude Code scans `.claude/agents/`
+and `~/.claude/agents/` recursively"* and appears in the `@`-mention typeahead the same
+way. `permissions.deny: ["Agent(<name>)"]` (["Disable specific
+subagents"](https://code.claude.com/docs/en/sub-agents#disable-specific-subagents)) blocks
+a subagent from being used **at all** — including by `orchestrator` itself — so it isn't a
+"hide from user, keep for orchestrator" switch, it's an on/off switch with no middle
+setting. **Don't invent a frontmatter field for this** — there isn't one. The practical
+mitigation is procedural, not technical: tell users the intended entry point is `claude
+--agent orchestrator` (§3a of `RUNBOOK.md`); if someone `@`-mentions a specialist directly
+anyway, that specialist's own spec still enforces its scope/tool boundaries exactly as it
+would under orchestrator, so direct use is off the intended path but not unsafe.
+
+## 9. Known gaps / deliberately not done
 
 - **Claude Code's `Agent(agent_type)` allow-list is not applied to `orchestrator`'s own
   `tools:` frontmatter** (`.claude/agents/orchestrator.md` lists bare `Task`). This means
@@ -305,6 +348,78 @@ Source: [Create custom subagents — "Let subagents spawn their own subagents" /
   time of writing (§4, §5b) — only an announcement blog post. Re-check VS Code's docs
   before depending on specific behavior there.
 
+## 10. Professional inter-agent communication
+
+Anthropic's own engineering writeup on their multi-agent Research system
+([anthropic.com/engineering/multi-agent-research-system](https://www.anthropic.com/engineering/multi-agent-research-system))
+is the primary source this framework's delegation and review skills follow — quoted, not
+paraphrased away:
+
+- **A delegation prompt needs four parts, every time**: *"Each subagent needs an
+  objective, an output format, guidance on the tools and sources to use, and clear task
+  boundaries."* The explicit failure mode from skipping this: *"we started by allowing the
+  lead agent to give simple, short instructions like 'research the semiconductor
+  shortage,' but found these instructions often were vague enough that subagents
+  misinterpreted the task or performed the exact same searches as other agents."* This is
+  why `route-to-specialist` (`skills/route-to-specialist/SKILL.md`) has orchestrator name
+  both the owning specialist AND the likely skill before dispatch, not just "go research
+  this."
+- **Avoid the telephone game**: minimize how much raw context gets relayed hop to hop
+  between chained specialists (researcher → test-planner → automation → reporter →
+  documenter) — pass the specific citation/file path/decision forward, not "see what the
+  last one said." Anthropic's own appendix: *"Subagents call tools to store their work in
+  external systems, then pass lightweight references back to the coordinator."*
+- **Decompose by context boundary, not by arbitrary phase.** Split work where the pieces
+  are genuinely independent (parallel dispatch, §4) — don't split a single tightly-coupled
+  task into steps that just have to pass everything back and forth anyway.
+- **Effort should scale with task complexity**: *"Simple fact-finding requires just 1
+  agent with 3-10 tool calls... complex research might use more than 10 subagents with
+  clearly divided responsibilities."* This framework's `route-to-specialist` similarly
+  warns against forcing one specialist to cover two steps, or splitting one simple step
+  across two specialists.
+- **A subagent reports to the dispatcher, not the user.** Every specialist spec's `##
+  Hand off` section states exactly what it passes to the next stage; `orchestrator`'s
+  `review-delegated-work` skill (§ below) is the check that what came back is actually fit
+  to aggregate before the user ever sees it — the orchestrator is the only persona that
+  talks to the user.
+
+## 11. The learning loop: teacher, not rubber stamp
+
+A single correction is already captured in real time by every persona's shared conduct
+(`prompts/shared/conduct.ts`, "Learning from corrections") via the `capture-correction`
+skill — that part predates this section. What's new: **a second occurrence of the same
+pattern is now flagged automatically, at log time, not discovered later.**
+
+`npm run correction -- log` (`scripts/correction.ts`) now checks, immediately after
+appending a record, whether the agent it was logged against has 2+ open corrections, and
+if so prints a `⚠ REPEATED PATTERN` notice naming the prior rule(s) — **[verified in this
+repo]**, tested with two real CLI invocations against a scratch agent name (cleaned up
+afterward, not committed):
+
+```
+⚠ REPEATED PATTERN: this is open correction #2 for "<agent>".
+Prior open rule(s) for this agent:
+  [<id>] <prior rule text>
+If the rule you just logged is the SAME underlying pattern (not a coincidence), don't leave
+this queued for later — fold the generalized rule into prompts/agents/<agent>.ts in THIS
+turn...
+If the same rule/theme is repeating across DIFFERENT agents too... that's a framework-wide
+gap — it belongs in prompts/shared/conduct.ts..., not copy-pasted into each agent's spec.
+```
+
+`skills/capture-correction/SKILL.md`'s new Phase 3.5 tells whoever is logging to act on
+that notice in the same turn, not defer it — a single-agent repeat goes into that agent's
+own `prompts/agents/<name>.ts`; a repeat across *different* agents goes into
+`prompts/shared/conduct.ts` once, generic, rather than being copy-pasted per agent.
+`self-improve`'s spec (`prompts/agents/self-improve.ts`) now names this explicitly as
+something it owns — editing the shared conduct layer for a cross-agent pattern, not only
+individual agent specs — and its description was rewritten to state the framing directly:
+*"The framework's teacher: reviews sessions, spots repeated correction patterns across
+agents, persists durable learnings, and proposes agent/skill/script upgrades."* The rule
+folded in is always required to read as generic (an imperative any agent could follow),
+with at most a short parenthetical example naming the topic that surfaced it — never a
+rule that only makes sense for that one topic.
+
 ## Sources
 
 - [Run agents in parallel](https://code.claude.com/docs/en/agents) — Claude Code
@@ -315,4 +430,5 @@ Source: [Create custom subagents — "Let subagents spawn their own subagents" /
 - [Your Home for Multi-Agent Development (VS Code blog, 2026-02-05)](https://code.visualstudio.com/blogs/2026/02/05/multi-agent-development)
 - [About Copilot coding agent](https://docs.github.com/copilot/concepts/coding-agent/about-copilot-coding-agent) — GitHub
 - microsoft/vscode-copilot-release issue #12647 (tool-scoping runtime disagreement report)
-- This repo, `claude` CLI v2.1.220, tested 2026-07-30 (see §3, §4, §6 for the exact prompts and transcripts)
+- [How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system) — Anthropic engineering
+- This repo, `claude` CLI v2.1.220, tested 2026-07-30 and 2026-08-05 (see §3, §4, §6, §11 for the exact prompts and transcripts)

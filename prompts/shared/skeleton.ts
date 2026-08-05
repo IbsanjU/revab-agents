@@ -103,12 +103,22 @@ function nonNegotiableBlock(): string {
  * `siblingNames` is every OTHER agent's `spec.name` (i.e. `AGENTS` minus this one) —
  * used only when this spec holds `Task`, to populate the real `agents:` frontmatter
  * field VS Code's custom-agents system uses to authorize subagent dispatch.
+ *
+ * Every persona except `orchestrator` sets `user-invocable: false` (hidden from the
+ * chat agent dropdown/picker — VS Code custom-agents docs: "control whether the agent
+ * appears in the agents dropdown in chat") and `disable-model-invocation: true`
+ * (blocks generic agent-initiated dispatch from anywhere else) — orchestrator's own
+ * `agents:` list explicitly overrides that per-agent per the same docs ("Explicitly
+ * listing an agent in the `agents` array overrides `disable-model-invocation: true`"),
+ * so it can still dispatch every specialist even though nothing else can, and the user
+ * never sees a specialist in the picker — only `orchestrator`.
  */
 export function renderAgentMarkdown(spec: AgentSpec, siblingNames: string[] = []): string {
   const hostTools = hostToolList(spec.tools);
   const toolsFrontmatter = hostTools.map((t) => `'${t}'`).join(", ");
   const portableTools = spec.tools.map((t) => `\`${t}\``).join(", ");
   const usesTask = spec.tools.includes("Task");
+  const isOrchestrator = spec.name === "orchestrator";
 
   const parts: string[] = [];
   parts.push("---");
@@ -117,6 +127,10 @@ export function renderAgentMarkdown(spec: AgentSpec, siblingNames: string[] = []
   parts.push(`tools: [${toolsFrontmatter}]`);
   if (usesTask) {
     parts.push(`agents: [${siblingNames.map((n) => `'${n}'`).join(", ")}]`);
+  }
+  if (!isOrchestrator) {
+    parts.push(`user-invocable: false`);
+    parts.push(`disable-model-invocation: true`);
   }
   parts.push("---");
   parts.push(GENERATED_BANNER(`prompts/agents/${spec.name}.ts`));

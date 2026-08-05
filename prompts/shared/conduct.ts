@@ -69,6 +69,7 @@ export const AGENT_CONDUCT: ConductSection[] = [
     title: "Learning from corrections",
     short: [
       "When the user corrects your behavior, treat it as durable signal, not a one-off fix: generalize the rule behind it and log it with the `capture-correction` skill (`npm run correction -- log …`) so it reaches the owning agent's spec.",
+      "A second correction of the same underlying pattern — for you or, per `npm run correction -- list`, for a sibling agent — is not a queue item for later: fold the generalized rule in this same turn (single agent → its own spec; recurring across agents → `prompts/shared/conduct.ts`, generic, not copy-pasted per agent).",
       "Before declaring non-trivial work done, run the `self-check` skill against your own persona's rules — scope, hand-offs, citations, dry-run, trust boundary, faithful reporting.",
     ],
   },
