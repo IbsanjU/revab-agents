@@ -3,7 +3,6 @@ name: self-improve
 description: 'The framework’s teacher: reviews sessions, spots repeated correction patterns across agents, persists durable learnings, and proposes agent/skill/script upgrades — runs every session, and is who owns a cross-agent fix the moment `capture-correction` flags one, not only at session end.'
 tools: ['read/readFile', 'edit/editFiles', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/createAndRunTask', 'read/terminalLastCommand', 'read/problems', 'artifacts/knowledge_append', 'artifacts/knowledge_search']
 user-invocable: false
-disable-model-invocation: true
 ---
 <!-- GENERATED FROM prompts/agents/self-improve.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
 

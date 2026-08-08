@@ -99,19 +99,30 @@ function nonNegotiableBlock(): string {
 }
 
 /**
- * Render one agent to its `.github/agents/<name>.agent.md` content.
- * `siblingNames` is every OTHER agent's `spec.name` (i.e. `AGENTS` minus this one) —
- * used only when this spec holds `Task`, to populate the real `agents:` frontmatter
- * field VS Code's custom-agents system uses to authorize subagent dispatch.
+ * Render one agent to its `.github/agents/<name>.agent.md` content — read by every
+ * GitHub Copilot custom-agents surface (VS Code, Visual Studio, GitHub Copilot CLI,
+ * Copilot's cloud coding agent), not only VS Code.
  *
- * Every persona except `orchestrator` sets `user-invocable: false` (hidden from the
- * chat agent dropdown/picker — VS Code custom-agents docs: "control whether the agent
- * appears in the agents dropdown in chat") and `disable-model-invocation: true`
- * (blocks generic agent-initiated dispatch from anywhere else) — orchestrator's own
- * `agents:` list explicitly overrides that per-agent per the same docs ("Explicitly
- * listing an agent in the `agents` array overrides `disable-model-invocation: true`"),
- * so it can still dispatch every specialist even though nothing else can, and the user
- * never sees a specialist in the picker — only `orchestrator`.
+ * Two DIFFERENT documented schemas apply here, and they disagree on one field:
+ *   - VS Code's own docs (code.visualstudio.com/docs/agent-customization/custom-agents)
+ *     describe an `agents: [...]` allow-list field, and state that explicitly listing an
+ *     agent there "overrides `disable-model-invocation: true`" on the target.
+ *   - GitHub's canonical, cross-surface reference
+ *     (docs.github.com/en/copilot/reference/custom-agents-configuration) — the schema
+ *     Copilot CLI/Visual Studio/the cloud coding agent actually implement — has NO
+ *     `agents:` field and NO documented override for `disable-model-invocation`: there,
+ *     `disable-model-invocation: true` just means "the agent must be manually selected,"
+ *     full stop. Setting BOTH `user-invocable: false` (hide from the picker) AND
+ *     `disable-model-invocation: true` (block automatic dispatch) on the same specialist
+ *     would make it manually-unpickable AND auto-dispatch-blocked on every surface that
+ *     ONLY implements the canonical schema — i.e. unreachable by orchestrator there,
+ *     defeating the entire point.
+ * So every specialist sets ONLY `user-invocable: false` — canonical wording: "the agent
+ * cannot be manually selected and can only be accessed programmatically" — which is
+ * exactly "hidden from the user, still reachable by orchestrator" on every surface, VS
+ * Code included. `agents:` (VS-Code-only allow-list, additive) is still populated on
+ * `orchestrator` for the extra restriction where VS Code honors it; `siblingNames` is
+ * every OTHER agent's `spec.name`, used only when this spec holds `Task`.
  */
 export function renderAgentMarkdown(spec: AgentSpec, siblingNames: string[] = []): string {
   const hostTools = hostToolList(spec.tools);
@@ -130,7 +141,6 @@ export function renderAgentMarkdown(spec: AgentSpec, siblingNames: string[] = []
   }
   if (!isOrchestrator) {
     parts.push(`user-invocable: false`);
-    parts.push(`disable-model-invocation: true`);
   }
   parts.push("---");
   parts.push(GENERATED_BANNER(`prompts/agents/${spec.name}.ts`));

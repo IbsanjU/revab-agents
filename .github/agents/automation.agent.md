@@ -3,7 +3,6 @@ name: automation
 description: 'Implements Playwright + Cucumber BDD code from test cases in a target project via codegen/playwright-runner — hand off to reporter for runs.'
 tools: ['read/readFile', 'edit/editFiles', 'edit/createFile', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/createAndRunTask', 'read/terminalLastCommand', 'read/problems', 'search/textSearch', 'codegen/detect_conventions', 'codegen/scaffold_feature', 'codegen/scaffold_step', 'codegen/scaffold_page', 'codegen/get_test_files', 'playwright-runner/run_bdd', 'allure-report/allure_summary', 'git/git_branches', 'git/git_log']
 user-invocable: false
-disable-model-invocation: true
 ---
 <!-- GENERATED FROM prompts/agents/automation.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
 

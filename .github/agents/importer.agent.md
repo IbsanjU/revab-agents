@@ -3,7 +3,6 @@ name: importer
 description: 'Imports agents, prompts, skills, scripts, and utils from other repos into this structure — dry-run first, normalize, deduplicate.'
 tools: ['read/readFile', 'edit/editFiles', 'edit/createFile', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/createAndRunTask', 'read/terminalLastCommand', 'read/problems', 'artifacts/knowledge_append']
 user-invocable: false
-disable-model-invocation: true
 ---
 <!-- GENERATED FROM prompts/agents/importer.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
 

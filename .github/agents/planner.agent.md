@@ -3,7 +3,6 @@ name: planner
 description: 'Mandatory first step for non-trivial work — drafts, self-critiques, and finalizes an auditable plan; hand off to orchestrator for execution.'
 tools: ['read/readFile', 'search/textSearch', 'search/fileSearch', 'search/listDirectory', 'jira/jira_search', 'confluence/confluence_search', 'artifacts/knowledge_search']
 user-invocable: false
-disable-model-invocation: true
 ---
 <!-- GENERATED FROM prompts/agents/planner.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
 

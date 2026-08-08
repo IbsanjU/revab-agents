@@ -3,7 +3,6 @@ name: reporter
 description: 'Runs suites and turns Allure results into actionable, classified failure summaries for a target project — dryRun-first for any Jira write-back.'
 tools: ['read/readFile', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/createAndRunTask', 'read/terminalLastCommand', 'read/problems', 'playwright-runner/run_bdd', 'allure-report/allure_summary', 'allure-report/get_result_json', 'allure-report/generate_report', 'jira/jira_add_comment']
 user-invocable: false
-disable-model-invocation: true
 ---
 <!-- GENERATED FROM prompts/agents/reporter.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
 

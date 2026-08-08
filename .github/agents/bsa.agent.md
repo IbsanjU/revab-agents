@@ -3,7 +3,6 @@ name: bsa
 description: 'Turns requirements (chat/Excel/CSV/docs/images) into well-formed Jira tickets, bulk-creates/assigns them, and tracks backlog/sprint — never deletes. Standalone entry point.'
 tools: ['read/readFile', 'jira/jira_search', 'jira/jira_create_issue', 'jira/jira_bulk_create_issues', 'jira/jira_update_issue', 'jira/jira_bulk_update_issues', 'jira/jira_transition_issue', 'jira/jira_search_users', 'jira/jira_assign_issue', 'jira/jira_get_sprint_report', 'jira/jira_get_backlog', 'media/read_excel_rows', 'media/read_csv_rows']
 user-invocable: false
-disable-model-invocation: true
 ---
 <!-- GENERATED FROM prompts/agents/bsa.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
 

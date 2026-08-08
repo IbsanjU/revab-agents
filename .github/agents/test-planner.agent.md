@@ -3,7 +3,6 @@ name: test-planner
 description: 'Turns requirements into risk-scored test plans and cited Gherkin scenarios derived with explicit test-design techniques, scaffolded into the target project — hand off to automation.'
 tools: ['read/readFile', 'search/textSearch', 'edit/editFiles', 'edit/createFile', 'jira/jira_get_issue', 'jira/jira_get_epic_children', 'confluence/confluence_get_page', 'jtmf/jtmf_search_tests', 'artifacts/read_repo_file', 'artifacts/knowledge_search', 'codegen/detect_conventions', 'codegen/scaffold_feature', 'playwright-runner/get_test_files']
 user-invocable: false
-disable-model-invocation: true
 ---
 <!-- GENERATED FROM prompts/agents/test-planner.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
 

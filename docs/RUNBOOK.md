@@ -84,16 +84,25 @@ claude -p "Use the researcher subagent to find existing test coverage for 'my-pr
 
 ### 3c. Verify the VS Code / Copilot dispatch yourself
 
-**Status as of 2026-07-30: documented but not independently re-tested from this repo's
+**Status as of 2026-08-05: documented but not independently re-tested from this repo's
 CI/agent sandbox.** That environment has no VS Code binary, no display server, and no way
 to complete Copilot's interactive OAuth login — a real attempt was made via GitHub
-Copilot CLI (`npm install -g @github/copilot`, same `.github/agents/*.agent.md` format
-and `agents:` dispatch mechanism, different frontend from VS Code's GUI) and it failed
-outright with `Error: No authentication information found` — the sandbox's `GH_TOKEN`/
-`GITHUB_TOKEN` are placeholder values for a different integration, not a real
-Copilot-scoped credential, and this failure happened even with no `--agent` flag at all,
-so it isn't specific to custom agents. There was no path to a real Copilot completion
-from that environment, full stop.
+Copilot CLI (`npm install -g @github/copilot`, same `.github/agents/*.agent.md` file
+format, though NOT the same dispatch schema — see below) and it failed outright with
+`Error: No authentication information found` — the sandbox's `GH_TOKEN`/`GITHUB_TOKEN` are
+placeholder values for a different integration, not a real Copilot-scoped credential, and
+this failure happened even with no `--agent` flag at all, so it isn't specific to custom
+agents. There was no path to a real Copilot completion from that environment, full stop.
+
+**Important: VS Code and Copilot CLI implement two different schemas for the same file
+format** (`multi-agent-architecture.md` §8 has the full comparison). VS Code's own docs
+describe an `agents: [...]` allow-list field; GitHub's canonical cross-surface reference
+(which Copilot CLI, Visual Studio, and the cloud coding agent implement) has no such
+field — delegation there goes through "the `agent` tool alias" generically. Both schemas
+agree on `user-invocable: false` meaning exactly "hidden from the picker, still reachable
+programmatically," which is the only field this repo relies on for hiding specialists —
+so the picker check below should hold on both, even though the *dispatch* mechanism behind
+it differs.
 
 Use one of these two to actually confirm it yourself, and please update this file (or
 `multi-agent-architecture.md` §2/§4/§6) with what you observe — right or wrong, it should
@@ -131,21 +140,36 @@ stop saying "not independently re-tested" once someone has:
 **Option B — GitHub Copilot CLI, scriptable and easy to paste back verbatim:**
 
 If you have a GitHub Copilot subscription, this is faster to run and share than a GUI
-screenshot — it reads the identical `.github/agents/*.agent.md` files:
+screenshot — it reads the same `.github/agents/*.agent.md` files (via GitHub's canonical
+schema, not VS Code's — see the note above):
 
 ```bash
 npm install -g @github/copilot
 export GITHUB_TOKEN=<your real GitHub token with the "Copilot Requests" permission>
 cd revab-agents
-copilot --agent orchestrator -p "Use 'my-project'. Dispatch researcher and planner
-IN PARALLEL to (1) research login-flow test coverage and (2) draft a second-
-environment onboarding plan. Tell me exactly which subagents you dispatched and
-whether it was parallel or sequential." --allow-all-tools
+copilot   # interactive mode
 ```
 
+1. **Check the picker first**: type `/agent` and confirm only `orchestrator` is listed —
+   every specialist's `user-invocable: false` should keep it out of this list on Copilot
+   CLI too (canonical docs: *"the agent cannot be manually selected"*).
+2. Select `orchestrator`, then send the same prompt as Option A (or run it
+   non-interactively):
+
+   ```bash
+   copilot --agent orchestrator -p "Use 'my-project'. Dispatch researcher and planner
+   IN PARALLEL to (1) research login-flow test coverage and (2) draft a second-
+   environment onboarding plan. Tell me exactly which subagents you dispatched and
+   whether it was parallel or sequential." --allow-all-tools
+   ```
+
+3. Confirm `orchestrator` can still actually reach `researcher`/`planner` despite them
+   being hidden from step 1's list — that's the specific thing last session's fix
+   (removing `disable-model-invocation: true` from specialists) was for; if dispatch
+   fails here, that fix needs revisiting.
+
 Compare the output to the Claude Code transcript quoted in §4 — same prompt shape, same
-`my-project` stub, so the two are meant to be an apples-to-apples comparison of the two
-hosts' dispatch mechanisms.
+`my-project` stub, so the two are meant to be an apples-to-apples comparison across hosts.
 
 ## 4. Worked example: parallel dispatch, end to end
 

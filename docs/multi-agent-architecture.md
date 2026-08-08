@@ -288,26 +288,36 @@ Source: [Create custom subagents — "Let subagents spawn their own subagents" /
 
 The intent: a user picking an agent from a chat UI should only ever see `orchestrator` —
 every specialist should still be dispatchable *by* orchestrator, just not directly
-pickable *by a person* browsing the agent list.
+pickable *by a person* browsing the agent list. `.github/agents/*.agent.md` isn't a
+VS-Code-only file — it's read by **every GitHub Copilot custom-agents surface**: VS Code,
+Visual Studio, GitHub Copilot CLI, and Copilot's cloud coding agent. Two different
+documented schemas exist for it, and they matter here because they disagree on one field:
 
-**VS Code — implemented, [not independently re-tested].** Every specialist's
-`.github/agents/<name>.agent.md` now sets two real, documented frontmatter fields
-(`renderAgentMarkdown` in `prompts/shared/skeleton.ts`):
+| | VS Code's own docs | GitHub's canonical, cross-surface reference |
+| --- | --- | --- |
+| Source | [Custom agents in VS Code](https://code.visualstudio.com/docs/agent-customization/custom-agents) | [Custom agents configuration](https://docs.github.com/en/copilot/reference/custom-agents-configuration) — implemented by Copilot CLI, Visual Studio, the cloud coding agent |
+| `agents:` allow-list field | Yes — lists subagents by name; *"Explicitly listing an agent in the `agents` array overrides `disable-model-invocation: true`"* on the target | **Not in this schema at all** — delegation instead goes through "the `agent` tool alias" generically, no allow-list, no override rule |
+| `disable-model-invocation: true` alone | Blocks generic dispatch, overridable by a caller's `agents:` list | *"the agent must be manually selected"* — **no override path documented** |
+| `user-invocable: false` | *"control whether the agent appears in the agents dropdown in chat"* | *"the agent cannot be manually selected and can only be accessed programmatically"* |
 
-- `user-invocable: false` — *"Optional boolean flag to control whether the agent appears
-  in the agents dropdown in chat (default is `true`)."*
-- `disable-model-invocation: true` — *"Optional boolean flag to prevent the agent from
-  being invoked as a subagent by other agents (default is `false`)."*
+The first implementation of this (2026-08-05) set **both** `user-invocable: false` and
+`disable-model-invocation: true` on every specialist, reasoning only from VS Code's docs.
+That's a real bug on any surface that only implements the canonical schema (Copilot CLI,
+Visual Studio, the cloud coding agent): with no `agents:`-based override there,
+`disable-model-invocation: true` would have made every specialist unreachable by
+`orchestrator` too, not just hidden from the user — the opposite of the goal. **Fixed
+same day**: specialists now set only `user-invocable: false`, whose canonical wording
+already IS exactly "hidden from the user, still reachable programmatically" on every
+surface, VS Code included. `orchestrator.agent.md` keeps its VS-Code-specific `agents:
+[...]` allow-list too (additive, harmless where unrecognized) for the extra restriction
+where VS Code honors it.
 
-`orchestrator.agent.md` sets neither (stays visible, stays the only pickable entry), and
-its `agents: [...]` list explicitly names every specialist — which the docs state
-overrides `disable-model-invocation: true` on the target (*"Explicitly listing an agent in
-the `agents` array overrides `disable-model-invocation: true`"*), so orchestrator can still
-reach every specialist even though nothing else (including the user's own picker) can.
-This wasn't re-tested against a live VS Code instance for the same reason as everything
-else in §6/§9 below — no VS Code UI in this environment. Use
-[`RUNBOOK.md` §3c](./RUNBOOK.md#3c-verify-the-vs-code--copilot-dispatch-yourself) to
-confirm the dropdown actually only shows `orchestrator`.
+**[not independently re-tested]** — no VS Code, Visual Studio, or authenticated Copilot
+CLI available in this environment — [`RUNBOOK.md` §3c](./RUNBOOK.md#3c-verify-the-vs-code--copilot-dispatch-yourself)
+already documents the exact auth failure hit trying. Use that section's steps to confirm,
+on whichever real surface you have: the picker/agent-selection list shows only
+`orchestrator`, and `orchestrator` can still successfully dispatch a specialist despite it
+being hidden.
 
 **Claude Code — confirmed NOT possible, by design, as of this writing.** Read the complete
 "Supported frontmatter fields" table in
@@ -429,6 +439,7 @@ rule that only makes sense for that one topic.
 - [VS Code chat tools reference (ai-features-cheat-sheet)](https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet)
 - [Your Home for Multi-Agent Development (VS Code blog, 2026-02-05)](https://code.visualstudio.com/blogs/2026/02/05/multi-agent-development)
 - [About Copilot coding agent](https://docs.github.com/copilot/concepts/coding-agent/about-copilot-coding-agent) — GitHub
+- [Custom agents configuration](https://docs.github.com/en/copilot/reference/custom-agents-configuration) — GitHub's canonical, cross-surface `.agent.md` schema (Copilot CLI, Visual Studio, cloud coding agent)
 - microsoft/vscode-copilot-release issue #12647 (tool-scoping runtime disagreement report)
 - [How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system) — Anthropic engineering
 - This repo, `claude` CLI v2.1.220, tested 2026-07-30 and 2026-08-05 (see §3, §4, §6, §11 for the exact prompts and transcripts)
