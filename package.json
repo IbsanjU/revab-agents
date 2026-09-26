@@ -12,6 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test \"utils/*.test.ts\" \"orchestrator/*.test.ts\" \"scripts/*.test.ts\" \"mcp-servers/shared/*.test.ts\" \"evals/*.test.ts\" \"mcp-servers/gateway/*.test.ts\"",
     "check:conventions": "tsx scripts/check-conventions.ts",
+    "confluence:sync": "tsx scripts/confluence-sync-project.ts",
+    "media:batch-extract": "tsx scripts/batch-media-extract.ts",
     "build:prompts": "tsx scripts/build-prompts.ts",
     "eval": "tsx scripts/run-evals.ts",
     "correction": "tsx scripts/correction.ts",

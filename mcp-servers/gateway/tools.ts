@@ -8,7 +8,7 @@
  */
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { beginCollecting, collectedServers } from "../shared/server.js";
+import { beginCollecting, collectedServers, endCollecting } from "../shared/server.js";
 
 /** The MCP content envelope every handler returns (`textResult`/`errorResult`). */
 export interface McpToolResult {
@@ -41,57 +41,60 @@ type RegisterToolArgs = [
  */
 export async function captureAllTools(): Promise<CapturedTool[]> {
   beginCollecting();
-
-  // Static list rather than a directory scan so a stray folder can't be loaded,
-  // and so the set of hosted servers is reviewable in the diff.
-  const modules = [
-    "../jira/index.js",
-    "../confluence/index.js",
-    "../jtmf/index.js",
-    "../github/index.js",
-    "../git/index.js",
-    "../artifacts/index.js",
-    "../media/index.js",
-    "../notify/index.js",
-    "../playwright-runner/index.js",
-    "../allure-report/index.js",
-    "../codegen/index.js",
-  ];
-  for (const specifier of modules) {
-    await import(specifier);
-  }
-
-  const tools: CapturedTool[] = [];
-  for (const server of collectedServers()) {
-    const captured: CapturedTool[] = [];
-    const shim = {
-      registerTool: (...args: RegisterToolArgs) => {
-        const [name, config, handler] = args;
-        captured.push({
-          server: server.name,
-          name,
-          description: config.description ?? "",
-          inputSchema: config.inputSchema ?? {},
-          handler,
-        });
-      },
-    };
-    // The shim implements the only method the servers use.
-    server.register(shim as unknown as McpServer);
-    tools.push(...captured);
-  }
-
-  const seen = new Map<string, string>();
-  for (const tool of tools) {
-    const existing = seen.get(tool.name);
-    if (existing) {
-      // MCP tool names share one flat namespace — a duplicate would silently shadow.
-      throw new Error(
-        `Duplicate tool name "${tool.name}" registered by both "${existing}" and "${tool.server}". Tool names must be unique across all servers.`,
-      );
+  try {
+    // Static list rather than a directory scan so a stray folder can't be loaded,
+    // and so the set of hosted servers is reviewable in the diff.
+    const modules = [
+      "../jira/index.js",
+      "../confluence/index.js",
+      "../jtmf/index.js",
+      "../github/index.js",
+      "../git/index.js",
+      "../artifacts/index.js",
+      "../media/index.js",
+      "../notify/index.js",
+      "../playwright-runner/index.js",
+      "../allure-report/index.js",
+      "../codegen/index.js",
+    ];
+    for (const specifier of modules) {
+      await import(specifier);
     }
-    seen.set(tool.name, tool.server);
-  }
 
-  return tools;
+    const tools: CapturedTool[] = [];
+    for (const server of collectedServers()) {
+      const captured: CapturedTool[] = [];
+      const shim = {
+        registerTool: (...args: RegisterToolArgs) => {
+          const [name, config, handler] = args;
+          captured.push({
+            server: server.name,
+            name,
+            description: config.description ?? "",
+            inputSchema: config.inputSchema ?? {},
+            handler,
+          });
+        },
+      };
+      // The shim implements the only method the servers use.
+      server.register(shim as unknown as McpServer);
+      tools.push(...captured);
+    }
+
+    const seen = new Map<string, string>();
+    for (const tool of tools) {
+      const existing = seen.get(tool.name);
+      if (existing) {
+        // MCP tool names share one flat namespace — a duplicate would silently shadow.
+        throw new Error(
+          `Duplicate tool name "${tool.name}" registered by both "${existing}" and "${tool.server}". Tool names must be unique across all servers.`,
+        );
+      }
+      seen.set(tool.name, tool.server);
+    }
+
+    return tools;
+  } finally {
+    endCollecting();
+  }
 }
