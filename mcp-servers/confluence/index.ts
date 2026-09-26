@@ -96,7 +96,6 @@ startMcpHttpServer({
             space: r.space?.key,
             url: r._links?.webui ? normalizeConfluenceUrl(base(), r._links.webui) : undefined,
             lastUpdated: r.version?.when,
-            url: r._links?.webui ? normalizeConfluenceUrl(base(), r._links.webui) : undefined,
           }));
           return textResult(compact);
         } catch (err) {
