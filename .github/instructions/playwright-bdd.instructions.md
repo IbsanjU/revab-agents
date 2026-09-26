@@ -25,3 +25,6 @@ These conventions are enforced by the `codegen` MCP server's `scaffold_feature`/
 ## Data & config
 - Base URLs and credentials from env vars only; test data via Examples tables or fixtures — never hardcoded secrets.
 - Allure results write to the target project's own `reports/allure-results` (read via the `allure-report` MCP server); attach screenshots on failure in that project's After hook.
+
+## Concurrency
+- Never issue multiple `scaffold_step`/`scaffold_page`/`scaffold_feature` calls targeting the **same file** within one turn — the no-overwrite behavior prevents silent data loss, but two same-file writes racing in one turn is still undefined; make same-file edits sequentially, one call at a time, reading the result before the next.

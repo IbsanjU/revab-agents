@@ -1,0 +1,83 @@
+{
+  "name": "revab-agents",
+  "displayName": "revab agents (QE)",
+  "description": "Starts the revab gateway and registers its QE tools with VS Code \u2014 no manual server juggling.",
+  "version": "0.1.0",
+  "private": true,
+  "publisher": "your-org",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "AI",
+    "Testing",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "revab.start",
+        "title": "revab: Start gateway",
+        "category": "revab"
+      },
+      {
+        "command": "revab.stop",
+        "title": "revab: Stop gateway",
+        "category": "revab"
+      },
+      {
+        "command": "revab.restart",
+        "title": "revab: Restart gateway",
+        "category": "revab"
+      },
+      {
+        "command": "revab.doctor",
+        "title": "revab: Run doctor (diagnose configuration)",
+        "category": "revab"
+      },
+      {
+        "command": "revab.showTools",
+        "title": "revab: Show available tools",
+        "category": "revab"
+      },
+      {
+        "command": "revab.applyApprovalDefaults",
+        "title": "revab: Auto-approve read-only tools (writes still confirm)",
+        "category": "revab"
+      }
+    ],
+    "configuration": {
+      "title": "revab agents",
+      "properties": {
+        "revab.gateway.port": {
+          "type": "number",
+          "default": 7300,
+          "description": "Port the gateway listens on (loopback only)."
+        },
+        "revab.gateway.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Start the gateway automatically when the workspace opens."
+        },
+        "revab.gateway.command": {
+          "type": "string",
+          "default": "npx revab start",
+          "description": "Command used to launch the gateway from the workspace root."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.96.0",
+    "typescript": "^5.5.0"
+  }
+}

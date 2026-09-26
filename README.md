@@ -8,36 +8,113 @@ Centralized multi-agent QE automation framework — works in VS Code **without**
 
 | Area | Location | Purpose |
 | --- | --- | --- |
-| MCP servers | `mcp-servers/` | Jira, Confluence, JTMF, GitHub, Artifacts, Media, Notify, Playwright-runner, Allure-report, Codegen — local Streamable-HTTP servers registered in `.vscode/mcp.json` (loopback-only; optional `MCP_SHARED_SECRET` header auth) |
+| MCP servers | `mcp-servers/` | Jira, Confluence, JTMF, GitHub, Artifacts, Media, Notify, Git, Playwright-runner, Allure-report, Codegen — local Streamable-HTTP servers registered in `.vscode/mcp.json` (loopback-only; optional `MCP_SHARED_SECRET` header auth) |
 | Agents | `.github/agents/` | planner, orchestrator, researcher, test-planner, automation, reporter, documenter, importer, self-improve, bsa |
 | Orchestrator | `orchestrator/` + `agents/registry.ts` | async file-queue + polling worker for long-running, project-scoped tasks |
 | Manifest | `projects/` + `utils/manifest.ts` | per-project config and artifacts (`projects/<name>/`: `project.json`, `app-model.md`, `team-roster.json`, `downloads/`, `reports/`, `test-plans/`) with `projects/manifest.json` as the index — the trust boundary for which repo a tool may touch |
 | Knowledge | `knowledge/` | persistent learnings, conventions, per-project app models, and consolidated reports — the framework's memory |
 | Reusables | `utils/`, `scripts/`, `skills/` | generic modules, CLIs, and agent skills |
 
-## Quickstart
+## How to run it
+
+**Two things run: the gateway (always) and the worker (only for async tasks).** Nothing else.
+
+### First time
 
 ```powershell
 npm install
-Copy-Item .env.example .env       # then fill in Jira/Confluence auth
-npm run serve:mcp                 # start all MCP servers (keep running)
-npm run worker                    # start the async task worker (second terminal)
+npx revab init          # writes .env, .vscode/mcp.json, projects/manifest.json
+# now edit .env — set JIRA_BASE_URL, CONFLUENCE_BASE_URL, and one token per service
+npx revab doctor        # tells you exactly what is still missing, and how to fix it
 ```
 
-Add your project(s) under `projects/` — copy the `projects/my-project/` placeholder folder, rename it, fill in its `project.json`, and list the name in `projects/manifest.json`. Then in VS Code: the servers in `.vscode/mcp.json` become available as MCP tools; pick an agent from the chat-mode dropdown (e.g. **orchestrator**) and tell it which `project` to work on.
-
-## Everyday commands
+### Every day
 
 ```powershell
-npm run task -- enqueue run-bdd '{"project":"my-project","tags":"@smoke"}'   # async run via queue
+npx revab start         # terminal 1 — the gateway: all 76 tools, one process. Leave it running.
+npm run worker          # terminal 2 — ONLY if you enqueue async tasks (test runs, reports)
+```
+
+Then in VS Code: reload the window, and the tools appear from the single **gateway** entry in
+`.vscode/mcp.json`. Pick an agent from the chat-mode dropdown (start with **orchestrator**) and tell
+it which `project` to work on.
+
+### Is it working?
+
+```powershell
+curl http://localhost:7300/health      # {"ok":true,"tools":76}
+npx revab doctor                       # full config + connectivity report
+```
+
+If something misbehaves, **run `npx revab doctor` first** — most failures are a missing base URL, a
+token for the wrong service, or a project whose `repoPath` moved. It names the variable and the fix.
+
+### What runs where
+
+| You run | What it is | Needed when |
+| --- | --- | --- |
+| `npx revab start` | The **gateway** — every tool, one process, on `:7300` | Always |
+| `npm run worker` | Async task worker (file queue) | Only for `npm run task -- enqueue …` |
+| `npm run serve:playwright` | Official `@playwright/mcp` browser server on `:7315` | Only for live browser automation |
+| `npm run serve:mcp` | Convenience: gateway + playwright together | Instead of the two above |
+| `npm run serve:mcp:individual` | The 11 servers on their own ports | Debugging one server in isolation |
+
+**Only one MCP entry for our tools.** `.vscode/mcp.json` lists **gateway** (which hosts all 11 of our
+servers) and **playwright** (the official browser server, which the gateway does not host). Do not
+register the individual servers as well — that duplicates every tool in the editor.
+
+### Working with agents
+
+```powershell
+npm run task -- enqueue run-bdd '{"project":"my-project","tags":"@smoke"}'   # async run
 npm run task -- enqueue generate-report '{"project":"my-project"}'
 npm run task -- status                              # queue status
 npm run task -- types                               # available task types
-npm run import:agents -- C:\path\to\other-repo --dry-run  # import agents/conventions from another repo
-npm run typecheck                                    # typechecks revab-agents itself only
 ```
 
-Project-scoped work (running BDD suites, generating Allure reports, scaffolding features/steps/pages) goes through the `playwright-runner`, `allure-report`, and `codegen` MCP tools, or the equivalent orchestrator task types — always with a `project` argument.
+Add a project: copy `projects/my-project/`, rename it, fill in its `project.json`, and list the name
+in `projects/manifest.json`.
+
+### Maintaining the framework
+
+```powershell
+npm run build:prompts        # regenerate agent files after editing prompts/agents/*.ts
+npm run eval                 # check no agent lost a capability it needs
+npm run correction -- list   # open corrections backlog
+npm test                     # unit tests
+npm run typecheck
+npm run check:conventions
+```
+
+## VS Code extension
+
+`extension/` packages the gateway for the editor: it auto-starts on workspace open, registers the
+tools with VS Code MCP (falling back to `.vscode/mcp.json`), shows status, and can write approval
+defaults that auto-approve read-only tools while leaving every write confirmed. See
+[extension/README.md](extension/README.md) — including its honest note on what an extension can and
+cannot do about approval prompts.
+
+## Gateway — one process, MCP + REST
+
+`npm run serve:gateway` hosts **every tool from all 11 servers in a single process** on
+`http://localhost:7300`, instead of running 11 servers on 11 ports. It exposes each tool twice:
+
+| Surface | Endpoint | Use when |
+| --- | --- | --- |
+| MCP | `POST /mcp` | normal editor use — register just this one entry in `.vscode/mcp.json` |
+| REST | `POST /api/<server>/<tool>` | **MCP isn't available** — no org enablement, a CI job, curl, a non-MCP editor |
+| Discovery | `GET /api/tools` | list every tool, its server, its endpoint, and its input schema |
+| Health | `GET /health` | liveness + hosted tool count |
+
+```powershell
+npm run serve:gateway
+curl http://localhost:7300/api/tools
+curl -X POST http://localhost:7300/api/jira/jira_search -H "Content-Type: application/json" -d '{"jql":"project = ABC"}'
+```
+
+Both surfaces call the **same handler**, so the manifest trust boundary, dryRun-first defaults, and
+input coercion apply identically — REST is a different door to the same room, never a bypass. The
+individual `npm run serve:<name>` scripts still work unchanged for debugging a single server.
 
 ## MCP servers & ports
 
@@ -50,10 +127,13 @@ Project-scoped work (running BDD suites, generating Allure reports, scaffolding 
 | artifacts | 7314 | this repo only | `list_files`, `read_repo_file`, `knowledge_append`, `knowledge_search` |
 | media | 7319 | this repo, or a manifest `project` | `get_file_metadata`, `read_pdf_text`, `read_docx_text`, `read_excel_rows`, `read_csv_rows`, `create_pdf`, `create_docx`, `ocr_image`, `ocr_pdf`, `read_diagram`, `create_diagram`, `media_extract_requirements` |
 | notify | 7321 | target-agnostic | `notify_teams`, `notify_email` — both dryRun-first |
+| git | 7322 | project-scoped (or this repo when `project` is omitted) | `git_log`, `git_branches`, `git_search` (commit-message search across all branches, or `git grep` content search at one ref), `git_diff`, `git_show` — all read-only, invoked directly (no shell) so free-text search terms can't be interpreted as shell syntax |
 | playwright-runner | 7316 | project-scoped | `run_bdd`, `run_playwright`, `get_test_files` |
 | allure-report | 7317 | project-scoped | `generate_report`, `allure_summary`, `get_result_json` |
 | codegen | 7318 | project-scoped | `scaffold_feature`, `scaffold_step`, `scaffold_page`, `detect_conventions` |
 | playwright | 7315 | target-agnostic | Official `@playwright/mcp` — browser automation tools (navigate, click, snapshot, etc.) |
+
+GitHub auth: `GITHUB_TOKEN` (PAT/App token) is the normal path. If it's unset, `github_*` tools fall back to the `gh` CLI's own authenticated session (run `gh auth login` once, locally — nothing to put in `.env`); this fallback only reaches github.com, not GitHub Enterprise Server, so configure `GITHUB_TOKEN` for GHES. See `mcp-servers/shared/githubHttp.ts`.
 
 Auth: each of `jira`, `confluence`, and `jtmf` authenticates as its own service (`setAuthService` in `mcp-servers/shared/http.ts`, called once at each server's startup) and prefers its own token — `JIRA_EMAIL`/`JIRA_API_TOKEN`/`JIRA_AUTH_MODE`, `CONFLUENCE_EMAIL`/`CONFLUENCE_API_TOKEN`/`CONFLUENCE_AUTH_MODE`, `JTMF_EMAIL`/`JTMF_API_TOKEN`/`JTMF_AUTH_MODE` — falling back to the shared `ATLASSIAN_EMAIL`/`ATLASSIAN_API_TOKEN`/`ATLASSIAN_AUTH_MODE` for whichever service's own vars aren't set. Cloud = `basic` (email + API token); Server/DC = `bearer` (PAT, no email needed). See `.env.example`. Every Create/Update/Assign/Move tool across Jira, Confluence, and JTMF (`jira_create_issue`, `jira_bulk_create_issues`, `jira_update_issue`, `jira_bulk_update_issues`, `jira_transition_issue`, `jira_assign_issue`, `jira_move_to_sprint`, `confluence_create_page`, `confluence_update_page`, `confluence_add_comment`, `confluence_delete_page`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`) defaults to `dryRun: true` — always preview the payload and get explicit user confirmation before setting `dryRun: false`. `jira_delete_issue` is registered in source but not wired up to the running `jira` server (commented out — see [Known limitations](#known-limitations)), so the `bsa` agent and any Jira-facing agent can never delete a ticket even by accident; `confluence_delete_page`/`jtmf_delete_test_case` remain active, dryRun-gated as usual. GitHub auth is a single `GITHUB_TOKEN` (PAT/App token); `GITHUB_ORG` scopes searches to your org by default when a call doesn't name its own `org`/`repo`, and `GITHUB_API_BASE_URL` targets GitHub Enterprise Server instead of github.com. All `github_*` tools are read-only.
 
@@ -93,6 +173,14 @@ The `media` server lets agents read and generate non-text-file content:
 - `create_diagram` — render Mermaid source to SVG/PNG (via `@mermaid-js/mermaid-cli` through npx) for docs and Confluence pages.
 - `media_extract_requirements` — single fallback command for agents when native vision is unavailable: auto-routes a file or directory by type (OCR/parsers/diagram/text fallback) and writes one consolidated local markdown report. For a whole attachments folder tree that exceeds the tool's per-call file cap, use `npm run media:batch-extract -- --project <name>` (`scripts/batch-media-extract.ts`), which calls it once per subfolder and merges the results.
 
+### Local git history
+The `git` server lets any agent search a target project's (or this repo's) commit history and
+branches without a raw shell command: `git_branches` shows what's recently active across every
+branch; `git_log`/`git_search` (with `allBranches: true`) find related work anywhere in history,
+not just the current branch; `git_diff`/`git_show` inspect a specific change. It's read-only —
+no clone/checkout/commit/push tool is exposed — and every call runs `git` directly (argv array,
+no shell interpolation), so search text can never be interpreted as shell syntax.
+
 ### Notifications
 The `notify` server posts to **Microsoft Teams** (Incoming Webhook / Power Automate URL, `TEAMS_WEBHOOK_URL`) and sends **Outlook email** (Microsoft Graph `sendMail` with `GRAPH_*` app-registration vars, or `smtp.office365.com` via `SMTP_*` as fallback). Both tools default to `dryRun: true` — preview, confirm with the user, then send. The orchestrator worker can also notify automatically when a task finishes: opt in per task with `{"notify":"teams"}` or `{"notify":{"channel":"email","to":["qa@co.com"]}}` in the payload (recipients default to `NOTIFY_EMAIL_TO`).
 
@@ -125,9 +213,9 @@ The `projects/` directory declares every target project this framework can opera
 
 ## Agent workflow
 
-0. **planner** is the mandatory first step for non-trivial work: drafts a plan, self-critiques it (scope, citations, trust boundary, risks, rollback), and finalizes it with user approval into `knowledge/plans/<project>/` before anything executes (hard rule 13).
+0. **planner** is the mandatory first step for non-trivial work: drafts a plan, self-critiques it (scope, citations, trust boundary, risks, rollback), and finalizes it with user approval into the relevant project's own `projects/<project>/plans/` folder (or `knowledge/plans/framework/` for framework-only work) before anything executes (hard rule 13).
 1. **orchestrator** resolves the target `project` and decomposes/delegates work per the approved plan, passing `"plan"` in each task payload for traceability.
-2. **researcher** pulls epics/tickets/docs, plus manual/image/video inputs via extraction skills -> research brief.
+2. **researcher** pulls epics/tickets/docs, plus manual/image/video inputs via extraction skills and local git history/branches (`git/*`) -> research brief, with freshness noted per hard rule 15.
 3. **test-planner** -> risk-based plan + Gherkin, every scenario cited, scaffolded into the target project via `codegen`.
 4. **automation** implements features/steps/pages in the target project, running `detect-execution-convention` before execution.
 5. **reporter** runs suites async and classifies failures from Allure results (via `allure-report`); can write back to Jira/JTMF (dry-run first).
@@ -144,7 +232,26 @@ registered on the running server.
 
 ## Skills
 
-`skills/*/SKILL.md` — reusable playbooks composing existing MCP tools: `analyze-test-failures`, `detect-execution-convention`, `upload-to-jtmf`, `update-jira-epic`, `extract-requirements-from-image`, `extract-requirements-from-video`, `consolidate-project-report`, `build-test-plan-interactive`, `search-across-sources`, `bulk-create-tickets`, `bulk-update-tickets`, `route-assignee`, `sprint-backlog-report`.
+`skills/*/SKILL.md` — reusable playbooks composing existing MCP tools: `analyze-test-failures`, `detect-execution-convention`, `upload-to-jtmf`, `update-jira-epic`, `extract-requirements-from-image`, `extract-requirements-from-video`, `consolidate-project-report`, `build-test-plan-interactive`, `search-across-sources`, `structure-project-data`, `bulk-create-tickets`, `bulk-update-tickets`, `route-assignee`, `sprint-backlog-report`, `code-review`, `verify`, `simplify`, `security-review`, `review-against-spec`, `data-visualization`, `onboard-project`, `capture-learning`, `skillify`, `capture-correction`, `build-capability`, `self-check`, `test-design-techniques`.
+
+## Getting better over time
+
+The framework improves through a measured loop rather than prompt guesswork:
+
+```powershell
+npm run correction -- log --agent <name> --task "..." --observed "..." --expected "..." --rule "..." --severity high
+npm run correction -- list        # open corrections, most-corrected agent first
+npm run eval                      # structural capability evals (also runs in CI)
+npm run eval -- --list            # plus the behavioral cases to run by hand/LLM
+```
+
+1. **Capture** — every correction becomes a record in `knowledge/corrections/<YYYY-MM>.jsonl` (`capture-correction` skill), generalized into a reusable rule.
+2. **Fold in** — the rule goes into that agent's spec (`prompts/agents/<name>.ts`), then `npm run build:prompts`, then `npm run correction -- applied <id>`.
+3. **Prove** — add an eval so it can't regress: structural (a tool the agent must/must not hold) in `evals/capabilities.ts`, or behavioral (a task + must/must-not rubric) in `evals/behavior/*.md`.
+4. **Grow** — `build-capability` researches a missing ability, routes it to the right artifact (skill / MCP tool / util), validates it on real inputs, and wires it into the consuming agents.
+5. **Guard** — agents run `self-check` against their own rules before delivering.
+
+`npm run eval` is the regression net for agent behavior: it catches the class of change where a prompt "improvement" silently removes a capability an agent needs.
 
 ## Extending
 

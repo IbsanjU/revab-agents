@@ -1,6 +1,6 @@
 ---
 name: bulk-update-tickets
-description: Apply the same kind of field change and/or status transition to many existing Jira tickets in one batch — from an explicit list of keys, a JQL query, or a parsed Excel/CSV sheet. Use whenever a change (priority bump, reassignment, sprint grooming status move) applies to more than a couple of tickets, instead of looping single-ticket updates.
+description: Apply the same kind of field change and/or status transition to many existing Jira tickets in one batch — from an explicit list of keys, a JQL query, or a parsed Excel/CSV sheet. Use whenever a change (priority bump, reassignment, sprint grooming status move) applies to more than a couple of tickets, instead of looping single-ticket updates. Skip when only one or two tickets need the change — use `jira_update_issue`/`jira_transition_issue` directly.
 ---
 # Bulk update tickets
 

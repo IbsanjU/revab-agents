@@ -17,6 +17,9 @@ import { sendTeams, sendEmail } from "../utils/notify.js";
  * Start with: npm run worker
  */
 const CONCURRENCY = intEnv("WORKER_CONCURRENCY", 2);
+// Polling cost here is queue I/O (a file stat/read), not an LLM context cache — so unlike an
+// LLM-facing poller there's no "worst of both worlds" window to avoid; tune purely against
+// queue I/O and external API rate limits if this default is ever revisited.
 const POLL_MS = intEnv("WORKER_POLL_MS", 2000);
 const STALE_MS = intEnv("WORKER_STALE_MS", 10 * 60 * 1000);
 const STALE_SWEEP_MS = intEnv("WORKER_STALE_SWEEP_MS", 60 * 1000);

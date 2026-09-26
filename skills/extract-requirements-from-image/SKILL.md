@@ -1,6 +1,6 @@
 ---
 name: extract-requirements-from-image
-description: Extract requirement text from an image attachment (screenshot, whiteboard photo, diagram) into a citable requirement fragment. Use when a Jira/Confluence attachment or manual upload is an image and its content is needed for a test plan.
+description: Extract requirement text from an image attachment (screenshot, whiteboard photo, diagram) into a citable requirement fragment. Use when a Jira/Confluence attachment or manual upload is an image and its content is needed for a test plan. Skip for born-digital text documents (Confluence pages, text-layer PDFs, DOCX) — use `confluence_get_page`/`read_pdf_text`/`read_docx_text` directly instead of OCR.
 ---
 # Extract requirements from image
 

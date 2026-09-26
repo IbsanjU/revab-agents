@@ -3,6 +3,8 @@ import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js
 import { env, intEnv, optionalEnv } from "../shared/config.js";
 import { apiGet, apiPost, apiPut, apiDelete, setAuthService } from "../shared/http.js";
 import { buildJiraIssueUrl } from "../../utils/jiraLinks.js";
+import { semanticBoolean } from "../../utils/semanticBoolean.js";
+import { semanticNumber } from "../../utils/semanticNumber.js";
 
 /**
  * JTMF / test-management MCP server.
@@ -56,10 +58,12 @@ startMcpHttpServer({
       {
         description:
           "Search test-case issues with JQL. Automatically scopes to the configured test issue type unless " +
-          "the JQL already mentions issuetype. Returns a direct browse url per test case for citing sources.",
+          "the JQL already mentions issuetype. Returns a direct browse url per test case for citing sources. " +
+          "Use this (not jira_search) when you specifically need test-case coverage; use jira_search for " +
+          "general issues/epics.",
         inputSchema: {
           jql: z.string().describe('JQL fragment, e.g. \'project = ABC AND labels = regression\''),
-          maxResults: z.number().optional(),
+          maxResults: semanticNumber(z.number().optional()),
         },
       },
       async ({ jql, maxResults }) => {
@@ -140,7 +144,7 @@ startMcpHttpServer({
           steps: z.string().optional().describe("Test steps text (written to JTMF_STEPS_FIELD if configured)"),
           description: z.string().optional(),
           labels: z.array(z.string()).optional(),
-          dryRun: z.boolean().optional().describe("If true (default), return the payload without creating anything"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the payload without creating anything"),
         },
       },
       async ({ projectKey, summary, steps, description, labels, dryRun }) => {
@@ -177,7 +181,7 @@ startMcpHttpServer({
           steps: z.string().optional().describe("Test steps text (written to JTMF_STEPS_FIELD if configured)"),
           description: z.string().optional(),
           labels: z.array(z.string()).optional(),
-          dryRun: z.boolean().optional().describe("If true (default), return the payload without updating anything"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the payload without updating anything"),
         },
       },
       async ({ key, summary, steps, description, labels, dryRun }) => {
@@ -208,7 +212,7 @@ startMcpHttpServer({
           "Delete a test-case issue. Destructive and irreversible. dryRun (default true) previews the deletion without applying it.",
         inputSchema: {
           key: z.string().describe("Test issue key, e.g. ABC-321"),
-          dryRun: z.boolean().optional().describe("If true (default), return the intended deletion without applying it"),
+          dryRun: semanticBoolean(z.boolean().optional()).describe("If true (default), return the intended deletion without applying it"),
         },
       },
       async ({ key, dryRun }) => {
@@ -228,7 +232,9 @@ startMcpHttpServer({
       "jtmf_raw_get",
       {
         description:
-          "Escape hatch: GET any REST path on the Jira/JTMF base URL (e.g. org-specific JTMF endpoints). Path must start with /rest/.",
+          "Escape hatch for org-specific endpoints not covered by jtmf_get_test_case/jtmf_search_tests/ " +
+          "jtmf_get_test_plan — try those first. GET any REST path on the Jira/JTMF base URL (e.g. org-specific " +
+          "JTMF endpoints). Path must start with /rest/.",
         inputSchema: {
           path: z.string().describe("REST path starting with /rest/, e.g. /rest/jtmf/1.0/testrun/123"),
           params: z.record(z.string()).optional().describe("Optional query parameters"),

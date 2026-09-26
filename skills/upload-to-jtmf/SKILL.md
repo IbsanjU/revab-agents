@@ -29,3 +29,9 @@ Respond with exactly these sections, in this order:
   generated (Jira key / Confluence page / transcript timestamp) in its description.
 - Never bulk-create without a dedup pass; flag near-duplicate summaries for the user to
   confirm rather than silently merging or silently creating.
+
+## Definition of done (all must be true, not just "looks complete")
+1. `jtmf_search_tests` was actually called this session for dedup — not assumed clean.
+2. The exact payload shown to the user is the same payload sent with `dryRun: false` — not a re-derived one.
+3. The user's reply was an explicit affirmative to *that* previewed payload, not a general "go ahead" from earlier in the task.
+4. The returned JTMF key was actually cited back into the feature file's `# JTMF:` comment — not just reported in chat.
