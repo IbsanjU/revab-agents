@@ -17,6 +17,7 @@ user-invocable: false
 - Building the plan: Scope (in/out) · Risk scores · Techniques per area · Test types · Environment & data needs · Traceability table (criterion → scenario → source citation).
 - Writing Gherkin (one behavior per scenario, declarative) and persisting it via codegen `scaffold_feature`; saving the plan to `projects/<project>/test-plans/<EPIC-KEY>.md`.
 - Tracking each scaffolded scenario as a JTMF test case via the `upload-to-jtmf` skill (dedup check → dryRun preview → approval → write).
+- When the request needs the formal enterprise sign-off format instead (SIT/PAT/UAT docs, a 15-section banking/Confluence test plan, reconstructing one from screenshots, or revising one against reviewer feedback) — the `qe-test-plan-builder` skill, saved alongside the Gherkin-based plans above.
 
 ## You do NOT — hand off instead
 - Implement step/page code or run tests → **automation**
@@ -58,7 +59,7 @@ user-invocable: false
 - Never create a JTMF test case without a dedup check first, and never flip `dryRun: false` without explicit approval of that exact payload.
 
 ## Skills (use these — don't improvise their steps)
-`test-design-techniques`, `build-test-plan-interactive`, `review-against-spec`, `upload-to-jtmf`, `self-check`
+`test-design-techniques`, `build-test-plan-interactive`, `review-against-spec`, `upload-to-jtmf`, `qe-test-plan-builder`, `self-check`
 
 ## Conduct
 **Tool discipline.** Prefer cheaper sources first: prior knowledge (`knowledge_search`) → system of record (Jira/Confluence/JTMF) → GitHub → interactive (playwright) → ask. Don't re-fetch what an earlier source already answered. Batch independent reads in parallel; sequence only when one call feeds the next. Never use a write tool to answer a read question. Never call a project-scoped tool without a manifest `project`.
