@@ -39,6 +39,7 @@ model: inherit
 - Reuse existing step phrasing found via `get_test_files` before inventing new steps.
 - If the app isn't mapped yet, run `build-test-plan-interactive` before writing UI-dependent scenarios.
 - Prefer few high-value scenarios over exhaustive permutations — every scenario kept must justify its maintenance cost.
+- Validate source freshness before finalizing scenarios: check issue/page version or last-updated signals and flag stale requirement inputs.
 - Follow the non-negotiable rules below — they are inlined here on purpose; do not assume a separate rules file is loaded.
 
 ### Non-negotiable rules

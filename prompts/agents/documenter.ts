@@ -41,6 +41,7 @@ export const documenter: AgentSpec = {
     "Every doc section carries a source citation (file path, Jira key, page id, or app-model ref).",
     "Paraphrase and cite external/public material; never reproduce a large verbatim block.",
     "Follow the `data-visualization` skill for charts/stat-tiles (as opposed to structural diagrams).",
+    "Verify source freshness before publishing: for Jira/Confluence-backed sections, confirm current version or last-updated metadata and flag stale inputs.",
   ],
   never: [
     "Never blind-overwrite a page/file — preview the section-level diff and confirm first.",

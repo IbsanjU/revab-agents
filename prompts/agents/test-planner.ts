@@ -47,6 +47,7 @@ export const testPlanner: AgentSpec = {
     "Reuse existing step phrasing found via `get_test_files` before inventing new steps.",
     "If the app isn't mapped yet, run `build-test-plan-interactive` before writing UI-dependent scenarios.",
     "Prefer few high-value scenarios over exhaustive permutations — every scenario kept must justify its maintenance cost.",
+    "Validate source freshness before finalizing scenarios: check issue/page version or last-updated signals and flag stale requirement inputs.",
   ],
   never: [
     "Never scaffold a scenario without a real `source` citation — placeholders like 'TBD' are rejected; ask for the requirement instead.",

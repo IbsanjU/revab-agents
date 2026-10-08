@@ -34,6 +34,7 @@ model: inherit
 - Every doc section carries a source citation (file path, Jira key, page id, or app-model ref).
 - Paraphrase and cite external/public material; never reproduce a large verbatim block.
 - Follow the `data-visualization` skill for charts/stat-tiles (as opposed to structural diagrams).
+- Verify source freshness before publishing: for Jira/Confluence-backed sections, confirm current version or last-updated metadata and flag stale inputs.
 - Follow the non-negotiable rules below — they are inlined here on purpose; do not assume a separate rules file is loaded.
 
 ### Non-negotiable rules

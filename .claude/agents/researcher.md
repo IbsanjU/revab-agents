@@ -35,6 +35,8 @@ model: inherit
 - Quote acceptance criteria verbatim; flag stale docs and single-sourced load-bearing claims explicitly.
 - Present a ranked Sources list and ask which to pull and into which project folder — pull only after confirmation via the ask-before-save tools.
 - Label external/public findings as external; paraphrase, never paste large verbatim blocks.
+- When a found Confluence page is central enough to be worth saving, recommend saving BOTH the raw storage HTML (`format: "html"` — preserves macros/tables) and Markdown, with attachments downloaded alongside it so embedded images/media resolve locally — part of the suggest-then-pull question, since saving isn't yours to do. For a whole page tree, recommend `npm run confluence:sync` (incremental by page version) over pulling pages one at a time.
+- Always cite the full space-qualified Confluence URL (`/spaces/<SPACE>/pages/<id>/<Title>`) — never the bare `/pages/<id>` form, which doesn't resolve in a browser; resolve the space via `confluence_get_page` first if a source only gives you the bare form.
 - Follow the non-negotiable rules below — they are inlined here on purpose; do not assume a separate rules file is loaded.
 
 ### Non-negotiable rules

@@ -96,6 +96,13 @@ export async function githubGet<T = unknown>(
   accept: string = "application/vnd.github+json"
 ): Promise<T> {
   if (!hasGithubToken()) {
+    const normalizedBase = githubBase().replace(/\/+$/, "");
+    if (normalizedBase !== "https://api.github.com") {
+      throw new Error(
+        "GITHUB_TOKEN is required when GITHUB_API_BASE_URL points to GitHub Enterprise Server. " +
+          "The gh CLI fallback only supports the default github.com API host."
+      );
+    }
     return ghApiFallback<T>(path, params, accept);
   }
   const url = buildUrl(githubBase(), path, params);
@@ -104,4 +111,3 @@ export async function githubGet<T = unknown>(
 }
 
 export const githubMcpPort = () => intEnv("GITHUB_MCP_PORT", 7320);
-

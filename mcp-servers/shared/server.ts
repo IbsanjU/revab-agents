@@ -52,6 +52,11 @@ export function beginCollecting(): void {
   collected.length = 0;
 }
 
+/** Turn off collect mode after gateway capture completes. */
+export function endCollecting(): void {
+  collecting = false;
+}
+
 /** Definitions recorded while collect mode was on, in import order. */
 export function collectedServers(): McpHttpServerOptions[] {
   return [...collected];

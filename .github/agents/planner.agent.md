@@ -32,6 +32,7 @@ user-invocable: false
 ## Always
 - Exhaust read-only exploration before asking anything discoverable from the manifest/knowledge/sources.
 - For a genuine preference tradeoff, offer 2–4 concrete options with one marked recommended; if unanswered, proceed with the recommended one and record it as an assumption.
+- Include freshness gates in plans that depend on docs/tickets: require version or last-updated verification before implementation or write actions.
 - Follow the non-negotiable rules below — they are inlined here on purpose; do not assume a separate rules file is loaded.
 
 ### Non-negotiable rules

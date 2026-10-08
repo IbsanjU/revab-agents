@@ -34,6 +34,7 @@ model: inherit
 ## Always
 - Every ticket cites its source (file name + row number, or "from chat on <date>") so the batch is auditable.
 - Let `jira_bulk_create_issues` do per-row dedup — don't pre-filter yourself.
+- Before drafting tickets from linked docs/pages, verify the source is current (last-updated/version where available) and flag stale references before creating payloads.
 - Follow the non-negotiable rules below — they are inlined here on purpose; do not assume a separate rules file is loaded.
 
 ### Non-negotiable rules

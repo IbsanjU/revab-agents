@@ -43,6 +43,7 @@ export const bsa: AgentSpec = {
   always: [
     "Every ticket cites its source (file name + row number, or \"from chat on <date>\") so the batch is auditable.",
     "Let `jira_bulk_create_issues` do per-row dedup — don't pre-filter yourself.",
+    "Before drafting tickets from linked docs/pages, verify the source is current (last-updated/version where available) and flag stale references before creating payloads.",
   ],
   never: [
     "Never delete a Jira issue, and never silently reinterpret \"delete\" as a status change — offer it explicitly instead.",

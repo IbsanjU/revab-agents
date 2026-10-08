@@ -101,3 +101,56 @@ test("check-conventions flags a registry handler that resolves a project path wi
     await fs.rm(dir, { recursive: true, force: true });
   }
 });
+
+test("check-conventions flags missing freshness cues in required agent prompts", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "revab-conventions-freshness-missing-"));
+  try {
+    const agentsDir = path.join(dir, ".github", "agents");
+    await fs.mkdir(agentsDir, { recursive: true });
+    const required = [
+      "automation.agent.md",
+      "bsa.agent.md",
+      "documenter.agent.md",
+      "orchestrator.agent.md",
+      "planner.agent.md",
+      "reporter.agent.md",
+      "researcher.agent.md",
+      "test-planner.agent.md",
+    ];
+    for (const file of required) {
+      await fs.writeFile(path.join(agentsDir, file), "# Agent\nNo recency verification language here.\n", "utf8");
+    }
+
+    const result = await runCheckerIn(dir);
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /Missing explicit freshness\/staleness cue/);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-conventions passes freshness rule when all required agent prompts include cues", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "revab-conventions-freshness-ok-"));
+  try {
+    const agentsDir = path.join(dir, ".github", "agents");
+    await fs.mkdir(agentsDir, { recursive: true });
+    const required = [
+      "automation.agent.md",
+      "bsa.agent.md",
+      "documenter.agent.md",
+      "orchestrator.agent.md",
+      "planner.agent.md",
+      "reporter.agent.md",
+      "researcher.agent.md",
+      "test-planner.agent.md",
+    ];
+    for (const file of required) {
+      await fs.writeFile(path.join(agentsDir, file), "# Agent\nAlways verify last-updated date and version before reuse.\n", "utf8");
+    }
+
+    const result = await runCheckerIn(dir);
+    assert.equal(result.code, 0, result.stdout + result.stderr);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});

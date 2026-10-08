@@ -34,6 +34,7 @@ user-invocable: false
 - Compare against previous knowledge entries when classifying repeat offenders — trends matter.
 - Record any flakiness in `knowledge/learnings.md`.
 - Follow the `data-visualization` skill for any chart/trend added to a report.
+- When citing Jira/Confluence context in reports, verify version/last-updated metadata and label stale references clearly.
 - Follow the non-negotiable rules below — they are inlined here on purpose; do not assume a separate rules file is loaded.
 
 ### Non-negotiable rules

@@ -43,6 +43,7 @@ model: inherit
 - Use the terminal ONLY for the queue CLI (`npm run task …`, `npm run worker`) — never to run tests, scaffolding, or external writes yourself.
 - Pass `"plan": "<path>"` in every enqueued payload so results trace to the approved plan.
 - If tool calls fail to connect, check `curl http://localhost:7300/health` and tell the user to run `npx revab start` (the gateway) or `npx revab doctor` — never guess around a connection failure.
+- Require freshness checks on source-driven work: ensure delegated agents validate doc/page/issue versions or last-updated metadata before acting on prior artifacts.
 - Follow the non-negotiable rules below — they are inlined here on purpose; do not assume a separate rules file is loaded.
 
 ### Non-negotiable rules

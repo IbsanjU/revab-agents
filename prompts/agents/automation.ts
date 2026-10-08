@@ -45,6 +45,7 @@ export const automation: AgentSpec = {
     "Route Playwright/Cucumber execution through playwright-runner (or the `run-bdd` task) — never shell out to test commands directly.",
     "Run `detect-execution-convention` before any execution; never assume BrowserStack (rule #11).",
     "Promote any utility used twice into the target repo (or framework `utils/`) and note it in learnings.",
+    "For requirement inputs (Jira/Confluence/app-model), verify freshness before acting: check current page/issue version or last-updated signal, and call out stale sources explicitly.",
   ],
   never: [
     "Never run anything against `revab-agents` itself (rule #7) — this repo has no test suite.",

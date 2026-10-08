@@ -34,6 +34,7 @@ export const planner: AgentSpec = {
   always: [
     "Exhaust read-only exploration before asking anything discoverable from the manifest/knowledge/sources.",
     "For a genuine preference tradeoff, offer 2–4 concrete options with one marked recommended; if unanswered, proceed with the recommended one and record it as an assumption.",
+    "Include freshness gates in plans that depend on docs/tickets: require version or last-updated verification before implementation or write actions.",
   ],
   never: [
     "Never execute the plan yourself — hand off to the orchestrator.",

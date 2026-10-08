@@ -1,5 +1,5 @@
 /**
- * Conventions checker — enforces three framework rules the framework's own
+ * Conventions checker — enforces five framework rules the framework's own
  * conventions depend on (see knowledge/conventions.md):
  *
  *  1. Every skills/<name>/SKILL.md has valid frontmatter: a `---`-delimited block
@@ -14,6 +14,15 @@
  *     must be documented in README.md and knowledge/memory.md, and every server must
  *     be reachable from the editor — either registered directly in .vscode/mcp.json or
  *     hosted by the gateway (mcp-servers/gateway/tools.ts).
+ *
+ *  4. Input coercion: every boolean/number field in MCP input schemas must use
+ *     semantic wrappers to safely coerce quoted scalar values from models.
+ *
+ *  5. Freshness cues: the personas whose work depends on Jira/Confluence/doc inputs
+ *     (automation, bsa, documenter, orchestrator, planner, reporter, researcher,
+ *     test-planner) must explicitly mention verifying source freshness (stale docs,
+ *     last-updated/version checks) so plans/tickets/tests/docs never get built from
+ *     silently outdated requirements.
  *
  * Run with: npm run check:conventions
  * Exits non-zero (and prints every violation) if any rule is broken.
@@ -250,17 +259,66 @@ async function checkInputCoercion(): Promise<Violation[]> {
   return violations;
 }
 
+/**
+ * Rule 5 (freshness cues): relevant personas must explicitly mention freshness checks
+ * (stale docs, last-updated/version verification) so planning/execution/reporting does
+ * not rely on outdated requirements.
+ */
+async function checkAgentFreshnessCues(): Promise<Violation[]> {
+  const violations: Violation[] = [];
+  const agentsDir = path.resolve(".github", "agents");
+  const requiredAgents = [
+    "automation.agent.md",
+    "bsa.agent.md",
+    "documenter.agent.md",
+    "orchestrator.agent.md",
+    "planner.agent.md",
+    "reporter.agent.md",
+    "researcher.agent.md",
+    "test-planner.agent.md",
+  ];
+  const cue = /(fresh|freshness|stale|last[-\s]?updated|\bversion\b|current state)/i;
+
+  let hasAgentsDir = true;
+  try {
+    await fs.access(agentsDir);
+  } catch {
+    hasAgentsDir = false;
+  }
+  if (!hasAgentsDir) return violations;
+
+  for (const file of requiredAgents) {
+    const filePath = path.join(agentsDir, file);
+    const rel = path.relative(process.cwd(), filePath);
+    let content = "";
+    try {
+      content = await fs.readFile(filePath, "utf8");
+    } catch {
+      violations.push({ file: rel, message: "Missing required agent file for freshness enforcement" });
+      continue;
+    }
+    if (!cue.test(content)) {
+      violations.push({
+        file: rel,
+        message: "Missing explicit freshness/staleness cue (e.g., stale docs, last-updated/version verification)",
+      });
+    }
+  }
+  return violations;
+}
+
 async function main(): Promise<void> {
   const violations = [
     ...(await checkSkillFrontmatter()),
     ...(await checkRegistryProjectGuard()),
     ...(await checkDocsDrift()),
     ...(await checkInputCoercion()),
+    ...(await checkAgentFreshnessCues()),
   ];
 
   if (violations.length === 0) {
     console.log(
-      "check:conventions — OK (skill frontmatter + registry project guards + docs/tool lists + input coercion all valid)"
+      "check:conventions — OK (skill frontmatter + registry project guards + docs/tool lists + input coercion + agent freshness cues all valid)"
     );
     return;
   }

@@ -37,6 +37,7 @@ export const reporter: AgentSpec = {
     "Compare against previous knowledge entries when classifying repeat offenders — trends matter.",
     "Record any flakiness in `knowledge/learnings.md`.",
     "Follow the `data-visualization` skill for any chart/trend added to a report.",
+    "When citing Jira/Confluence context in reports, verify version/last-updated metadata and label stale references clearly.",
   ],
   never: [
     "Never re-run failing tests to \"make them green\" without recording the flakiness.",
