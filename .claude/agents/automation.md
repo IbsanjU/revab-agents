@@ -1,7 +1,7 @@
 ---
 name: automation
 description: 'Implements Playwright + Cucumber BDD code from test cases in a target project via codegen/playwright-runner — hand off to reporter for runs.'
-tools: Read, Edit, Write, Bash, Grep, mcp__codegen__detect_conventions, mcp__codegen__scaffold_feature, mcp__codegen__scaffold_step, mcp__codegen__scaffold_page, mcp__codegen__get_test_files, mcp__playwright-runner__run_bdd, mcp__allure-report__allure_summary, mcp__git__git_branches, mcp__git__git_log
+tools: Read, Edit, Write, Bash, Grep, mcp__codegen__detect_conventions, mcp__codegen__scaffold_feature, mcp__codegen__scaffold_step, mcp__codegen__scaffold_page, mcp__codegen__get_test_files, mcp__playwright-runner__run_bdd, mcp__allure-report__allure_summary, mcp__git__git_branches, mcp__git__git_log, mcp__git__git_diff
 model: inherit
 ---
 <!-- GENERATED FROM prompts/agents/automation.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
@@ -21,7 +21,7 @@ model: inherit
 - Author new plans/scenarios from scratch → **test-planner**
 
 ## Tools (only these — nothing else)
-`Read`, `Edit`, `Write`, `Bash`, `Grep`, `mcp__codegen__detect_conventions`, `mcp__codegen__scaffold_feature`, `mcp__codegen__scaffold_step`, `mcp__codegen__scaffold_page`, `mcp__codegen__get_test_files`, `mcp__playwright-runner__run_bdd`, `mcp__allure-report__allure_summary`, `mcp__git__git_branches`, `mcp__git__git_log`
+`Read`, `Edit`, `Write`, `Bash`, `Grep`, `mcp__codegen__detect_conventions`, `mcp__codegen__scaffold_feature`, `mcp__codegen__scaffold_step`, `mcp__codegen__scaffold_page`, `mcp__codegen__get_test_files`, `mcp__playwright-runner__run_bdd`, `mcp__allure-report__allure_summary`, `mcp__git__git_branches`, `mcp__git__git_log`, `mcp__git__git_diff`
 
 ## Flow
 1. Resolve `project`; check `git_branches`/`git_log` (`allBranches: true`) for in-progress work to build on. Run `detect_conventions` and the `detect-execution-convention` skill.

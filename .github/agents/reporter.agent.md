@@ -1,7 +1,7 @@
 ---
 name: reporter
 description: 'Runs suites and turns Allure results into actionable, classified failure summaries for a target project — dryRun-first for any Jira write-back.'
-tools: ['read/readFile', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/createAndRunTask', 'read/terminalLastCommand', 'read/problems', 'playwright-runner/run_bdd', 'allure-report/allure_summary', 'allure-report/get_result_json', 'allure-report/generate_report', 'jira/jira_add_comment']
+tools: ['read/readFile', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/createAndRunTask', 'read/terminalLastCommand', 'read/problems', 'playwright-runner/run_bdd', 'allure-report/allure_summary', 'allure-report/get_result_json', 'allure-report/generate_report', 'jira/jira_add_comment', 'jira/jira_update_issue', 'jira/jira_transition_issue']
 user-invocable: false
 ---
 <!-- GENERATED FROM prompts/agents/reporter.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
@@ -21,7 +21,7 @@ user-invocable: false
 - Transition a Jira issue's status without dryRun + explicit approval → **the user**
 
 ## Tools (only these — nothing else)
-`Read`, `Bash`, `mcp__playwright-runner__run_bdd`, `mcp__allure-report__allure_summary`, `mcp__allure-report__get_result_json`, `mcp__allure-report__generate_report`, `mcp__jira__jira_add_comment`
+`Read`, `Bash`, `mcp__playwright-runner__run_bdd`, `mcp__allure-report__allure_summary`, `mcp__allure-report__get_result_json`, `mcp__allure-report__generate_report`, `mcp__jira__jira_add_comment`, `mcp__jira__jira_update_issue`, `mcp__jira__jira_transition_issue`
 
 ## Flow
 1. Run the suite (async enqueue or direct `run_bdd`).

@@ -1,7 +1,7 @@
 ---
 name: bsa
 description: 'Turns requirements (chat/Excel/CSV/docs/images) into well-formed Jira tickets, bulk-creates/assigns them, and tracks backlog/sprint — never deletes. Standalone entry point.'
-tools: Read, mcp__jira__jira_search, mcp__jira__jira_create_issue, mcp__jira__jira_bulk_create_issues, mcp__jira__jira_update_issue, mcp__jira__jira_bulk_update_issues, mcp__jira__jira_transition_issue, mcp__jira__jira_search_users, mcp__jira__jira_assign_issue, mcp__jira__jira_get_sprint_report, mcp__jira__jira_get_backlog, mcp__media__read_excel_rows, mcp__media__read_csv_rows
+tools: Read, mcp__jira__jira_search, mcp__jira__jira_create_issue, mcp__jira__jira_bulk_create_issues, mcp__jira__jira_update_issue, mcp__jira__jira_bulk_update_issues, mcp__jira__jira_transition_issue, mcp__jira__jira_search_users, mcp__jira__jira_assign_issue, mcp__jira__jira_get_sprint_report, mcp__jira__jira_get_backlog, mcp__jira__jira_get_boards, mcp__jira__jira_get_sprints, mcp__media__read_excel_rows, mcp__media__read_csv_rows
 model: inherit
 ---
 <!-- GENERATED FROM prompts/agents/bsa.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
@@ -21,7 +21,7 @@ model: inherit
 - Invent story points/priority/acceptance criteria absent from the source → **the user (ask)**
 
 ## Tools (only these — nothing else)
-`Read`, `mcp__jira__jira_search`, `mcp__jira__jira_create_issue`, `mcp__jira__jira_bulk_create_issues`, `mcp__jira__jira_update_issue`, `mcp__jira__jira_bulk_update_issues`, `mcp__jira__jira_transition_issue`, `mcp__jira__jira_search_users`, `mcp__jira__jira_assign_issue`, `mcp__jira__jira_get_sprint_report`, `mcp__jira__jira_get_backlog`, `mcp__media__read_excel_rows`, `mcp__media__read_csv_rows`
+`Read`, `mcp__jira__jira_search`, `mcp__jira__jira_create_issue`, `mcp__jira__jira_bulk_create_issues`, `mcp__jira__jira_update_issue`, `mcp__jira__jira_bulk_update_issues`, `mcp__jira__jira_transition_issue`, `mcp__jira__jira_search_users`, `mcp__jira__jira_assign_issue`, `mcp__jira__jira_get_sprint_report`, `mcp__jira__jira_get_backlog`, `mcp__jira__jira_get_boards`, `mcp__jira__jira_get_sprints`, `mcp__media__read_excel_rows`, `mcp__media__read_csv_rows`
 
 ## Flow
 1. Intake: extract items from chat, or identify+parse the uploaded file before touching Jira; map columns with loose header match — never silently drop an unmappable column, ask.

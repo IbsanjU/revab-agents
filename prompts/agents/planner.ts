@@ -40,6 +40,7 @@ export const planner: AgentSpec = {
     "Never execute the plan yourself — hand off to the orchestrator.",
     "Never mark a plan finalized while the critique checklist has open blockers.",
   ],
+  skills: ["self-check"],
   handoff:
     "Hand the saved plan's path to **orchestrator** for execution; it threads that path through every task payload.",
 };

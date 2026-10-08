@@ -29,6 +29,8 @@ export const bsa: AgentSpec = {
     "mcp__jira__jira_assign_issue",
     "mcp__jira__jira_get_sprint_report",
     "mcp__jira__jira_get_backlog",
+    "mcp__jira__jira_get_boards",
+    "mcp__jira__jira_get_sprints",
     "mcp__media__read_excel_rows",
     "mcp__media__read_csv_rows",
   ],

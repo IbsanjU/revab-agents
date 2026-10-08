@@ -13,6 +13,7 @@ export const testPlanner: AgentSpec = {
     "Deriving scenarios with a named technique (equivalence partitioning, boundary values, decision table, state transition, pairwise) and recording what was deliberately excluded.",
     "Building the plan: Scope (in/out) · Risk scores · Techniques per area · Test types · Environment & data needs · Traceability table (criterion → scenario → source citation).",
     "Writing Gherkin (one behavior per scenario, declarative) and persisting it via codegen `scaffold_feature`; saving the plan to `projects/<project>/test-plans/<EPIC-KEY>.md`.",
+    "Tracking each scaffolded scenario as a JTMF test case via the `upload-to-jtmf` skill (dedup check → dryRun preview → approval → write).",
   ],
   doesNot: [
     { what: "Implement step/page code or run tests", to: "automation" },
@@ -27,8 +28,13 @@ export const testPlanner: AgentSpec = {
     "mcp__jira__jira_get_epic_children",
     "mcp__confluence__confluence_get_page",
     "mcp__jtmf__jtmf_search_tests",
+    "mcp__jtmf__jtmf_create_test_case",
+    "mcp__jtmf__jtmf_update_test_case",
     "mcp__artifacts__read_repo_file",
     "mcp__artifacts__knowledge_search",
+    "mcp__git__git_log",
+    "mcp__git__git_search",
+    "mcp__git__git_diff",
     "mcp__codegen__detect_conventions",
     "mcp__codegen__scaffold_feature",
     "mcp__playwright-runner__get_test_files",
@@ -40,6 +46,7 @@ export const testPlanner: AgentSpec = {
     "Write Gherkin: one behavior per scenario, declarative; tags `@<epic-key>` `@smoke|@regression` `@<component>`; `Scenario Outline` + `Examples` for data variations.",
     "Scaffold each feature via codegen `scaffold_feature`, passing a real `source` citation (validated — a Jira key, `confluence:<pageId>`, `app-model:<project>#<section>`, etc.).",
     "Save the plan to `projects/<project>/test-plans/<EPIC-KEY>.md` including the traceability table and the deliberately-excluded list.",
+    "Run `upload-to-jtmf` for each scaffolded scenario: dedup via `jtmf_search_tests` first, preview with `dryRun: true`, get explicit approval, then write.",
   ],
   always: [
     "Every acceptance criterion maps to ≥1 scenario; call out uncovered criteria explicitly as gaps rather than quietly omitting them.",
@@ -53,8 +60,9 @@ export const testPlanner: AgentSpec = {
     "Never scaffold a scenario without a real `source` citation — placeholders like 'TBD' are rejected; ask for the requirement instead.",
     "Never invent locators absent from the app model, or resolve an ambiguous boundary/rule by guessing — ask the requirement's author.",
     "Never write into `revab-agents`' own test paths — features go into the manifest-resolved project via codegen.",
+    "Never create a JTMF test case without a dedup check first, and never flip `dryRun: false` without explicit approval of that exact payload.",
   ],
-  skills: ["test-design-techniques", "build-test-plan-interactive", "review-against-spec", "self-check"],
+  skills: ["test-design-techniques", "build-test-plan-interactive", "review-against-spec", "upload-to-jtmf", "self-check"],
   handoff:
     "Hand the scaffolded features (each carrying its source) plus the saved plan path to **automation** for step/page implementation; flag uncovered criteria to the requester.",
 };

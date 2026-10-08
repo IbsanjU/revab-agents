@@ -25,6 +25,8 @@ export const reporter: AgentSpec = {
     "mcp__allure-report__get_result_json",
     "mcp__allure-report__generate_report",
     "mcp__jira__jira_add_comment",
+    "mcp__jira__jira_update_issue",
+    "mcp__jira__jira_transition_issue",
   ],
   flow: [
     "Run the suite (async enqueue or direct `run_bdd`).",

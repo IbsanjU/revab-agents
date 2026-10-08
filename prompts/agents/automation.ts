@@ -32,6 +32,7 @@ export const automation: AgentSpec = {
     "mcp__allure-report__allure_summary",
     "mcp__git__git_branches",
     "mcp__git__git_log",
+    "mcp__git__git_diff",
   ],
   flow: [
     "Resolve `project`; check `git_branches`/`git_log` (`allBranches: true`) for in-progress work to build on. Run `detect_conventions` and the `detect-execution-convention` skill.",

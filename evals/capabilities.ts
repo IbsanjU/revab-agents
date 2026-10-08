@@ -50,6 +50,7 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
     agent: "researcher",
     mustHave: [
       { tool: "mcp__jira__jira_get_issue", because: "reading tickets is its core job" },
+      { tool: "mcp__media__ocr_image", because: "its own flow runs extract-requirements-from-image, which cannot execute at all without this tool" },
     ],
     mustNotHave: [
       { tool: "Write", because: "researcher is read-only; saving is suggest-then-pull via the save tools" },
@@ -62,6 +63,7 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
     mustHave: [
       { tool: "Bash", because: "it runs the target project's tooling" },
       { tool: "mcp__playwright-runner__run_bdd", because: "execution must route through playwright-runner, not raw shell" },
+      { tool: "mcp__git__git_diff", because: "verify/code-review/simplify — all mandatory pre-done steps — open by getting the diff first" },
     ],
     mustNotHave: [
       { tool: "mcp__jira__jira_create_issue", because: "ticket writes belong to bsa/reporter, dryRun-gated" },
@@ -72,6 +74,8 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
     mustHave: [
       { tool: "mcp__jira__jira_bulk_create_issues", because: "bulk intake is its core job" },
       { tool: "mcp__jira__jira_search_users", because: "assignee accountIds must be resolved, never guessed" },
+      { tool: "mcp__jira__jira_get_boards", because: "sprint-backlog-report must resolve the board before it can resolve a sprint" },
+      { tool: "mcp__jira__jira_get_sprints", because: "sprint-backlog-report resolves the active sprint before calling jira_get_sprint_report" },
     ],
     mustNotHave: [
       {
@@ -111,6 +115,14 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
         tool: "mcp__confluence__confluence_get_page",
         because: "acceptance criteria frequently live in Confluence, not only in Jira",
       },
+      {
+        tool: "mcp__git__git_diff",
+        because: "review-against-spec's step 1 gets the diff directly — without this tool that skill can't run",
+      },
+      {
+        tool: "mcp__jtmf__jtmf_create_test_case",
+        because: "it owns tracking each scaffolded scenario in JTMF via upload-to-jtmf — without the write tool that step is impossible",
+      },
     ],
     mustNotHave: [
       { tool: "Bash", because: "planning never executes anything — running tests belongs to automation/reporter" },
@@ -123,12 +135,14 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
           "plans live under the project's own folder; an agent told to write to `knowledge/test-plans/` would violate the manifest layout",
       },
       { text: "test-design-techniques", because: "coverage must be derived by a named technique, not improvised" },
+      { text: "upload-to-jtmf", because: "JTMF tracking must go through the dedup-check-then-dryRun skill, not an improvised direct write" },
     ],
   },
   {
     agent: "reporter",
     mustHave: [
       { tool: "mcp__allure-report__allure_summary", because: "failure analysis reads Allure results" },
+      { tool: "mcp__jira__jira_transition_issue", because: "its own flow posts to Jira via update-jira-epic after approval — without this tool that step is impossible" },
     ],
     mustNotHave: [
       { tool: "mcp__codegen__scaffold_step", because: "fixing code belongs to automation" },
