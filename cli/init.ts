@@ -1,10 +1,11 @@
 /**
  * `revab init` — get a teammate from clone to running without reading the README.
  *
- * Scaffolds the three things that are otherwise manual and easy to get subtly wrong:
- * a `.env` seeded from `.env.example`, the gateway registered in `.vscode/mcp.json`
- * (one entry instead of twelve), and a project folder to copy. Never overwrites an
- * existing file unless `--force` is passed — a clobbered `.env` costs real credentials.
+ * Scaffolds the things that are otherwise manual and easy to get subtly wrong: a `.env`
+ * seeded from `.env.example`, the gateway registered in both `.vscode/mcp.json` (VS
+ * Code) and `.mcp.json` (Claude Code — a different file and schema; one entry instead
+ * of twelve either way), and a project folder to copy. Never overwrites an existing
+ * file unless `--force` is passed — a clobbered `.env` costs real credentials.
  */
 import { promises as fs } from "fs";
 import path from "path";
@@ -81,6 +82,42 @@ async function ensureMcpConfig(root: string, port: number): Promise<void> {
   report("updated", ".vscode/mcp.json", "gateway added alongside existing entries");
 }
 
+/**
+ * Register the gateway in `.mcp.json` — Claude Code's own project MCP config, a
+ * different file and schema from `.vscode/mcp.json` (`mcpServers`, not `servers`).
+ * Without this, Claude Code has no way to reach the gateway at all: it never reads
+ * `.vscode/mcp.json`, and a checkout that only ran the old `init` had no root
+ * `.mcp.json` ever created, so every agent's MCP tool calls silently had nothing to
+ * connect to on that host.
+ */
+async function ensureClaudeCodeMcpConfig(root: string, port: number): Promise<void> {
+  const target = path.join(root, ".mcp.json");
+  const gateway = { type: "http", url: `http://localhost:${port}/mcp` };
+
+  if (!(await exists(target))) {
+    await fs.writeFile(target, JSON.stringify({ mcpServers: { gateway } }, null, 2) + "\n", "utf8");
+    report("created", ".mcp.json", "gateway registered for Claude Code (approve it on first `claude` run)");
+    return;
+  }
+
+  const raw = await fs.readFile(target, "utf8");
+  let config: { mcpServers?: Record<string, unknown> };
+  try {
+    config = JSON.parse(raw) as { mcpServers?: Record<string, unknown> };
+  } catch {
+    report("skipped", ".mcp.json", "existing file is not valid JSON — fix it, then re-run");
+    return;
+  }
+  config.mcpServers ??= {};
+  if (config.mcpServers.gateway) {
+    report("skipped", ".mcp.json", "gateway already registered");
+    return;
+  }
+  config.mcpServers = { gateway, ...config.mcpServers };
+  await fs.writeFile(target, JSON.stringify(config, null, 2) + "\n", "utf8");
+  report("updated", ".mcp.json", "gateway added alongside existing entries");
+}
+
 /** Ensure the manifest index exists so the trust boundary has something to resolve. */
 async function ensureManifest(root: string): Promise<void> {
   const target = path.join(root, "projects", "manifest.json");
@@ -106,6 +143,7 @@ export async function runInit(options: InitOptions = {}): Promise<void> {
   console.log("revab init\n");
   await ensureEnv(root, options.force ?? false);
   await ensureMcpConfig(root, port);
+  await ensureClaudeCodeMcpConfig(root, port);
   await ensureManifest(root);
 
   console.log(`

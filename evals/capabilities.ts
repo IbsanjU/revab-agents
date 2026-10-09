@@ -40,7 +40,7 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
     ],
     mustNotHave: [
       { tool: "Write", because: "writing code/docs belongs to automation and documenter" },
-      { tool: "mcp__codegen__scaffold_feature", because: "scaffolding belongs to test-planner/automation" },
+      { tool: "mcp__gateway__scaffold_feature", because: "scaffolding belongs to test-planner/automation" },
     ],
     mustState: [
       { text: "npm run task", because: "it must know the concrete queue command, not just 'delegate'" },
@@ -49,37 +49,37 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
   {
     agent: "researcher",
     mustHave: [
-      { tool: "mcp__jira__jira_get_issue", because: "reading tickets is its core job" },
-      { tool: "mcp__media__ocr_image", because: "its own flow runs extract-requirements-from-image, which cannot execute at all without this tool" },
+      { tool: "mcp__gateway__jira_get_issue", because: "reading tickets is its core job" },
+      { tool: "mcp__gateway__ocr_image", because: "its own flow runs extract-requirements-from-image, which cannot execute at all without this tool" },
     ],
     mustNotHave: [
       { tool: "Write", because: "researcher is read-only; saving is suggest-then-pull via the save tools" },
-      { tool: "mcp__jira__jira_create_issue", because: "it must never write to a system of record (hard rule: read-only role)" },
-      { tool: "mcp__confluence__confluence_update_page", because: "publishing belongs to documenter, dryRun-gated" },
+      { tool: "mcp__gateway__jira_create_issue", because: "it must never write to a system of record (hard rule: read-only role)" },
+      { tool: "mcp__gateway__confluence_update_page", because: "publishing belongs to documenter, dryRun-gated" },
     ],
   },
   {
     agent: "automation",
     mustHave: [
       { tool: "Bash", because: "it runs the target project's tooling" },
-      { tool: "mcp__playwright-runner__run_bdd", because: "execution must route through playwright-runner, not raw shell" },
-      { tool: "mcp__git__git_diff", because: "verify/code-review/simplify — all mandatory pre-done steps — open by getting the diff first" },
+      { tool: "mcp__gateway__run_bdd", because: "execution must route through playwright-runner, not raw shell" },
+      { tool: "mcp__gateway__git_diff", because: "verify/code-review/simplify — all mandatory pre-done steps — open by getting the diff first" },
     ],
     mustNotHave: [
-      { tool: "mcp__jira__jira_create_issue", because: "ticket writes belong to bsa/reporter, dryRun-gated" },
+      { tool: "mcp__gateway__jira_create_issue", because: "ticket writes belong to bsa/reporter, dryRun-gated" },
     ],
   },
   {
     agent: "bsa",
     mustHave: [
-      { tool: "mcp__jira__jira_bulk_create_issues", because: "bulk intake is its core job" },
-      { tool: "mcp__jira__jira_search_users", because: "assignee accountIds must be resolved, never guessed" },
-      { tool: "mcp__jira__jira_get_boards", because: "sprint-backlog-report must resolve the board before it can resolve a sprint" },
-      { tool: "mcp__jira__jira_get_sprints", because: "sprint-backlog-report resolves the active sprint before calling jira_get_sprint_report" },
+      { tool: "mcp__gateway__jira_bulk_create_issues", because: "bulk intake is its core job" },
+      { tool: "mcp__gateway__jira_search_users", because: "assignee accountIds must be resolved, never guessed" },
+      { tool: "mcp__gateway__jira_get_boards", because: "sprint-backlog-report must resolve the board before it can resolve a sprint" },
+      { tool: "mcp__gateway__jira_get_sprints", because: "sprint-backlog-report resolves the active sprint before calling jira_get_sprint_report" },
     ],
     mustNotHave: [
       {
-        tool: "mcp__jira__jira_delete_issue",
+        tool: "mcp__gateway__jira_delete_issue",
         because: "deletion is deliberately impossible in this framework — the tool is not registered on the running server",
       },
     ],
@@ -87,7 +87,7 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
   {
     agent: "planner",
     mustHave: [
-      { tool: "mcp__artifacts__knowledge_search", because: "it must check prior plans/learnings before proposing new work" },
+      { tool: "mcp__gateway__knowledge_search", because: "it must check prior plans/learnings before proposing new work" },
     ],
     mustNotHave: [
       { tool: "Bash", because: "the planner plans and never executes — execution is the orchestrator's to dispatch" },
@@ -103,30 +103,30 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
           "its flow saves the plan to `projects/<project>/test-plans/<EPIC-KEY>.md` — without a write tool that step is impossible, the same defect class as the orchestrator's stripped terminal",
       },
       {
-        tool: "mcp__playwright-runner__get_test_files",
+        tool: "mcp__gateway__get_test_files",
         because:
           "it is told to reuse the project's existing step phrasing, which requires actually reading those steps",
       },
       {
-        tool: "mcp__codegen__scaffold_feature",
+        tool: "mcp__gateway__scaffold_feature",
         because: "scenarios are persisted into the target project through codegen, never written directly",
       },
       {
-        tool: "mcp__confluence__confluence_get_page",
+        tool: "mcp__gateway__confluence_get_page",
         because: "acceptance criteria frequently live in Confluence, not only in Jira",
       },
       {
-        tool: "mcp__git__git_diff",
+        tool: "mcp__gateway__git_diff",
         because: "review-against-spec's step 1 gets the diff directly — without this tool that skill can't run",
       },
       {
-        tool: "mcp__jtmf__jtmf_create_test_case",
+        tool: "mcp__gateway__jtmf_create_test_case",
         because: "it owns tracking each scaffolded scenario in JTMF via upload-to-jtmf — without the write tool that step is impossible",
       },
     ],
     mustNotHave: [
       { tool: "Bash", because: "planning never executes anything — running tests belongs to automation/reporter" },
-      { tool: "mcp__codegen__scaffold_step", because: "step/page implementation belongs to automation" },
+      { tool: "mcp__gateway__scaffold_step", because: "step/page implementation belongs to automation" },
     ],
     mustState: [
       {
@@ -141,17 +141,17 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
   {
     agent: "reporter",
     mustHave: [
-      { tool: "mcp__allure-report__allure_summary", because: "failure analysis reads Allure results" },
-      { tool: "mcp__jira__jira_transition_issue", because: "its own flow posts to Jira via update-jira-epic after approval — without this tool that step is impossible" },
+      { tool: "mcp__gateway__allure_summary", because: "failure analysis reads Allure results" },
+      { tool: "mcp__gateway__jira_transition_issue", because: "its own flow posts to Jira via update-jira-epic after approval — without this tool that step is impossible" },
     ],
     mustNotHave: [
-      { tool: "mcp__codegen__scaffold_step", because: "fixing code belongs to automation" },
+      { tool: "mcp__gateway__scaffold_step", because: "fixing code belongs to automation" },
     ],
   },
   {
     agent: "self-improve",
     mustHave: [
-      { tool: "mcp__artifacts__knowledge_append", because: "persisting learnings is its core job" },
+      { tool: "mcp__gateway__knowledge_append", because: "persisting learnings is its core job" },
       { tool: "Edit", because: "it proposes and applies approved spec/skill upgrades" },
     ],
     mustNotHave: [],

@@ -1,7 +1,7 @@
 ---
 name: importer
 description: 'Imports agents, prompts, skills, scripts, and utils from other repos into this structure — dry-run first, normalize, deduplicate.'
-tools: Read, Write, Bash, mcp__artifacts__knowledge_append
+tools: Read, Write, Bash, mcp__gateway__knowledge_append
 model: inherit
 ---
 <!-- GENERATED FROM prompts/agents/importer.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
@@ -21,7 +21,7 @@ model: inherit
 - Overwrite local customizations without a dry-run diff → **the user**
 
 ## Tools (only these — nothing else)
-`Read`, `Write`, `Bash`, `mcp__artifacts__knowledge_append`
+`Read`, `Write`, `Bash`, `mcp__gateway__knowledge_append`
 
 ## Flow
 1. Ask for the source repo path(s) if not given; run `npm run import:agents -- <sourcePath> --dry-run`.

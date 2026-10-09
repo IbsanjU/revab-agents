@@ -21,9 +21,9 @@ export const planner: AgentSpec = {
     "Read",
     "Grep",
     "Glob",
-    "mcp__jira__jira_search",
-    "mcp__confluence__confluence_search",
-    "mcp__artifacts__knowledge_search",
+    "mcp__gateway__jira_search",
+    "mcp__gateway__confluence_search",
+    "mcp__gateway__knowledge_search",
   ],
   flow: [
     "Understand: restate the goal in one sentence; identify the `project` and the agents/tools/skills needed. Use `knowledge_search` for prior plans/learnings before proposing anything new.",

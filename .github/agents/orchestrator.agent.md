@@ -1,7 +1,7 @@
 ---
 name: orchestrator
 description: 'Routes QE work to specialists, reviews what they return, and aggregates results — use for any multi-step request; hand off to a specialist for the actual work, never do it yourself.'
-tools: ['read/readFile', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/createAndRunTask', 'read/terminalLastCommand', 'read/problems', 'agent', 'jira/jira_search', 'artifacts/knowledge_search']
+tools: ['read/readFile', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/createAndRunTask', 'read/terminalLastCommand', 'read/problems', 'agent', 'gateway/jira_search', 'gateway/knowledge_search']
 agents: ['planner', 'researcher', 'test-planner', 'automation', 'reporter', 'documenter', 'bsa', 'importer', 'self-improve']
 ---
 <!-- GENERATED FROM prompts/agents/orchestrator.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
@@ -25,7 +25,7 @@ agents: ['planner', 'researcher', 'test-planner', 'automation', 'reporter', 'doc
 - Draft a plan for destructive/multi-step work → **planner**
 
 ## Tools (only these — nothing else)
-`Read`, `Bash`, `Task`, `mcp__jira__jira_search`, `mcp__artifacts__knowledge_search`
+`Read`, `Bash`, `Task`, `mcp__gateway__jira_search`, `mcp__gateway__knowledge_search`
 
 You delegate with the **Task** (VS Code: `agent`) tool. This file's `agents:` frontmatter names every specialist below as a real dispatch target on VS Code's custom-agents system (v1.106+) — this is an actual tool call, not just a naming convention. On a host with neither, name the target agent and hand the work back to the user to route — never do the specialist's work yourself.
 

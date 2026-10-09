@@ -235,9 +235,27 @@ its lane and could not itself spawn further subagents. This matches `.claude/age
 `tools:` frontmatter exactly. The MCP tools listed in its persona (Jira/Confluence/JTMF/
 GitHub/git) were absent from its *actual* runtime tool schema in this test — because
 those MCP servers weren't running/connected in this ad hoc session (no `.mcp.json` wiring
-active here), not because Claude Code failed to enforce anything; connecting them via
-`npx revab start` + the gateway would make them available, at which point the same
-enforcement would apply to them too.
+active here), not because Claude Code failed to enforce anything.
+
+**Follow-up finding — the gateway/individual-server naming mismatch (found and fixed in
+this repo).** Wiring up `.mcp.json` to the single aggregated gateway (`npx revab start`,
+the path `revab init`, `docs/RUNBOOK.md`, and the VS Code extension's `registerMcp()` all
+set up) and re-running the same dispatch test surfaced a real bug: every MCP tool call a
+specialist attempted failed with `Error: No such tool available: mcp__jira__jira_search`
+(verbatim, from a dispatched `bsa` test). Cause: a single MCP server registered under the
+key `gateway` exposes tools as `mcp__gateway__<tool>` (e.g. `mcp__gateway__jira_search`),
+but every agent spec's `tools:` allow-list was written as `mcp__<domain>__<tool>` (e.g.
+`mcp__jira__jira_search`), which only resolves under the *individual*-server mode
+(`npm run serve:mcp:individual`, one process per domain on its own port, registered under
+its own key). The two conventions silently disagreed, so no agent's MCP tool calls ever
+actually worked end-to-end on the documented one-process gateway path, on any host —
+confirmed structurally for VS Code too, since the extension (`extension/src/extension.ts`'s
+`registerMcp()`) also mounts the gateway as one server. **Fixed** by renaming every
+`mcp__<domain>__` tool literal to `mcp__gateway__` across the agent specs, evals, and this
+doc (gateway tool names are globally unique across all 11 domains — confirmed by
+cross-referencing every `server.registerTool(...)` call in `mcp-servers/*/index.ts`, no
+collisions), keeping the single-process gateway as the one true runtime path. If you ever
+switch back to individual-server mode, the tool literals need the reverse rename.
 
 **VS Code — [not independently re-tested].** VS Code's own documentation describes the
 `tools:` frontmatter as an authoritative allow-list (*"Custom agents let you specify
@@ -346,7 +364,7 @@ would under orchestrator, so direct use is off the intended path but not unsafe.
   arbitrary built-in agent (like `general-purpose`) is its spec's own prose ("delegate to
   the named specialist"), not a platform-enforced allow-list. Tightening this to `tools:
   Agent(researcher, test-planner, automation, reporter, documenter, planner, bsa, importer,
-  self-improve), Read, Bash, mcp__jira__jira_search, mcp__artifacts__knowledge_search`
+  self-improve), Read, Bash, mcp__gateway__jira_search, mcp__gateway__knowledge_search`
   would close that gap; it wasn't done here because the portable `AgentSpec.tools` type
   (`prompts/types.ts`) has no representation for a parameterized `Agent(...)` allow-list —
   adding one is a reasonable follow-up if you want it enforced rather than just stated.

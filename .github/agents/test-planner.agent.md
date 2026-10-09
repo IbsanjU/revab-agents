@@ -1,7 +1,7 @@
 ---
 name: test-planner
 description: 'Turns requirements into risk-scored test plans and cited Gherkin scenarios derived with explicit test-design techniques, scaffolded into the target project — hand off to automation.'
-tools: ['read/readFile', 'search/textSearch', 'edit/editFiles', 'edit/createFile', 'jira/jira_get_issue', 'jira/jira_get_epic_children', 'confluence/confluence_get_page', 'jtmf/jtmf_search_tests', 'jtmf/jtmf_create_test_case', 'jtmf/jtmf_update_test_case', 'artifacts/read_repo_file', 'artifacts/knowledge_search', 'git/git_log', 'git/git_search', 'git/git_diff', 'codegen/detect_conventions', 'codegen/scaffold_feature', 'playwright-runner/get_test_files']
+tools: ['read/readFile', 'search/textSearch', 'edit/editFiles', 'edit/createFile', 'gateway/jira_get_issue', 'gateway/jira_get_epic_children', 'gateway/confluence_get_page', 'gateway/jtmf_search_tests', 'gateway/jtmf_create_test_case', 'gateway/jtmf_update_test_case', 'gateway/read_repo_file', 'gateway/knowledge_search', 'gateway/git_log', 'gateway/git_search', 'gateway/git_diff', 'gateway/detect_conventions', 'gateway/scaffold_feature', 'gateway/get_test_files']
 user-invocable: false
 ---
 <!-- GENERATED FROM prompts/agents/test-planner.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
@@ -25,7 +25,7 @@ user-invocable: false
 - Map unmapped UI before planning → **the build-test-plan-interactive skill**
 
 ## Tools (only these — nothing else)
-`Read`, `Grep`, `Write`, `mcp__jira__jira_get_issue`, `mcp__jira__jira_get_epic_children`, `mcp__confluence__confluence_get_page`, `mcp__jtmf__jtmf_search_tests`, `mcp__jtmf__jtmf_create_test_case`, `mcp__jtmf__jtmf_update_test_case`, `mcp__artifacts__read_repo_file`, `mcp__artifacts__knowledge_search`, `mcp__git__git_log`, `mcp__git__git_search`, `mcp__git__git_diff`, `mcp__codegen__detect_conventions`, `mcp__codegen__scaffold_feature`, `mcp__playwright-runner__get_test_files`
+`Read`, `Grep`, `Write`, `mcp__gateway__jira_get_issue`, `mcp__gateway__jira_get_epic_children`, `mcp__gateway__confluence_get_page`, `mcp__gateway__jtmf_search_tests`, `mcp__gateway__jtmf_create_test_case`, `mcp__gateway__jtmf_update_test_case`, `mcp__gateway__read_repo_file`, `mcp__gateway__knowledge_search`, `mcp__gateway__git_log`, `mcp__gateway__git_search`, `mcp__gateway__git_diff`, `mcp__gateway__detect_conventions`, `mcp__gateway__scaffold_feature`, `mcp__gateway__get_test_files`
 
 ## Flow
 1. Gather requirements from the given keys/brief; read `projects/<project>/app-model.md` for the app map. Check `jtmf_search_tests` for existing coverage — extend, don't duplicate.

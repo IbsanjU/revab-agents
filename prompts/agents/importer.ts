@@ -17,7 +17,7 @@ export const importer: AgentSpec = {
     { what: "Pull from paths outside the given source repo", to: "the user (confirm the source)" },
     { what: "Overwrite local customizations without a dry-run diff", to: "the user" },
   ],
-  tools: ["Read", "Write", "Bash", "mcp__artifacts__knowledge_append"],
+  tools: ["Read", "Write", "Bash", "mcp__gateway__knowledge_append"],
   flow: [
     "Ask for the source repo path(s) if not given; run `npm run import:agents -- <sourcePath> --dry-run`.",
     "Review what will be copied; then run without `--dry-run`.",

@@ -1,7 +1,7 @@
 ---
 name: researcher
 description: 'Reads Jira/Confluence/JTMF/GitHub/git plus manual/image/video inputs into a cited research brief — read-only; hand off to test-planner.'
-tools: Read, Grep, Glob, WebFetch, mcp__jira__jira_search, mcp__jira__jira_get_issue, mcp__jira__jira_get_epic_children, mcp__confluence__confluence_search, mcp__confluence__confluence_get_page, mcp__confluence__confluence_get_children, mcp__jtmf__jtmf_search_tests, mcp__github__github_search_code, mcp__github__github_get_file, mcp__git__git_branches, mcp__git__git_log, mcp__git__git_search, mcp__artifacts__knowledge_search, mcp__media__ocr_image, mcp__media__ocr_pdf, mcp__media__read_diagram, mcp__media__read_pdf_text, mcp__media__read_docx_text
+tools: Read, Grep, Glob, WebFetch, mcp__gateway__jira_search, mcp__gateway__jira_get_issue, mcp__gateway__jira_get_epic_children, mcp__gateway__confluence_search, mcp__gateway__confluence_get_page, mcp__gateway__confluence_get_children, mcp__gateway__jtmf_search_tests, mcp__gateway__github_search_code, mcp__gateway__github_get_file, mcp__gateway__git_branches, mcp__gateway__git_log, mcp__gateway__git_search, mcp__gateway__knowledge_search, mcp__gateway__ocr_image, mcp__gateway__ocr_pdf, mcp__gateway__read_diagram, mcp__gateway__read_pdf_text, mcp__gateway__read_docx_text
 model: inherit
 ---
 <!-- GENERATED FROM prompts/agents/researcher.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
@@ -23,7 +23,7 @@ model: inherit
 - Save pulled data to disk unprompted → **the user (confirm folder first)**
 
 ## Tools (only these — nothing else)
-`Read`, `Grep`, `Glob`, `WebFetch`, `mcp__jira__jira_search`, `mcp__jira__jira_get_issue`, `mcp__jira__jira_get_epic_children`, `mcp__confluence__confluence_search`, `mcp__confluence__confluence_get_page`, `mcp__confluence__confluence_get_children`, `mcp__jtmf__jtmf_search_tests`, `mcp__github__github_search_code`, `mcp__github__github_get_file`, `mcp__git__git_branches`, `mcp__git__git_log`, `mcp__git__git_search`, `mcp__artifacts__knowledge_search`, `mcp__media__ocr_image`, `mcp__media__ocr_pdf`, `mcp__media__read_diagram`, `mcp__media__read_pdf_text`, `mcp__media__read_docx_text`
+`Read`, `Grep`, `Glob`, `WebFetch`, `mcp__gateway__jira_search`, `mcp__gateway__jira_get_issue`, `mcp__gateway__jira_get_epic_children`, `mcp__gateway__confluence_search`, `mcp__gateway__confluence_get_page`, `mcp__gateway__confluence_get_children`, `mcp__gateway__jtmf_search_tests`, `mcp__gateway__github_search_code`, `mcp__gateway__github_get_file`, `mcp__gateway__git_branches`, `mcp__gateway__git_log`, `mcp__gateway__git_search`, `mcp__gateway__knowledge_search`, `mcp__gateway__ocr_image`, `mcp__gateway__ocr_pdf`, `mcp__gateway__read_diagram`, `mcp__gateway__read_pdf_text`, `mcp__gateway__read_docx_text`
 
 ## Flow
 1. For a topic/keyword (not a known key), run the `search-across-sources` skill to federate Jira+Confluence+JTMF+GitHub and surface linked sources first.

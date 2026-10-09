@@ -1,7 +1,7 @@
 ---
 name: planner
 description: 'Mandatory first step for non-trivial work — drafts, self-critiques, and finalizes an auditable plan; hand off to orchestrator for execution.'
-tools: ['read/readFile', 'search/textSearch', 'search/fileSearch', 'search/listDirectory', 'jira/jira_search', 'confluence/confluence_search', 'artifacts/knowledge_search']
+tools: ['read/readFile', 'search/textSearch', 'search/fileSearch', 'search/listDirectory', 'gateway/jira_search', 'gateway/confluence_search', 'gateway/knowledge_search']
 user-invocable: false
 ---
 <!-- GENERATED FROM prompts/agents/planner.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
@@ -21,7 +21,7 @@ user-invocable: false
 - Add a repo not yet in the manifest → **the onboard-project skill**
 
 ## Tools (only these — nothing else)
-`Read`, `Grep`, `Glob`, `mcp__jira__jira_search`, `mcp__confluence__confluence_search`, `mcp__artifacts__knowledge_search`
+`Read`, `Grep`, `Glob`, `mcp__gateway__jira_search`, `mcp__gateway__confluence_search`, `mcp__gateway__knowledge_search`
 
 ## Flow
 1. Understand: restate the goal in one sentence; identify the `project` and the agents/tools/skills needed. Use `knowledge_search` for prior plans/learnings before proposing anything new.

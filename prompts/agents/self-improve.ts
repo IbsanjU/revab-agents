@@ -19,7 +19,7 @@ export const selfImprove: AgentSpec = {
     { what: "Change a hard rule unilaterally", to: "the user (propose the diff)" },
     { what: "Rewrite an agent wholesale without approval", to: "the user (propose the diff)" },
   ],
-  tools: ["Read", "Edit", "Bash", "mcp__artifacts__knowledge_append", "mcp__artifacts__knowledge_search"],
+  tools: ["Read", "Edit", "Bash", "mcp__gateway__knowledge_append", "mcp__gateway__knowledge_search"],
   flow: [
     "Review the session for corrections the user had to make, learnings, failed approaches, and repeated manual steps.",
     "Run `npm run correction -- list`; for each open correction run `capture-correction` — fold its generalized rule into that agent's `prompts/agents/<name>.ts`, rebuild, mark it applied, and add an eval case. Group by rule text/theme first, not just by agent: the same theme appearing under 2+ different agents means the fix belongs in `prompts/shared/conduct.ts`, once, generic — not duplicated per agent.",

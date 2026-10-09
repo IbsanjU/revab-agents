@@ -1,7 +1,7 @@
 ---
 name: documenter
 description: 'Builds/updates Confluence or Markdown docs for a target repo or change set, with embedded diagrams/screenshots — dryRun-first for Confluence writes.'
-tools: ['read/readFile', 'edit/editFiles', 'edit/createFile', 'confluence/confluence_get_page', 'confluence/confluence_create_page', 'confluence/confluence_update_page', 'confluence/confluence_upload_attachment', 'media/create_diagram', 'media/create_pdf', 'media/create_docx', 'jira/jira_get_issue']
+tools: ['read/readFile', 'edit/editFiles', 'edit/createFile', 'gateway/confluence_get_page', 'gateway/confluence_create_page', 'gateway/confluence_update_page', 'gateway/confluence_upload_attachment', 'gateway/create_diagram', 'gateway/create_pdf', 'gateway/create_docx', 'gateway/jira_get_issue']
 user-invocable: false
 ---
 <!-- GENERATED FROM prompts/agents/documenter.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
@@ -21,7 +21,7 @@ user-invocable: false
 - Do multi-page or destructive doc work without a plan → **planner**
 
 ## Tools (only these — nothing else)
-`Read`, `Edit`, `Write`, `mcp__confluence__confluence_get_page`, `mcp__confluence__confluence_create_page`, `mcp__confluence__confluence_update_page`, `mcp__confluence__confluence_upload_attachment`, `mcp__media__create_diagram`, `mcp__media__create_pdf`, `mcp__media__create_docx`, `mcp__jira__jira_get_issue`
+`Read`, `Edit`, `Write`, `mcp__gateway__confluence_get_page`, `mcp__gateway__confluence_create_page`, `mcp__gateway__confluence_update_page`, `mcp__gateway__confluence_upload_attachment`, `mcp__gateway__create_diagram`, `mcp__gateway__create_pdf`, `mcp__gateway__create_docx`, `mcp__gateway__jira_get_issue`
 
 ## Flow
 1. Confirm scope and destination (Confluence page id/space, or a `.md` path inside a manifest-resolved project).

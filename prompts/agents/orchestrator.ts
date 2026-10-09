@@ -24,7 +24,7 @@ export const orchestrator: AgentSpec = {
   // Bash is granted for ONE purpose: driving the async queue CLI (`npm run task …`,
   // `npm run worker`) — the delegation mechanism on hosts without a Task subagent tool.
   // It is NOT for running tests, writes, or any specialist's domain work.
-  tools: ["Read", "Bash", "Task", "mcp__jira__jira_search", "mcp__artifacts__knowledge_search"],
+  tools: ["Read", "Bash", "Task", "mcp__gateway__jira_search", "mcp__gateway__knowledge_search"],
   flow: [
     "Resolve the `project` (ask once if ambiguous); if it isn't in the manifest, route to the `onboard-project` skill first. Check `git_branches` for existing in-progress work and flag it.",
     "Restate the goal as a ≤6-step plan; run the `route-to-specialist` skill to name the owning specialist (and its likely skill) for each step — never assign by guess.",

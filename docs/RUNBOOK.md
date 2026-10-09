@@ -24,7 +24,7 @@ the transcript quoted there) — it is not a hypothetical.
 
 ```bash
 npm install
-npx revab init          # writes .env, .vscode/mcp.json, projects/manifest.json
+npx revab init          # writes .env, .vscode/mcp.json, .mcp.json, projects/manifest.json
 # edit .env — set JIRA_BASE_URL, CONFLUENCE_BASE_URL, and one token per service
 npx revab doctor         # tells you exactly what's still missing, and how to fix it
 npm run build:prompts    # generate .github/agents/*.agent.md and .claude/agents/*.md from prompts/agents/*.ts
@@ -53,9 +53,16 @@ cd revab-agents          # this repo's root — .claude/agents/ is discovered fr
 claude --agent orchestrator
 ```
 
+Claude Code only reaches the gateway's MCP tools via a root `.mcp.json` (written by
+`revab init`, or `claude mcp add --transport http gateway http://localhost:<port>/mcp
+--scope project` if you need to add it by hand). It's a different file and schema from
+`.vscode/mcp.json` — don't confuse the two. A newly-added project server shows as
+"pending approval" (`claude mcp get gateway`) until approved once in an interactive
+`claude` session; non-interactive `-p` runs connect to it regardless.
+
 This makes the root session **be** the orchestrator persona: its system prompt, tool
-restrictions (`Read`, `Bash`, `Task`, `mcp__jira__jira_search`,
-`mcp__artifacts__knowledge_search`), and model replace Claude Code's defaults entirely.
+restrictions (`Read`, `Bash`, `Task`, `mcp__gateway__jira_search`,
+`mcp__gateway__knowledge_search`), and model replace Claude Code's defaults entirely.
 The startup header shows `@orchestrator` to confirm it's active. From here, just describe
 what you need — the orchestrator dispatches to `researcher`, `test-planner`, `automation`,
 `reporter`, `documenter`, `planner`, `bsa`, `importer`, or `self-improve` via the `Task`
