@@ -4,6 +4,7 @@ import { z } from "zod";
 import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js";
 import { intEnv } from "../shared/config.js";
 import { semanticNumber } from "../../utils/semanticNumber.js";
+import { scoreConsensus } from "../../utils/consensus.js";
 
 /**
  * Artifacts MCP server: file search/read and knowledge persistence for the
@@ -123,6 +124,40 @@ startMcpHttpServer({
           await fs.mkdir(path.dirname(target), { recursive: true });
           await fs.appendFile(target, `\n### ${stamp}\n${entry.trim()}\n`, "utf8");
           return textResult(`Appended entry to knowledge/${name}`);
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "consensus_score",
+      {
+        description:
+          "Score independent findings from several agents (and an optional critic) by agreement and source quality. " +
+          "Pure computation, no side effects. Each finding is {agent, claim, key?, citation?, confidence?, stance?}; " +
+          "only sourced findings count, one vote per agent per claim. Returns a per-claim score and verdict " +
+          "(accepted | accepted-with-dissent | contested | single-source | weak | unsupported). " +
+          "Used by the adversarial-review skill.",
+        inputSchema: {
+          findings: z
+            .array(
+              z.object({
+                agent: z.string().describe("Which agent or independent run produced this finding"),
+                claim: z.string().describe("The claim in the agent's words"),
+                key: z.string().optional().describe("Stable id so differently-worded findings group together"),
+                citation: z.string().optional().describe("Source in a form the citation validator accepts"),
+                confidence: semanticNumber(z.number().optional()).describe("0-1, default 1"),
+                stance: z.enum(["supports", "disputes"]).optional().describe("Default supports"),
+              })
+            )
+            .describe("All findings from every agent in the round"),
+          threshold: semanticNumber(z.number().optional()).describe("Score needed to accept a claim (default 0.6)"),
+        },
+      },
+      async ({ findings, threshold }) => {
+        try {
+          return textResult(scoreConsensus(findings, { threshold }));
         } catch (err) {
           return errorResult(err);
         }

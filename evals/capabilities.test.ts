@@ -30,12 +30,20 @@ function spec(overrides: Partial<AgentSpec> = {}): AgentSpec {
 test("a missing required tool is caught (the orchestrator terminal regression)", () => {
   // Only the orchestrator spec is supplied, so the other expectations correctly
   // report `unknown-agent`; assert on this agent's failures specifically.
-  const failures = runCapabilityEvals([spec({ tools: ["Read", "Task"] })]).filter(
-    (f) => f.agent === "orchestrator",
-  );
+  const failures = runCapabilityEvals([
+    spec({ tools: ["Read", "Task", "mcp__gateway__consensus_score"] }),
+  ]).filter((f) => f.agent === "orchestrator");
   assert.equal(failures.length, 1);
   assert.equal(failures[0]?.kind, "missing-tool");
   assert.match(failures[0]?.detail ?? "", /Bash/);
+});
+
+test("dropping consensus_score is caught (adversarial-review needs it to compute, not eyeball)", () => {
+  const failures = runCapabilityEvals([spec({ tools: ["Read", "Bash", "Task"] })]).filter(
+    (f) => f.agent === "orchestrator",
+  );
+  assert.equal(failures.length, 1);
+  assert.match(failures[0]?.detail ?? "", /consensus_score/);
 });
 
 test("a forbidden tool is caught (scope leak into another agent's job)", () => {

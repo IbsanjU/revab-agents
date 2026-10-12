@@ -14,6 +14,7 @@
  */
 import { runDoctor } from "./doctor.js";
 import { runInit } from "./init.js";
+import { runCall, runTools } from "./call.js";
 
 const USAGE = `revab — QE agent framework operator CLI
 
@@ -21,6 +22,8 @@ Usage:
   revab init [--force]     Scaffold .env, register the gateway, seed a sample project
   revab doctor [--json]    Diagnose env, auth, ports, and gateway health
   revab start [--port N]   Start the gateway (all tools, one process: MCP + REST)
+  revab tools [name] [--json]   List gateway tools (read/write) — works without MCP
+  revab call <tool> [json]       Call a tool over the gateway REST API — works without MCP
   revab --help             Show this message
 
 Docs: README.md · configuration reference: .env.example`;
@@ -47,6 +50,12 @@ async function main(): Promise<void> {
       await startGateway();
       return;
     }
+    case "tools":
+      await runTools({ json: rest.includes("--json"), filter: rest.find((a) => !a.startsWith("--")) });
+      return;
+    case "call":
+      process.exit(await runCall(rest[0], rest[1]));
+      return;
     case "--help":
     case "-h":
     case undefined:

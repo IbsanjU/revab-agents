@@ -33,7 +33,7 @@ npx revab doctor        # tells you exactly what is still missing, and how to fi
 ### Every day
 
 ```powershell
-npx revab start         # terminal 1 — the gateway: all 76 tools, one process. Leave it running.
+npx revab start         # terminal 1 — the gateway: all 78 tools, one process. Leave it running.
 npm run worker          # terminal 2 — ONLY if you enqueue async tasks (test runs, reports)
 ```
 
@@ -49,7 +49,7 @@ Then, on either host:
 ### Is it working?
 
 ```powershell
-curl http://localhost:7300/health      # {"ok":true,"tools":76}
+curl http://localhost:7300/health      # {"ok":true,"tools":78}
 npx revab doctor                       # full config + connectivity report
 ```
 
@@ -131,7 +131,7 @@ individual `npm run serve:<name>` scripts still work unchanged for debugging a s
 | confluence | 7312 | repo-agnostic | `confluence_search`, `confluence_get_page` (text/html/structured formats), `confluence_get_children`, `confluence_get_attachments`, `confluence_download_attachment`, `confluence_get_comments`, `confluence_extract_links`, `confluence_create_page`, `confluence_update_page`, `confluence_add_comment`, `confluence_delete_page`, `confluence_save_page`, `confluence_upload_attachment` |
 | jtmf | 7313 | repo-agnostic | `jtmf_get_test_case`, `jtmf_search_tests`, `jtmf_get_test_plan`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`, `jtmf_raw_get` |
 | github | 7320 | repo-agnostic | `github_search_code`, `github_search_repos`, `github_search_issues`, `github_search_commits`, `github_search_topics`, `github_get_file`, `github_save_file` |
-| artifacts | 7314 | this repo only | `list_files`, `read_repo_file`, `knowledge_append`, `knowledge_search` |
+| artifacts | 7314 | this repo only | `list_files`, `read_repo_file`, `knowledge_append`, `knowledge_search`, `consensus_score` |
 | media | 7319 | this repo, or a manifest `project` | `get_file_metadata`, `read_pdf_text`, `read_docx_text`, `read_excel_rows`, `read_csv_rows`, `create_pdf`, `create_docx`, `ocr_image`, `ocr_pdf`, `read_diagram`, `create_diagram`, `media_extract_requirements` |
 | notify | 7321 | target-agnostic | `notify_teams`, `notify_email` — both dryRun-first |
 | git | 7322 | project-scoped (or this repo when `project` is omitted) | `git_log`, `git_branches`, `git_search` (commit-message search across all branches, or `git grep` content search at one ref), `git_diff`, `git_show` — all read-only, invoked directly (no shell) so free-text search terms can't be interpreted as shell syntax |
@@ -239,7 +239,7 @@ registered on the running server.
 
 ## Skills
 
-`skills/*/SKILL.md` — reusable playbooks composing existing MCP tools: `analyze-test-failures`, `detect-execution-convention`, `upload-to-jtmf`, `update-jira-epic`, `extract-requirements-from-image`, `extract-requirements-from-video`, `consolidate-project-report`, `build-test-plan-interactive`, `search-across-sources`, `structure-project-data`, `bulk-create-tickets`, `bulk-update-tickets`, `route-assignee`, `sprint-backlog-report`, `code-review`, `verify`, `simplify`, `security-review`, `review-against-spec`, `data-visualization`, `onboard-project`, `capture-learning`, `skillify`, `capture-correction`, `build-capability`, `self-check`, `test-design-techniques`, `route-to-specialist` (orchestrator: pick the right specialist + skill for a step), `review-delegated-work` (orchestrator: check a specialist's result against its own rules before aggregating), `qe-test-plan-builder` (test-planner: the formal enterprise 15-section banking/Confluence SIT/PAT/UAT test plan format — author/reconstruct/author-cases/revise + a bundled mechanical verification script — alongside test-planner's default lean Gherkin+traceability format).
+`skills/*/SKILL.md` — reusable playbooks composing existing MCP tools: `analyze-test-failures`, `detect-execution-convention`, `upload-to-jtmf`, `update-jira-epic`, `extract-requirements-from-image`, `extract-requirements-from-video`, `consolidate-project-report`, `build-test-plan-interactive`, `search-across-sources`, `structure-project-data`, `bulk-create-tickets`, `bulk-update-tickets`, `route-assignee`, `sprint-backlog-report`, `code-review`, `verify`, `simplify`, `security-review`, `review-against-spec`, `data-visualization`, `onboard-project`, `capture-learning`, `skillify`, `capture-correction`, `build-capability`, `self-check`, `test-design-techniques`, `route-to-specialist` (orchestrator: pick the right specialist + skill for a step), `review-delegated-work` (orchestrator: check a specialist's result against its own rules before aggregating), `adversarial-review` (orchestrator: independent parallel answers + a sourced critic + `consensus_score` for high-stakes or contested findings), `qe-test-plan-builder` (test-planner: the formal enterprise 15-section banking/Confluence SIT/PAT/UAT test plan format — author/reconstruct/author-cases/revise + a bundled mechanical verification script — alongside test-planner's default lean Gherkin+traceability format).
 
 ## Getting better over time
 
