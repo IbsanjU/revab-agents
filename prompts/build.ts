@@ -2,7 +2,14 @@
  * Renders every model-facing file from the typed specs + shared rule sources.
  *
  * Outputs (all carry a GENERATED banner; never hand-edit them):
- *   - .github/agents/<name>.agent.md   — self-contained persona (VS Code / Copilot)
+ *   - .github/agents/<name>.agent.md   — self-contained persona (VS Code / Copilot);
+ *                                        orchestrator's carries a real `agents: [...]`
+ *                                        field naming every other persona as a
+ *                                        dispatchable subagent (v1.106+ custom agents)
+ *   - .claude/agents/<name>.md         — native Claude Code subagent, one per persona;
+ *                                        `orchestrator`'s is meant to run the whole
+ *                                        session (`claude --agent orchestrator`) and
+ *                                        dispatch the rest via `subagent_type: "<name>"`
  *   - AGENTS.md                        — portable, host-neutral instructions (any agent tool)
  *   - .github/copilot-instructions.md  — regenerated from the same source (Copilot)
  *
@@ -16,6 +23,7 @@ import {
   GENERATED_BANNER,
   renderAgentMarkdown,
   renderAgentSection,
+  renderClaudeSubagentMarkdown,
 } from "./shared/skeleton.js";
 
 export interface GeneratedFile {
@@ -30,7 +38,7 @@ const SESSION_START = `Read \`knowledge/memory.md\` first (canonical framework f
 const BOUNDARY = [
   "**MCP tool** (new I/O: shell exec, external file access, HTTP) → `mcp-servers/*`.",
   "**Skill** (a reusable prompt playbook composing existing tools, no new I/O) → `skills/*/SKILL.md`.",
-  "**Agent** (a persona orchestrating skills/tools for a role) → author the spec in `prompts/agents/*.ts`, then `npm run build:prompts` (never hand-edit the generated `.agent.md`).",
+  "**Agent** (a persona orchestrating skills/tools for a role) → author the spec in `prompts/agents/*.ts`, then `npm run build:prompts` (never hand-edit a generated `.agent.md` or `.claude/agents/*.md`).",
 ];
 
 const COMMANDS = [
@@ -64,6 +72,8 @@ function renderAgentFlow(): string {
     "```",
     "",
     "The orchestrator holds no execution/write tools — it must delegate. Each specialist's \"You do NOT\" section names who takes over, so no agent quietly does another's job.",
+    "",
+    "**Delegation mechanism.** Both generated hosts give the orchestrator a REAL dispatch tool, not just prose: on Claude Code, `claude --agent orchestrator` makes the root session the orchestrator persona (`.claude/agents/orchestrator.md`), dispatching each specialist with the Task tool's `subagent_type: \"<name>\"` against its own `.claude/agents/<name>.md`. On VS Code (v1.106+ custom-agents system), `.github/agents/orchestrator.agent.md` carries a real `agents: [...]` frontmatter field naming every specialist plus the `agent` tool, so dispatch is an actual tool call there too. Both are generated 1:1 from the same `prompts/agents/<name>.ts` spec, so neither host drifts from the other. On a host with neither mechanism, it falls back to the async queue (`npm run task -- enqueue <type> …`); if that has no matching task type either, it must stop and name the specialist for the user to invoke by hand — never do that specialist's job inline.",
   ].join("\n");
 }
 
@@ -101,9 +111,19 @@ export function renderAll(): GeneratedFile[] {
   const files: GeneratedFile[] = [];
 
   for (const spec of AGENTS) {
+    const siblingNames = AGENTS.filter((s) => s.name !== spec.name).map((s) => s.name);
     files.push({
       path: `.github/agents/${spec.name}.agent.md`,
-      content: renderAgentMarkdown(spec),
+      content: renderAgentMarkdown(spec, siblingNames),
+    });
+
+    // Every persona gets a native Claude Code subagent file. Specialists are pure
+    // dispatch targets (`Task(subagent_type: "<name>")`); orchestrator's own file is
+    // meant to run the whole session (`claude --agent orchestrator`) and dispatch the
+    // rest — see renderClaudeSubagentMarkdown's isOrchestrator branch.
+    files.push({
+      path: `.claude/agents/${spec.name}.md`,
+      content: renderClaudeSubagentMarkdown(spec),
     });
   }
 

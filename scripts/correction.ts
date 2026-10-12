@@ -52,6 +52,33 @@ async function cmdLog(): Promise<void> {
   console.log(`Logged ${record.id} for "${record.agent}" (${record.severity}).`);
   console.log(`Next: fold this rule into prompts/agents/${record.agent}.ts, then:`);
   console.log(`  npm run build:prompts && npm run correction -- applied ${record.id}`);
+  await warnIfRepeatPattern(record.agent, record.id);
+}
+
+/**
+ * A repeated correction for the same agent is the strongest signal this log produces —
+ * don't let it wait for a `list` someone has to remember to run. Printed at log time so
+ * whoever's logging (usually mid-session) sees it immediately, not just at the next
+ * self-improve pass. See "Phase 3.5" in skills/capture-correction/SKILL.md.
+ */
+async function warnIfRepeatPattern(agent: string, justLoggedId: string): Promise<void> {
+  const groups = openByAgent(await readCorrections());
+  const group = groups.find((g) => g.agent === agent);
+  if (!group || group.records.length < 2) return;
+  const prior = group.records.filter((r) => r.id !== justLoggedId);
+  console.log(`\n⚠ REPEATED PATTERN: this is open correction #${group.records.length} for "${agent}".`);
+  console.log(`Prior open rule(s) for this agent:`);
+  for (const r of prior) console.log(`  [${r.id}] ${r.rule}`);
+  console.log(
+    `If the rule you just logged is the SAME underlying pattern (not a coincidence), don't leave ` +
+      `this queued for later — fold the generalized rule into prompts/agents/${agent}.ts in THIS turn, ` +
+      `then \`npm run build:prompts && npm run correction -- applied <id...>\` for all of them together.`,
+  );
+  console.log(
+    `If the same rule/theme is repeating across DIFFERENT agents too (check \`npm run correction -- list\`), ` +
+      `that's a framework-wide gap — it belongs in prompts/shared/conduct.ts (inlined into every persona), ` +
+      `not copy-pasted into each agent's spec.`,
+  );
 }
 
 async function cmdList(): Promise<void> {

@@ -21,9 +21,9 @@ export const planner: AgentSpec = {
     "Read",
     "Grep",
     "Glob",
-    "mcp__jira__jira_search",
-    "mcp__confluence__confluence_search",
-    "mcp__artifacts__knowledge_search",
+    "mcp__gateway__jira_search",
+    "mcp__gateway__confluence_search",
+    "mcp__gateway__knowledge_search",
   ],
   flow: [
     "Understand: restate the goal in one sentence; identify the `project` and the agents/tools/skills needed. Use `knowledge_search` for prior plans/learnings before proposing anything new.",
@@ -34,11 +34,13 @@ export const planner: AgentSpec = {
   always: [
     "Exhaust read-only exploration before asking anything discoverable from the manifest/knowledge/sources.",
     "For a genuine preference tradeoff, offer 2–4 concrete options with one marked recommended; if unanswered, proceed with the recommended one and record it as an assumption.",
+    "Include freshness gates in plans that depend on docs/tickets: require version or last-updated verification before implementation or write actions.",
   ],
   never: [
     "Never execute the plan yourself — hand off to the orchestrator.",
     "Never mark a plan finalized while the critique checklist has open blockers.",
   ],
+  skills: ["self-check"],
   handoff:
     "Hand the saved plan's path to **orchestrator** for execution; it threads that path through every task payload.",
 };

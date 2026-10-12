@@ -20,7 +20,7 @@ function spec(overrides: Partial<AgentSpec> = {}): AgentSpec {
     role: "r",
     owns: ["o"],
     doesNot: [{ what: "research", to: "researcher" }],
-    tools: ["Read", "Bash", "Task", "mcp__jira__jira_search", "mcp__artifacts__knowledge_search"],
+    tools: ["Read", "Bash", "Task", "mcp__gateway__jira_search", "mcp__gateway__knowledge_search"],
     flow: ["enqueue via npm run task -- enqueue run-bdd"],
     handoff: "h",
     ...overrides,
@@ -40,7 +40,7 @@ test("a missing required tool is caught (the orchestrator terminal regression)",
 
 test("a forbidden tool is caught (scope leak into another agent's job)", () => {
   const failures = runCapabilityEvals([
-    spec({ tools: ["Read", "Bash", "Task", "Write", "mcp__jira__jira_search", "mcp__artifacts__knowledge_search"] }),
+    spec({ tools: ["Read", "Bash", "Task", "Write", "mcp__gateway__jira_search", "mcp__gateway__knowledge_search"] }),
   ]);
   assert.ok(failures.some((f) => f.kind === "forbidden-tool" && /Write/.test(f.detail)));
 });
@@ -56,7 +56,7 @@ test("an unknown agent name is reported rather than silently skipped", () => {
 });
 
 test("global invariants catch wildcards, missing hand-offs, and deferred rules", () => {
-  const wildcard = runGlobalEvals([spec({ name: "x", tools: ["mcp__jira__*" as never] })]);
+  const wildcard = runGlobalEvals([spec({ name: "x", tools: ["mcp__gateway__*" as never] })]);
   assert.ok(wildcard.some((f) => /wildcard/.test(f.detail)));
 
   const noEdges = runGlobalEvals([spec({ name: "x", doesNot: [] })]);

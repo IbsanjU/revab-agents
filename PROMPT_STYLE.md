@@ -25,7 +25,7 @@ never loosen it.
 ## 3. Minimal, explicit tools
 
 List only the tools an agent actually uses — **no wildcards** (`jira/*` becomes the specific
-`mcp__jira__jira_search`, `mcp__jira__jira_get_issue`, …). Fewer tools = fewer equally-weighted
+`mcp__gateway__jira_search`, `mcp__gateway__jira_get_issue`, …). Fewer tools = fewer equally-weighted
 options = less flailing. If an agent needs a capability it shouldn't own, that's a hand-off, not a
 new tool grant.
 

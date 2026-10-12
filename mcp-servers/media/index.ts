@@ -17,6 +17,7 @@ import { resolveWithinRoot } from "../../utils/fsSafety.js";
 import { resolveProjectRepoPath } from "../../utils/manifest.js";
 import { parseDiagram } from "../../utils/diagramParse.js";
 import { execCommand } from "../../utils/exec.js";
+import { semanticBoolean } from "../../utils/semanticBoolean.js";
 import { semanticNumber } from "../../utils/semanticNumber.js";
 
 /**
@@ -801,11 +802,11 @@ startMcpHttpServer({
             .string()
             .optional()
             .describe("Where to save consolidated markdown; default is <input>/requirements-extract.md or <file>.requirements.md"),
-          recurse: z.boolean().optional().describe("If inputPath is a directory, include subdirectories (default false)"),
-          maxFiles: z.number().optional().describe("Max files to process from a directory (default 25)"),
+          recurse: semanticBoolean(z.boolean().optional()).describe("If inputPath is a directory, include subdirectories (default false)"),
+          maxFiles: semanticNumber(z.number().optional()).describe("Max files to process from a directory (default 25)"),
           lang: z.string().optional().describe("OCR language code for image/scanned PDF routes (default eng)"),
-          maxChars: z.number().optional().describe("Max chars to read from text-like sources (default 12000)"),
-          ocrConfidenceThreshold: z.number().optional().describe("Confidence threshold for OCR warning notes (default 60)"),
+          maxChars: semanticNumber(z.number().optional()).describe("Max chars to read from text-like sources (default 12000)"),
+          ocrConfidenceThreshold: semanticNumber(z.number().optional()).describe("Confidence threshold for OCR warning notes (default 60)"),
         },
       },
       async ({ inputPath, project, outputPath, recurse, maxFiles, lang, maxChars, ocrConfidenceThreshold }) => {

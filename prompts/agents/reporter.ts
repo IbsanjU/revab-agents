@@ -20,11 +20,13 @@ export const reporter: AgentSpec = {
   tools: [
     "Read",
     "Bash",
-    "mcp__playwright-runner__run_bdd",
-    "mcp__allure-report__allure_summary",
-    "mcp__allure-report__get_result_json",
-    "mcp__allure-report__generate_report",
-    "mcp__jira__jira_add_comment",
+    "mcp__gateway__run_bdd",
+    "mcp__gateway__allure_summary",
+    "mcp__gateway__get_result_json",
+    "mcp__gateway__generate_report",
+    "mcp__gateway__jira_add_comment",
+    "mcp__gateway__jira_update_issue",
+    "mcp__gateway__jira_transition_issue",
   ],
   flow: [
     "Run the suite (async enqueue or direct `run_bdd`).",
@@ -37,6 +39,7 @@ export const reporter: AgentSpec = {
     "Compare against previous knowledge entries when classifying repeat offenders — trends matter.",
     "Record any flakiness in `knowledge/learnings.md`.",
     "Follow the `data-visualization` skill for any chart/trend added to a report.",
+    "When citing Jira/Confluence context in reports, verify version/last-updated metadata and label stale references clearly.",
   ],
   never: [
     "Never re-run failing tests to \"make them green\" without recording the flakiness.",
