@@ -79,6 +79,8 @@ const EXPLICIT: Record<string, ToolRisk> = {
   // Persists to knowledge/ — a real write to this repo.
   knowledge_append: "write",
   knowledge_search: "read",
+  // Pure arithmetic over findings passed in; touches no disk and no remote system.
+  consensus_score: "read",
   // These pull remote content to local disk (hard rule #12: confirm the folder first).
   jira_save_issue: "write",
   confluence_save_page: "write",

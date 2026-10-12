@@ -37,6 +37,10 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
         because:
           "the async queue CLI (`npm run task -- enqueue`, `npm run worker`) is its delegation mechanism on hosts without a Task subagent tool — without a terminal it cannot dispatch anything",
       },
+      {
+        tool: "mcp__gateway__consensus_score",
+        because: "adversarial-review scores agreement with this tool; without it the orchestrator would be eyeballing consensus instead of computing it",
+      },
     ],
     mustNotHave: [
       { tool: "Write", because: "writing code/docs belongs to automation and documenter" },
