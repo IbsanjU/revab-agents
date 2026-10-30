@@ -3,6 +3,10 @@
     "gateway": {
       "type": "http",
       "url": "http://localhost:7300/mcp"
+    },
+    "gateway-code": {
+      "type": "http",
+      "url": "http://localhost:7300/mcp/code"
     }
   }
 }

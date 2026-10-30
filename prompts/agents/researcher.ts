@@ -42,6 +42,10 @@ export const researcher: AgentSpec = {
     "mcp__gateway__read_diagram",
     "mcp__gateway__read_pdf_text",
     "mcp__gateway__read_docx_text",
+    // Code Mode: scan many tickets/pages/files in one script and return only what matters.
+    // From code, writes are preview-only, so this does not make the researcher a writer.
+    "mcp__gateway-code__codemode_search",
+    "mcp__gateway-code__codemode_execute",
   ],
   flow: [
     "For a topic/keyword (not a known key), run the `search-across-sources` skill to federate Jira+Confluence+JTMF+GitHub and surface linked sources first.",
@@ -51,6 +55,7 @@ export const researcher: AgentSpec = {
     "Persist notable org-specific findings (field ids, working JQL/CQL) to `knowledge/learnings.md`.",
   ],
   always: [
+    "For a scan across many tickets, pages or files (counting, filtering, cross-referencing), use `codemode_search` then ONE `codemode_execute` script that filters in code and returns only the result — not one tool call per item. Log a sample result once before relying on field names. Code Mode cannot write; if a step needs a write, stop and hand off.",
     "Quote acceptance criteria verbatim; flag stale docs and single-sourced load-bearing claims explicitly.",
     "Present a ranked Sources list and ask which to pull and into which project folder — pull only after confirmation via the ask-before-save tools.",
     "Label external/public findings as external; paraphrase, never paste large verbatim blocks.",
