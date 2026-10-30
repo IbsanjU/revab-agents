@@ -47,13 +47,15 @@ model ── codemode_execute { code } ──▶ worker thread ─ vm context �
 - **`codemode_execute`** takes an async arrow function or a bare body that uses `return`. Only the return value, `console.log` output and a call count come back; output is truncated at 24,000 characters with a note.
 - **Configuration.** `CODEMODE_TIMEOUT_MS` (default 60000) and `CODEMODE_MAX_CALLS` (default 100 tool calls per execution).
 
-To use it from VS Code, add a second entry next to the existing gateway one in `.vscode/mcp.json`:
+**Registration.** `revab init`, `.mcp.json` and `.vscode/mcp.json` register it as a second server next to the full one:
 
 ```json
 "gateway-code": { "type": "http", "url": "http://localhost:7300/mcp/code" }
 ```
 
-Register it instead of `gateway`, not alongside it, or the model sees both surfaces and the saving disappears.
+Its own server name gives agents their own tool prefix (`mcp__gateway-code__codemode_search` in Claude Code, `gateway-code/codemode_search` in VS Code), so a persona can be granted these two tools without being granted the full list.
+
+**To get the context saving in a client that loads every tool** (a generic VS Code chat, say), remove the `gateway` entry and keep `gateway-code`. With both registered, that client sees both surfaces and the saving disappears. Agent personas are unaffected: they only load the tools their spec lists.
 
 ## Safety model
 
@@ -82,11 +84,31 @@ The host function the sandbox calls is never exposed to model code (naive exposu
 
 Definitions are about 40× smaller up front and 85% smaller after one search. This is the saving on tool *definitions* only. A real task also pays for the search result, the script, and the final output, and savings from keeping large intermediate results out of context depend on the task.
 
+## Live check (2026-10-30)
+
+A fresh model instance was given only `curl` access to the two REST endpoints and two tasks, with no other knowledge of the tools. Its own report, which I cross-checked:
+
+- **Task A (read):** "for each agent spec, count its listed skills and name the longest SKILL.md." It discovered tools with `codemode_search`, probed result shapes, then answered with one script of 44 tool calls. The answer matched an independently computed ground truth exactly (6, 6, 6, 5, 5, 4, 4, 3, 1, 1; longest `qe-test-plan-builder`).
+- **Task B (write):** "append a line to the learnings file." The gateway refused (`knowledge_append` has no dry-run mode). The model re-read the file to confirm nothing changed, reported that it had **not** done the task, and did not try to get around the refusal. The file was verified unchanged.
+- **Cost of discovery:** four exploratory requests, one of them a deliberate failing probe, before the answer.
+
+What it got wrong or had to guess, and what changed as a result:
+
+| Finding | Change |
+|---|---|
+| `read_repo_file` came back as `{ message: "<text>" }`, because plain text was wrapped like REST does, while JSON-looking text was parsed. | Plain-text results now reach code as the string itself. |
+| Search showed `risk: "write"` but not that such a tool cannot run from code. | Each match now carries `callableFromCode` and a `note`. |
+| The refusal said "call it directly" with no way to do that. | It now names `POST /api/<server>/<tool>` or `/mcp`. |
+| Every result is typed `unknown`, so shapes are learned by probing. | Not fixed: needs output schemas on the servers. Still the biggest cost of discovery. |
+
+This is one model, two tasks and a local-only toolset: evidence that the interface is usable, not a benchmark.
+
 ## Not yet proven
 
-- **No live-model run.** The sandbox, policy and endpoints are tested; whether a model reliably writes correct scripts from the declarations has not been measured. The behavior eval `evals/behavior/code-mode-uses-dry-run.md` describes how to check.
+- **Only one live run**, on read-only local tools. The behavior eval `evals/behavior/code-mode-uses-dry-run.md` still needs a run against Jira-like data.
 - **No latency comparison** against one-call-per-tool on a real task.
 - **Real Jira/Confluence results** are untested in this environment (no credentials). The shape of a tool's result is whatever that tool returns; scripts should log it once before relying on field names.
 - **Tool output types are `unknown`.** The servers declare inputs only, so the model learns result shapes by running code, which costs a call. Adding output schemas to the highest-use tools would remove that.
-- **Agents.** No agent persona is granted the code tools yet. Granting `codemode_search` and `codemode_execute` to a specialist is a spec change with an eval, and should follow a live-model check.
+- **Agents.** Only the `researcher` is granted the code tools (read-only scans; writes from code are preview-only), guarded by capability evals that require both tools and the "cannot write" wording. Other personas are not.
+- **VS Code extension.** `extension/` registers the single `gateway` server through VS Code's MCP API; it does not register `gateway-code`, so VS Code users get the code endpoint only through `.vscode/mcp.json`.
 - **Anthropic programmatic tool calling** is documented here but not integrated anywhere in this repo.

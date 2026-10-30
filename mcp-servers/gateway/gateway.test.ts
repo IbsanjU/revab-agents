@@ -168,5 +168,13 @@ test("codemode_search finds real tools by keyword", async () => {
   const { body } = await post("/api/codemode/codemode_search", { query: "confluence page" });
   const names = (body.matches as Array<{ name: string }>).map((m) => m.name);
   assert.ok(names.some((n) => n.startsWith("confluence_")), names.join(", "));
+  assert.ok((body.matches as Array<{ callableFromCode: boolean }>).every((m) => typeof m.callableFromCode === "boolean"));
   assert.match(String(body.declarations), /declare const codemode/);
+});
+
+test("a file read from code is the text itself, not a wrapper object", async () => {
+  const { body } = await post("/api/codemode/codemode_execute", {
+    code: `async () => { const t = await codemode.read_repo_file({ filePath: "AGENTS.md" }); return { type: typeof t, startsWithHash: t.startsWith("#") || t.length > 0 }; }`,
+  });
+  assert.deepEqual(body.result, { type: "string", startsWithHash: true });
 });

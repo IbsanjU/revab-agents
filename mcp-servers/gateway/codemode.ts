@@ -30,13 +30,31 @@ export const DEFAULT_OPTIONS: CodeModeOptions = {
   maxOutputChars: 24_000,
 };
 
+/**
+ * A tool's result as code should see it: parsed JSON when the text is JSON, otherwise the text
+ * itself. (REST wraps plain text as `{ message }`, which made file contents arrive as an object
+ * in one case and a parsed value in another; code gets the string, or the parsed value.)
+ */
 const unwrap = (result: McpToolResult): unknown => {
   const text = result.content?.map((c) => c.text ?? "").join("\n") ?? "";
   try {
     return JSON.parse(text);
   } catch {
-    return { message: text };
+    return text;
   }
+};
+
+/** Where to go when a tool cannot run from code: the same tool, called directly. */
+const directCallHint = (tool: CapturedTool): string =>
+  `Call it directly (POST /api/${tool.server}/${tool.name}, or from a client connected to /mcp) after the user approves.`;
+
+/** A write tool can run from code only as a dry-run preview, and only if it has a dryRun input. */
+export const codeAccess = (tool: CapturedTool): { callableFromCode: boolean; note?: string } => {
+  if (classifyTool(tool.name) !== "write") return { callableFromCode: true };
+  if ("dryRun" in tool.inputSchema) {
+    return { callableFromCode: true, note: "write tool: from code it only previews (dryRun is forced to true); apply it with a direct call after approval" };
+  }
+  return { callableFromCode: false, note: `write tool with no dryRun mode: not callable from code. ${directCallHint(tool)}` };
 };
 
 /**
@@ -61,7 +79,7 @@ export function createToolCaller(tools: CapturedTool[], maxCalls: number): ToolC
       if (classifyTool(name) === "write") {
         if (!("dryRun" in tool.inputSchema)) {
           throw new Error(
-            `"${name}" changes state and has no dryRun mode, so it cannot be called from code. Call it directly after the user approves.`,
+            `"${name}" changes state and has no dryRun mode, so it cannot be called from code. ${directCallHint(tool)}`,
           );
         }
         input = { ...input, dryRun: true };
@@ -75,8 +93,7 @@ export function createToolCaller(tools: CapturedTool[], maxCalls: number): ToolC
       const result = await tool.handler(parsed.data as Record<string, unknown>);
       const body = unwrap(result);
       if (result.isError) {
-        const message = (body as { message?: string }).message ?? "Tool failed";
-        throw new Error(message);
+        throw new Error(typeof body === "string" ? body : JSON.stringify(body));
       }
       return JSON.stringify({ ok: body ?? null });
     } catch (err) {
@@ -110,7 +127,7 @@ export function buildCodeModeTools(tools: CapturedTool[], options: Partial<CodeM
           return textResult({ matches: [], hint: "No tools matched. Try fewer or different keywords." });
         }
         return textResult({
-          matches: matches.map((t) => ({ name: t.name, server: t.server, risk: classifyTool(t.name) })),
+          matches: matches.map((t) => ({ name: t.name, server: t.server, risk: classifyTool(t.name), ...codeAccess(t) })),
           declarations: generateTypes(matches),
           usage: "codemode_execute({ code: \"async () => { return await codemode.<tool>({ ... }); }\" })",
         });

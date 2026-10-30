@@ -51,6 +51,7 @@ test("a write tool with no dryRun mode is refused and never reaches its handler"
   const { tools, seen } = fakeTools();
   const reply = JSON.parse(await createToolCaller(tools, 10)("jira_delete_issue", { key: "A-1" }));
   assert.match(reply.error, /cannot be called from code/);
+  assert.match(reply.error, /POST \/api\/fake\/jira_delete_issue/, "must say how to call it directly");
   assert.equal(seen.length, 0);
 });
 
@@ -59,7 +60,7 @@ test("unknown tools, invalid input and upstream errors come back as errors, neve
   const caller = createToolCaller(tools, 10);
   assert.match(JSON.parse(await caller("nope", {})).error, /Unknown tool "nope"/);
   assert.match(JSON.parse(await caller("jira_search", { jql: 5 })).error, /Invalid input for jira_search: jql/);
-  assert.equal(JSON.parse(await caller("jira_get_boom", {})).error, "upstream 500");
+  assert.match(JSON.parse(await caller("jira_get_boom", {})).error, /upstream 500/);
 });
 
 test("the call budget is enforced", async () => {
@@ -122,4 +123,33 @@ test("search returns ranked tools with risk and declarations", async () => {
   assert.match(out.declarations, /declare const codemode/);
   const none = JSON.parse((await search!.handler({ query: "zzzz" })).content[0]!.text);
   assert.deepEqual(none.matches, []);
+});
+
+test("plain-text tool results reach code as the string itself, JSON as a parsed value", async () => {
+  const plain: CapturedTool = {
+    server: "fake", name: "read_text", description: "d", inputSchema: {},
+    handler: async () => ({ content: [{ type: "text" as const, text: "line one\nline two" }] }),
+  };
+  const json: CapturedTool = {
+    server: "fake", name: "read_json", description: "d", inputSchema: {},
+    handler: async () => ({ content: [{ type: "text" as const, text: '{"a":1}' }] }),
+  };
+  const caller = createToolCaller([plain, json], 5);
+  assert.equal(JSON.parse(await caller("read_text", {})).ok, "line one\nline two");
+  assert.deepEqual(JSON.parse(await caller("read_json", {})).ok, { a: 1 });
+});
+
+test("search says which matched tools can run from code, and why not", async () => {
+  const { tools } = fakeTools();
+  const [search] = buildCodeModeTools(tools);
+  const out = JSON.parse((await search!.handler({ query: "jira" })).content[0]!.text) as {
+    matches: Array<{ name: string; callableFromCode: boolean; note?: string }>;
+  };
+  const by = Object.fromEntries(out.matches.map((m) => [m.name, m]));
+  assert.equal(by.jira_search!.callableFromCode, true);
+  assert.equal(by.jira_search!.note, undefined);
+  assert.equal(by.jira_create_issue!.callableFromCode, true);
+  assert.match(by.jira_create_issue!.note ?? "", /only previews/);
+  assert.equal(by.jira_delete_issue!.callableFromCode, false);
+  assert.match(by.jira_delete_issue!.note ?? "", /direct call|Call it directly/);
 });

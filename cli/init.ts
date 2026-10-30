@@ -49,6 +49,9 @@ async function ensureEnv(root: string, force: boolean): Promise<void> {
 async function ensureMcpConfig(root: string, port: number): Promise<void> {
   const target = path.join(root, ".vscode", "mcp.json");
   const gateway = { type: "http", url: `http://localhost:${port}/mcp` };
+  // Code Mode: the same gateway, but only two small tools (search + execute a script).
+  // A separate entry gives agents their own tool prefix: mcp__gateway-code__codemode_*.
+  const gatewayCode = { type: "http", url: `http://localhost:${port}/mcp/code` };
   // The official @playwright/mcp browser server is NOT hosted by our gateway, so it
   // needs its own entry (started by `npm run serve:playwright`).
   const playwright = { type: "http", url: "http://localhost:7315/mcp" };
@@ -57,10 +60,10 @@ async function ensureMcpConfig(root: string, port: number): Promise<void> {
     await fs.mkdir(path.dirname(target), { recursive: true });
     await fs.writeFile(
       target,
-      JSON.stringify({ servers: { gateway, playwright } }, null, 2) + "\n",
+      JSON.stringify({ servers: { gateway, "gateway-code": gatewayCode, playwright } }, null, 2) + "\n",
       "utf8",
     );
-    report("created", ".vscode/mcp.json", "gateway + playwright registered");
+    report("created", ".vscode/mcp.json", "gateway + gateway-code + playwright registered");
     return;
   }
 
@@ -73,11 +76,11 @@ async function ensureMcpConfig(root: string, port: number): Promise<void> {
     return;
   }
   config.servers ??= {};
-  if (config.servers.gateway) {
+  if (config.servers.gateway && config.servers["gateway-code"]) {
     report("skipped", ".vscode/mcp.json", "gateway already registered");
     return;
   }
-  config.servers = { gateway, ...config.servers };
+  config.servers = { gateway, "gateway-code": gatewayCode, ...config.servers };
   await fs.writeFile(target, JSON.stringify(config, null, 2) + "\n", "utf8");
   report("updated", ".vscode/mcp.json", "gateway added alongside existing entries");
 }
@@ -93,10 +96,11 @@ async function ensureMcpConfig(root: string, port: number): Promise<void> {
 async function ensureClaudeCodeMcpConfig(root: string, port: number): Promise<void> {
   const target = path.join(root, ".mcp.json");
   const gateway = { type: "http", url: `http://localhost:${port}/mcp` };
+  const gatewayCode = { type: "http", url: `http://localhost:${port}/mcp/code` };
 
   if (!(await exists(target))) {
-    await fs.writeFile(target, JSON.stringify({ mcpServers: { gateway } }, null, 2) + "\n", "utf8");
-    report("created", ".mcp.json", "gateway registered for Claude Code (approve it on first `claude` run)");
+    await fs.writeFile(target, JSON.stringify({ mcpServers: { gateway, "gateway-code": gatewayCode } }, null, 2) + "\n", "utf8");
+    report("created", ".mcp.json", "gateway + gateway-code registered for Claude Code (approve them on first `claude` run)");
     return;
   }
 
@@ -109,11 +113,11 @@ async function ensureClaudeCodeMcpConfig(root: string, port: number): Promise<vo
     return;
   }
   config.mcpServers ??= {};
-  if (config.mcpServers.gateway) {
+  if (config.mcpServers.gateway && config.mcpServers["gateway-code"]) {
     report("skipped", ".mcp.json", "gateway already registered");
     return;
   }
-  config.mcpServers = { gateway, ...config.mcpServers };
+  config.mcpServers = { gateway, "gateway-code": gatewayCode, ...config.mcpServers };
   await fs.writeFile(target, JSON.stringify(config, null, 2) + "\n", "utf8");
   report("updated", ".mcp.json", "gateway added alongside existing entries");
 }
