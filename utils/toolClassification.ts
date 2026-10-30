@@ -81,6 +81,10 @@ const EXPLICIT: Record<string, ToolRisk> = {
   knowledge_search: "read",
   // Pure arithmetic over findings passed in; touches no disk and no remote system.
   consensus_score: "read",
+  // Runs model-written code. Fail-closed on purpose: it asks for confirmation like a write, even though
+  // writes from code are forced to dryRun, because the script itself is the thing worth reviewing.
+  codemode_execute: "write",
+  codemode_search: "read",
   // These pull remote content to local disk (hard rule #12: confirm the folder first).
   jira_save_issue: "write",
   confluence_save_page: "write",
