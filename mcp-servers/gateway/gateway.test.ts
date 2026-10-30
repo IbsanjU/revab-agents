@@ -56,7 +56,8 @@ test("every tool exposes a description and is reachable at /api/<server>/<tool>"
   }
   const res = await fetch(`${baseUrl}/api/tools`);
   const body = (await res.json()) as { tools: Array<{ endpoint: string }> };
-  assert.equal(body.tools.length, tools.length);
+  // Discovery lists the hosted tools plus the two Code Mode tools that script them.
+  assert.equal(body.tools.length, tools.length + 2);
   assert.ok(body.tools.every((t) => t.endpoint.startsWith("/api/")));
 });
 
@@ -114,3 +115,58 @@ test("the MCP surface lists the same tools and rejects stateless GET", async () 
   assert.equal(getRes.status, 405);
 });
 
+
+async function mcpToolNames(path: string): Promise<string[]> {
+  const res = await fetch(`${baseUrl}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }),
+  });
+  const text = await res.text();
+  const json = JSON.parse(text.includes("data:") ? text.split("data:")[1]!.trim() : text) as {
+    result: { tools: Array<{ name: string }> };
+  };
+  return json.result.tools.map((t) => t.name);
+}
+
+test("Code Mode is served on its own endpoint with exactly two tools, leaving /mcp untouched", async () => {
+  const code = await mcpToolNames("/mcp/code");
+  assert.deepEqual(code.sort(), ["codemode_execute", "codemode_search"]);
+  const all = await mcpToolNames("/mcp");
+  assert.equal(all.length, tools.length);
+  assert.ok(!all.includes("codemode_execute"), "/mcp must not gain code tools");
+  assert.equal((await fetch(`${baseUrl}/mcp/code`)).status, 405);
+});
+
+test("Code Mode tools are discoverable over REST and classified fail-closed", async () => {
+  const res = await fetch(`${baseUrl}/api/tools`);
+  const { tools: listed } = (await res.json()) as { tools: Array<{ name: string; risk: string }> };
+  assert.equal(listed.find((t) => t.name === "codemode_search")?.risk, "read");
+  assert.equal(listed.find((t) => t.name === "codemode_execute")?.risk, "write");
+});
+
+test("codemode_execute runs a script against the real tools and returns only the result", async () => {
+  const { status, body } = await post("/api/codemode/codemode_execute", {
+    code: `async () => {
+      const hits = await codemode.knowledge_search({ query: "orchestrator" });
+      return { type: typeof hits, calls: 1 };
+    }`,
+  });
+  assert.equal(status, 200, JSON.stringify(body));
+  assert.equal((body.result as { calls: number }).calls, 1);
+  assert.equal(body.toolCalls, 1);
+});
+
+test("codemode_execute cannot apply a write from code", async () => {
+  const { body } = await post("/api/codemode/codemode_execute", {
+    code: `try { await codemode.knowledge_append({ entry: "from code" }); return "wrote" } catch (e) { return e.message }`,
+  });
+  assert.match(String(body.result), /cannot be called from code|dryRun/);
+});
+
+test("codemode_search finds real tools by keyword", async () => {
+  const { body } = await post("/api/codemode/codemode_search", { query: "confluence page" });
+  const names = (body.matches as Array<{ name: string }>).map((m) => m.name);
+  assert.ok(names.some((n) => n.startsWith("confluence_")), names.join(", "));
+  assert.match(String(body.declarations), /declare const codemode/);
+});

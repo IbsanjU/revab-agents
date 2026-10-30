@@ -28,6 +28,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { intEnv, optionalEnv } from "../shared/config.js";
 import { captureAllTools, type CapturedTool } from "./tools.js";
+import { buildCodeModeTools } from "./codemode.js";
 import { classifyTool } from "../../utils/toolClassification.js";
 
 const PORT = intEnv("GATEWAY_MCP_PORT", 7300);
@@ -64,13 +65,20 @@ export function buildApp(tools: CapturedTool[]): express.Express {
   const app = express();
   app.use(express.json({ limit: "8mb" }));
 
+  // Code Mode: two tools that script the other 78. Served on /mcp/code and over REST, never
+  // mixed into /mcp, so existing clients see exactly the tools they always did.
+  const codeTools = buildCodeModeTools(tools, {
+    timeoutMs: intEnv("CODEMODE_TIMEOUT_MS", 60_000),
+    maxCalls: intEnv("CODEMODE_MAX_CALLS", 100),
+  });
+
   app.get("/health", (_req: Request, res: Response) => {
-    res.json({ ok: true, name: "gateway", tools: tools.length });
+    res.json({ ok: true, name: "gateway", tools: tools.length, codeMode: codeTools.map((t) => t.name) });
   });
 
   app.get("/api/tools", sharedSecretGuard, (_req: Request, res: Response) => {
     res.json({
-      tools: tools.map((t) => ({
+      tools: [...tools, ...codeTools].map((t) => ({
         server: t.server,
         name: t.name,
         description: t.description,
@@ -88,10 +96,10 @@ export function buildApp(tools: CapturedTool[]): express.Express {
   });
 
   // --- MCP surface ---------------------------------------------------------
-  app.post("/mcp", sharedSecretGuard, async (req: Request, res: Response) => {
+  const serveMcp = (name: string, served: CapturedTool[]) => async (req: Request, res: Response) => {
     try {
-      const server = new McpServer({ name: "revab-gateway", version: "0.1.0" });
-      for (const tool of tools) {
+      const server = new McpServer({ name, version: "0.1.0" });
+      for (const tool of served) {
         server.registerTool(
           tool.name,
           { description: tool.description, inputSchema: tool.inputSchema },
@@ -115,7 +123,9 @@ export function buildApp(tools: CapturedTool[]): express.Express {
         });
       }
     }
-  });
+  };
+  app.post("/mcp", sharedSecretGuard, serveMcp("revab-gateway", tools));
+  app.post("/mcp/code", sharedSecretGuard, serveMcp("revab-gateway-code", codeTools));
 
   const methodNotAllowed = (_req: Request, res: Response) => {
     res.status(405).json({
@@ -124,11 +134,13 @@ export function buildApp(tools: CapturedTool[]): express.Express {
       id: null,
     });
   };
-  app.get("/mcp", methodNotAllowed);
-  app.delete("/mcp", methodNotAllowed);
+  for (const path of ["/mcp", "/mcp/code"]) {
+    app.get(path, methodNotAllowed);
+    app.delete(path, methodNotAllowed);
+  }
 
   // --- REST surface --------------------------------------------------------
-  const byRoute = new Map(tools.map((t) => [`${t.server}/${t.name}`, t]));
+  const byRoute = new Map([...tools, ...codeTools].map((t) => [`${t.server}/${t.name}`, t]));
 
   app.post("/api/:server/:tool", sharedSecretGuard, async (req: Request, res: Response) => {
     const key = `${req.params.server}/${req.params.tool}`;
@@ -170,7 +182,8 @@ export async function startGateway(): Promise<void> {
   app.listen(PORT, "127.0.0.1", () => {
     console.log(
       `[gateway] ${tools.length} tools from ${servers} servers on http://localhost:${PORT} (loopback only)\n` +
-        `[gateway]   MCP   POST /mcp\n` +
+        `[gateway]   MCP   POST /mcp        (all tools)\n` +
+        `[gateway]   MCP   POST /mcp/code   (Code Mode: codemode_search + codemode_execute)\n` +
         `[gateway]   REST  POST /api/<server>/<tool>   (GET /api/tools to discover)`,
     );
   });
