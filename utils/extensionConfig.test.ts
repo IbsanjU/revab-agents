@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   chatAgentEntries,
+  bundledHomePath,
   extensionId,
   isRevabGatewayEntry,
   removeGatewayEntries,
@@ -81,4 +82,28 @@ test("an approvals map that becomes empty is dropped, not left as {}", () => {
 test("file and id naming", () => {
   assert.equal(vsixFileName({ name: "revab-agents", version: "0.2.0" }), "revab-agents-0.2.0.vsix");
   assert.equal(extensionId({ publisher: "your-org", name: "revab-agents" }), "your-org.revab-agents");
+});
+
+test("the bundled home path follows each platform's VS Code layout, lowercases the id, and honours an override", () => {
+  const id = "Your-Org.revab-agents";
+  assert.equal(
+    bundledHomePath({ platform: "linux", env: {}, homedir: "/home/u", extensionId: id }),
+    "/home/u/.config/Code/User/globalStorage/your-org.revab-agents/home",
+  );
+  assert.equal(
+    bundledHomePath({ platform: "linux", env: { XDG_CONFIG_HOME: "/xdg" }, homedir: "/home/u", extensionId: id }),
+    "/xdg/Code/User/globalStorage/your-org.revab-agents/home",
+  );
+  assert.equal(
+    bundledHomePath({ platform: "darwin", env: {}, homedir: "/Users/u", extensionId: id }),
+    "/Users/u/Library/Application Support/Code/User/globalStorage/your-org.revab-agents/home",
+  );
+  assert.equal(
+    bundledHomePath({ platform: "win32", env: { APPDATA: "C:\\Users\\u\\AppData\\Roaming" }, homedir: "C:\\Users\\u", extensionId: id }),
+    "C:\\Users\\u\\AppData\\Roaming\\Code\\User\\globalStorage\\your-org.revab-agents\\home",
+  );
+  assert.equal(
+    bundledHomePath({ platform: "linux", env: {}, homedir: "/h", extensionId: id, userDataDir: "/custom/insiders" }),
+    "/custom/insiders/User/globalStorage/your-org.revab-agents/home",
+  );
 });

@@ -19,6 +19,10 @@ Constraints to design around:
 - Disabling a tool an agent's spec lists would break that agent. The picker should warn, and the capability evals (`npm run eval`) remain the check.
 - Credentials are per machine, not per workspace: store them at user scope.
 
-## Phase 3 (optional): no clone at all
+## Phase 3 (built): no clone at all
 
-Bundle the gateway into the VSIX and run it with `node`, with its own data folder (`REVAB_HOME`) for projects, knowledge and skills instead of the process working directory. Larger: the gateway and its servers read `process.cwd()` in several places, and the PDF and OCR dependencies may not bundle cleanly.
+Delivered. The gateway is bundled into the VSIX (esbuild, one 5.5 MB file plus `tesseract.js`, `pdfkit` and `pdf-parse` with their dependencies, 27 MB compressed, JavaScript and WASM only) and runs with `node`. No `REVAB_HOME` variable was needed: every read goes through `process.cwd()`, so the extension simply runs the gateway in a home folder it creates in its own storage (`extension/src/seed.ts`). See `extension/README.md`.
+
+What the survey found and how it was handled: only one `import.meta.url` (the main-module guard, disabled in the bundle by `REVAB_BUNDLED`), one variable dynamic import (`mcp-servers/gateway/tools.ts`, now literal loaders), and `pdf-parse`, which cannot load without a platform-specific native canvas; that is loaded lazily with inert stand-ins when the canvas is absent (`utils/pdfParse.ts`), so the VSIX stays platform-neutral.
+
+Still open: the bundle has only run on Linux; the task queue and `build:prompts` need a checkout; OCR needs network on first use.

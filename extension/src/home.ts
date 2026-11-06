@@ -51,6 +51,38 @@ export function resolveHome(input: {
   return { source: "none" };
 }
 
+export type Runtime =
+  | { mode: "checkout"; home: string; source: "setting" | "workspace" }
+  | { mode: "bundled"; home: string; bundle: string }
+  | { mode: "none"; problem?: string };
+
+/**
+ * Where the gateway runs, in priority order:
+ *  1. `revab.home`, when set (a bad value is reported, never silently replaced);
+ *  2. an open folder that is itself a framework checkout;
+ *  3. the extension's own bundled gateway and home folder, so no clone is needed.
+ */
+export function resolveRuntime(input: {
+  configured: string | undefined;
+  workspaceFolders: string[];
+  /** The extension's own data folder for bundled mode. */
+  bundledHome: string;
+  /** Path of the bundled gateway file, or undefined when this build has none (a source checkout run from F5). */
+  bundleFile: string | undefined;
+  fs: FsLike;
+}): Runtime {
+  const checkout = resolveHome({ configured: input.configured, workspaceFolders: input.workspaceFolders, fs: input.fs });
+  if (checkout.home) return { mode: "checkout", home: checkout.home, source: checkout.source };
+  if (checkout.problem) return { mode: "none", problem: checkout.problem };
+  if (input.bundleFile) return { mode: "bundled", home: input.bundledHome, bundle: input.bundleFile };
+  return { mode: "none" };
+}
+
+/** Launch the bundled gateway: plain node on one file; the home folder is its working directory. */
+export function bundledLaunch(bundle: string, home: string, port: number, nodePath = "node"): Launch {
+  return { command: nodePath, args: [bundle, "start"], cwd: home, env: { GATEWAY_MCP_PORT: String(port) } };
+}
+
 export interface Launch {
   command: string;
   args: string[];

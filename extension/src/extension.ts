@@ -5,9 +5,10 @@
  * whichever folder is open:
  *  - the orchestrator and specialist agents are bundled (`contributes.chatAgents`),
  *  - the gateway's tools are registered with the editor's MCP support,
- *  - one shared gateway runs in the background, started detached from the framework
- *    checkout named by `revab.home`, so closing a window does not take the tools away from
- *    the others.
+ *  - one shared gateway runs in the background, so closing a window does not take the tools
+ *    away from the others. It runs from a framework checkout named by `revab.home` (or an open
+ *    folder that is one), or, with no checkout at all, from the gateway bundled in this
+ *    extension and a home folder in the extension's own storage.
  *
  * On approval prompts, honestly: per-call confirmation is a VS Code security setting owned by
  * the user/workspace. An extension can *suggest* sensible defaults — and
@@ -16,8 +17,20 @@
  */
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
+import * as path from "node:path";
 import * as vscode from "vscode";
-import { gatewayLaunch, parsePid, resolveHome, runtimePaths, tailLines, type FsLike } from "./home.js";
+import {
+  bundledLaunch,
+  gatewayLaunch,
+  parsePid,
+  resolveHome,
+  resolveRuntime,
+  runtimePaths,
+  tailLines,
+  type FsLike,
+  type Runtime,
+} from "./home.js";
+import { MARKER, parseInstalledVersion, planSeed, type SeedFs } from "./seed.js";
 import {
   SECRETS,
   agentToolRefs,
@@ -87,12 +100,61 @@ async function gatewayFetch(port: number, path: string): Promise<Response> {
   return fetch(`http://127.0.0.1:${port}${path}`, { headers: sharedSecretHeaders(await readSecrets()) });
 }
 
-function home() {
-  return resolveHome({
+let extensionPath = "";
+let bundledHome = "";
+
+/** The bundled gateway file, when this build of the extension ships one. */
+function bundleFile(): string | undefined {
+  const file = path.join(extensionPath, "bundle", "revab.cjs");
+  return fs.existsSync(file) ? file : undefined;
+}
+
+function runtime(): Runtime {
+  return resolveRuntime({
     configured: config().home,
     workspaceFolders: (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath),
+    bundledHome,
+    bundleFile: bundleFile(),
     fs: realFs,
   });
+}
+
+/** The working directory the gateway uses, in either mode. */
+function homeDir(): string | undefined {
+  const r = runtime();
+  return r.mode === "none" ? undefined : r.home;
+}
+
+const seedFs: SeedFs = {
+  exists: (p) => fs.existsSync(p),
+  walk: (dir) => {
+    const out: string[] = [];
+    const visit = (d: string, prefix: string): void => {
+      for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+        if (e.isDirectory()) visit(path.join(d, e.name), `${prefix}${e.name}/`);
+        else out.push(`${prefix}${e.name}`);
+      }
+    };
+    if (fs.existsSync(dir)) visit(dir, "");
+    return out;
+  },
+};
+
+/** Create or refresh the bundled home from the shipped templates. Never deletes or overwrites user data. */
+function ensureSeeded(home: string): void {
+  const templates = path.join(extensionPath, "resources", "home");
+  const version = (JSON.parse(fs.readFileSync(path.join(extensionPath, "package.json"), "utf8")) as { version: string }).version;
+  fs.mkdirSync(home, { recursive: true });
+  const installedVersion = parseInstalledVersion(safeRead(path.join(home, MARKER)));
+  const actions = planSeed({ templates, home, version, installedVersion, fs: seedFs });
+  for (const a of actions) {
+    fs.mkdirSync(path.dirname(a.to), { recursive: true });
+    fs.copyFileSync(a.from, a.to);
+  }
+  if (actions.length > 0 || installedVersion !== version) {
+    fs.writeFileSync(path.join(home, MARKER), `${JSON.stringify({ version }, null, 2)}\n`);
+    OUTPUT.appendLine(`[revab] home ${installedVersion ? "updated" : "created"} at ${home} (${actions.length} file(s))`);
+  }
 }
 
 function setStatus(state: "running" | "stopped" | "starting"): void {
@@ -149,16 +211,25 @@ async function startGateway(): Promise<void> {
     return;
   }
 
-  let resolved = home();
-  if (!resolved.home) {
-    const message = resolved.problem ?? "revab: choose your revab-agents folder so the gateway knows where to run.";
+  let resolved = runtime();
+  if (resolved.mode === "none") {
+    const message = resolved.problem ?? "revab: this build has no bundled gateway. Choose your revab-agents folder so the gateway knows where to run.";
     const choice = await vscode.window.showWarningMessage(message, "Choose folder");
     if (choice !== "Choose folder") return setStatus("stopped");
     const dir = await chooseHome();
     if (!dir) return setStatus("stopped");
-    resolved = { home: dir, source: "setting" };
+    resolved = { mode: "checkout", home: dir, source: "setting" };
   }
-  const root = resolved.home!;
+  const root = resolved.home;
+  if (resolved.mode === "bundled") {
+    try {
+      ensureSeeded(root);
+    } catch (err) {
+      vscode.window.showErrorMessage(`revab: could not prepare ${root}: ${err instanceof Error ? err.message : String(err)}`);
+      return setStatus("stopped");
+    }
+  }
+  OUTPUT.appendLine(`[revab] mode: ${resolved.mode === "bundled" ? "bundled gateway (no checkout needed)" : "framework checkout"}; home ${root}`);
 
   // Credentials and tool choices reach the gateway as environment variables. Only names are logged.
   const built = buildGatewayEnv({
@@ -177,7 +248,9 @@ async function startGateway(): Promise<void> {
   try {
     launch = command
       ? { command: command.split(" ")[0]!, args: command.split(" ").slice(1), cwd: root, env: {} as Record<string, string> }
-      : gatewayLaunch(root, port, realFs, nodePath);
+      : resolved.mode === "bundled"
+        ? bundledLaunch(resolved.bundle, root, port, nodePath)
+        : gatewayLaunch(root, port, realFs, nodePath);
     launch.env = built.env;
     if (launch.note) OUTPUT.appendLine(`[revab] ${launch.note}`);
   } catch (err) {
@@ -238,7 +311,7 @@ async function startGateway(): Promise<void> {
 
 /** Stop the gateway this extension started (by pid file). One started elsewhere is left alone. */
 async function stopGateway(): Promise<void> {
-  const root = home().home;
+  const root = homeDir();
   const pid = root ? parsePid(safeRead(runtimePaths(root).pid)) : undefined;
   if (!pid) {
     const up = await probe(config().port);
@@ -272,10 +345,20 @@ function safeRead(p: string): string | undefined {
 
 /** Run `revab doctor` in a terminal so its output is readable and re-runnable. */
 function runDoctor(): void {
-  const root = home().home;
+  const r = runtime();
+  const root = r.mode === "none" ? undefined : r.home;
   const terminal = vscode.window.createTerminal({ name: "revab doctor", ...(root ? { cwd: root } : {}) });
   terminal.show();
-  terminal.sendText("npx revab doctor");
+  // Bundled mode has no checkout to `npx` from: run the bundled CLI itself.
+  terminal.sendText(r.mode === "bundled" ? `"${config().nodePath}" "${r.bundle}" doctor` : "npx revab doctor");
+}
+
+/** Reveal the home folder, where `.env`, `projects/` and `knowledge/` live, in the OS file manager. */
+async function openHome(): Promise<void> {
+  const r = runtime();
+  if (r.mode === "none") return void vscode.window.showInformationMessage("revab: no framework folder is set yet.");
+  if (r.mode === "bundled") ensureSeeded(r.home);
+  await vscode.commands.executeCommand("revealFileInOS", vscode.Uri.file(r.home));
 }
 
 async function showTools(): Promise<void> {
@@ -296,7 +379,7 @@ async function showTools(): Promise<void> {
 }
 
 async function openLog(): Promise<void> {
-  const root = home().home;
+  const root = homeDir();
   if (!root) return void vscode.window.showInformationMessage("revab: no framework folder is set yet.");
   const log = runtimePaths(root).log;
   if (!fs.existsSync(log)) return void vscode.window.showInformationMessage("revab: no gateway log yet.");
@@ -345,7 +428,7 @@ async function applyApprovalDefaults(): Promise<void> {
 
 /** Offer a restart after a change that only takes effect when the gateway starts. */
 async function restartIfOwned(reason: string): Promise<void> {
-  const root = home().home;
+  const root = homeDir();
   const owned = root ? parsePid(safeRead(runtimePaths(root).pid)) !== undefined : false;
   if (!(await probe(config().port))) return;
   if (!owned) {
@@ -409,11 +492,9 @@ async function showCredentials(): Promise<void> {
   );
 }
 
-/** Agents (from the generated files in the checkout) and the tools they list. */
+/** The agents this extension ships, and the tools each lists. */
 function readAgents(): Array<{ name: string; tools: string[] }> {
-  const root = home().home;
-  if (!root) return [];
-  const dir = `${root}/.github/agents`;
+  const dir = path.join(extensionPath, "agents");
   try {
     return fs
       .readdirSync(dir)
@@ -507,6 +588,8 @@ function registerMcp(context: vscode.ExtensionContext): void {
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   secretStore = context.secrets;
+  extensionPath = context.extensionPath;
+  bundledHome = path.join(context.globalStorageUri.fsPath, "home");
   status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   status.command = "revab.showTools";
   context.subscriptions.push(status, OUTPUT);
@@ -520,6 +603,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       await startGateway();
     }),
     vscode.commands.registerCommand("revab.doctor", runDoctor),
+    vscode.commands.registerCommand("revab.openHome", openHome),
     vscode.commands.registerCommand("revab.showTools", showTools),
     vscode.commands.registerCommand("revab.openLog", openLog),
     vscode.commands.registerCommand("revab.chooseHome", async () => {

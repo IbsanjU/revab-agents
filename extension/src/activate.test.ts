@@ -7,10 +7,23 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import Module from "node:module";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { assembleHomeTemplates, bundleGateway } from "../../scripts/bundle-gateway.js";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+
+// A stand-in for an installed extension folder: its own agents and home templates (the real ones are
+// build output, so not assumed to exist), and its own storage folder. The gateway bundle is built
+// only by the bundled-mode tests below.
+const SANDBOX = fs.mkdtempSync(path.join(os.tmpdir(), "revab-ext-"));
+const EXT_DIR = path.join(SANDBOX, "ext");
+const STORAGE = path.join(SANDBOX, "storage");
+fs.mkdirSync(EXT_DIR, { recursive: true });
+fs.cpSync(path.join(REPO, ".github", "agents"), path.join(EXT_DIR, "agents"), { recursive: true });
+fs.copyFileSync(path.join(REPO, "extension", "package.json"), path.join(EXT_DIR, "package.json"));
+assembleHomeTemplates({ root: REPO, extDir: EXT_DIR });
 const PORT = 7394;
 
 const commands = new Map<string, (...a: unknown[]) => unknown>();
@@ -58,7 +71,7 @@ const stub = {
   },
   commands: {
     registerCommand: (id: string, fn: (...a: unknown[]) => unknown) => (commands.set(id, fn), disposable),
-    executeCommand: async () => undefined,
+    executeCommand: async (id: string, ...args: unknown[]) => void executed.push([id, args]),
   },
   lm: {
     registerMcpServerDefinitionProvider: (id: string, provider: never) => (providers.push({ id, provider }), disposable),
@@ -89,14 +102,20 @@ const health = async () => {
   }
 };
 
-let ext: { activate(c: { subscriptions: unknown[]; secrets: typeof secrets }): Promise<void>; deactivate(): void };
+let ext: { activate(c: typeof context): Promise<void>; deactivate(): void };
 const secrets = {
   get: async (k: string) => secretStore.get(k),
   store: async (k: string, v: string) => void secretStore.set(k, v),
   delete: async (k: string) => void secretStore.delete(k),
   onDidChange: () => disposable,
 };
-const context = { subscriptions: [] as unknown[], secrets };
+const executed: Array<[string, unknown[]]> = [];
+const context = {
+  subscriptions: [] as unknown[],
+  secrets,
+  extensionPath: EXT_DIR,
+  globalStorageUri: { fsPath: STORAGE },
+};
 
 before(async () => {
   process.env.JIRA_BASE_URL ??= "https://example.atlassian.net";
@@ -112,6 +131,13 @@ after(() => {
     /* already gone */
   }
   fs.rmSync(pidFile, { force: true });
+  try {
+    const bundledPid = Number(fs.readFileSync(path.join(STORAGE, "home", ".revab", "gateway.pid"), "utf8"));
+    if (bundledPid > 1) process.kill(bundledPid);
+  } catch {
+    /* none started */
+  }
+  fs.rmSync(SANDBOX, { recursive: true, force: true });
 });
 
 test("activation registers both MCP servers as class instances, labelled as the agents reference them", async () => {
@@ -247,4 +273,70 @@ test("final cleanup: stop the gateway the extension started", async () => {
   settings["revab.tools.disabled"] = [];
   await run("revab.stop");
   assert.equal(await health(), false);
+});
+
+
+// ---- phase 3: no checkout, the gateway bundled in the extension -----------------------------
+
+const HOME = path.join(STORAGE, "home");
+
+test("with no checkout, the extension runs its own bundled gateway from a home folder it creates", { timeout: 240_000 }, async () => {
+  await bundleGateway({ outDir: path.join(EXT_DIR, "bundle"), root: REPO });
+  settings["revab.home"] = "";
+  settings["revab.environment"] = {};
+  settings["revab.tools.disabled"] = [];
+  secretStore.clear();
+  await run("revab.start");
+
+  assert.equal(await health(), true, "the bundled gateway should be up");
+  const marker = JSON.parse(fs.readFileSync(path.join(HOME, ".revab-home.json"), "utf8")) as { version: string };
+  assert.ok(marker.version, "home is marked with the extension version");
+  assert.ok(fs.existsSync(path.join(HOME, "skills", "verify", "SKILL.md")), "skills seeded");
+  assert.ok(fs.existsSync(path.join(HOME, "projects", "manifest.json")), "projects manifest seeded");
+  assert.ok(fs.existsSync(path.join(HOME, ".env.example")));
+  assert.equal(fs.existsSync(path.join(HOME, ".env")), false, ".env is never created for the user");
+  assert.ok(fs.existsSync(path.join(HOME, ".revab", "gateway.pid")), "pid recorded in the home folder");
+  const learnings = fs.readFileSync(path.join(HOME, "knowledge", "learnings.md"), "utf8");
+  assert.ok(learnings.length < 1000, "a fresh learnings file, not this repo's own session history");
+});
+
+test("bundled mode serves the same tools, from the home folder, over MCP-registered definitions", async () => {
+  const tools = (await (await get("/api/tools")).json()) as { tools: Array<{ name: string }> };
+  assert.ok(tools.tools.length > 70);
+  const { captureAllTools } = await import("../../mcp-servers/gateway/tools.js");
+  assert.ok(tools.tools.length >= (await captureAllTools()).length);
+  const defs = (await providers[0]!.provider.provideMcpServerDefinitions()) as unknown as Definition[];
+  assert.deepEqual(defs.map((d) => d.label), ["gateway", "gateway-code"]);
+});
+
+test("an update refreshes framework-owned files and never touches the user's own", async () => {
+  await run("revab.stop");
+  assert.equal(await health(), false);
+  fs.writeFileSync(path.join(HOME, "knowledge", "learnings.md"), "my own learnings\n");
+  fs.writeFileSync(path.join(HOME, ".env"), "JIRA_API_TOKEN=mine\n");
+  fs.writeFileSync(path.join(HOME, "skills", "verify", "SKILL.md"), "tampered\n");
+  fs.mkdirSync(path.join(HOME, "skills", "my-skill"), { recursive: true });
+  fs.writeFileSync(path.join(HOME, "skills", "my-skill", "SKILL.md"), "custom\n");
+  fs.writeFileSync(path.join(HOME, ".revab-home.json"), JSON.stringify({ version: "0.0.1" }));
+
+  await run("revab.start");
+  assert.equal(await health(), true);
+  assert.equal(fs.readFileSync(path.join(HOME, "knowledge", "learnings.md"), "utf8"), "my own learnings\n");
+  assert.equal(fs.readFileSync(path.join(HOME, ".env"), "utf8"), "JIRA_API_TOKEN=mine\n");
+  assert.match(fs.readFileSync(path.join(HOME, "skills", "verify", "SKILL.md"), "utf8"), /^---/, "framework skill restored");
+  assert.equal(fs.readFileSync(path.join(HOME, "skills", "my-skill", "SKILL.md"), "utf8"), "custom\n", "a custom skill is kept");
+});
+
+test("the home folder can be revealed, and a wrong revab.home is not silently replaced by the bundle", async () => {
+  executed.length = 0;
+  await run("revab.openHome");
+  assert.deepEqual(executed.map(([id]) => id), ["revealFileInOS"]);
+
+  await run("revab.stop");
+  settings["revab.home"] = path.join(SANDBOX, "typo");
+  messages.length = 0;
+  await run("revab.start");
+  assert.match(messages.join("\n"), /not a revab-agents checkout/);
+  assert.equal(await health(), false, "a bad setting must not quietly fall back to the bundle");
+  settings["revab.home"] = "";
 });

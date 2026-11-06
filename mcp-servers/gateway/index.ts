@@ -218,6 +218,9 @@ export async function startGateway(): Promise<void> {
  * importing it would then bind a real port and hang the run. Compare resolved paths.
  */
 function isMainModule(): boolean {
+  // In the single-file bundle every module shares one URL, so this check would always be true
+  // and the gateway would start on import (even for `doctor`). The bundle's CLI starts it explicitly.
+  if (process.env.REVAB_BUNDLED === "1") return false;
   const entry = process.argv[1];
   if (!entry) return false;
   return resolve(entry) === fileURLToPath(import.meta.url);

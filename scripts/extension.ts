@@ -1,20 +1,27 @@
 /**
  * Package, install and uninstall the VS Code extension.
  *
- *   npm run extension:package                      build → bundle agents → revab-agents-<ver>.vsix
+ *   npm run extension:package                      build → bundle gateway + agents + templates → .vsix
  *   npm run extension:install                      package, then `code --install-extension`
- *   npm run extension:uninstall [-- --dry-run] [--purge-config] [--keep-gateway]
+ *   npm run extension:uninstall [-- --dry-run] [--purge-config] [--purge-home] [--keep-gateway]
  *
  * Uninstall removes the extension and stops the gateway it started. With --purge-config it also
  * removes the config entries revab wrote into THIS checkout (`gateway`/`gateway-code` in
  * `.vscode/mcp.json` and `.mcp.json`, `revab.*` and the tool approvals in `.vscode/settings.json`,
  * and the `.revab/` runtime folder). It never touches `.env`, `knowledge/`, `projects/` or any
  * other server or setting. Use --dry-run to see exactly what would change.
+ *
+ * The extension's bundled mode keeps its own home folder (credentials, knowledge, projects) in
+ * VS Code's storage, which uninstalling the extension leaves behind. --purge-home deletes it, only
+ * when you ask, only if it carries the extension's marker file, and it lists what is inside first.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, copyFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { assembleHomeTemplates, bundleGateway } from "./bundle-gateway.js";
 import {
+  bundledHomePath,
   chatAgentEntries,
   extensionId,
   removeGatewayEntries,
@@ -52,9 +59,16 @@ interface ExtPackage {
 }
 
 /** Build the extension, bundle the generated agents into it, and produce the .vsix. */
-function packageExtension(): string {
+async function packageExtension(): Promise<string> {
   console.log("Packaging the extension");
   if (run("npm", ["run", "build"], EXT) !== 0) throw new Error("extension build failed");
+
+  // The self-contained gateway, so users need no clone.
+  const bundle = await bundleGateway({ outDir: path.join(EXT, "bundle"), root: ROOT });
+  say("✓", `bundled the gateway (${Math.round(bundle.bytes / 1024)} KB + ${bundle.packages.length} external packages)`);
+
+  assembleHomeTemplates({ root: ROOT, extDir: EXT });
+  say("✓", "assembled the home-folder templates");
 
   // The agents are generated from prompts/agents/*.ts into .github/agents; the extension ships a
   // copy so they appear in every window. Copied here (not committed) so there is one source.
@@ -92,8 +106,8 @@ function codeCommand(): string {
   return option("code") ?? "code";
 }
 
-function install(): void {
-  const vsix = packageExtension();
+async function install(): Promise<void> {
+  const vsix = await packageExtension();
   console.log("\nInstalling");
   const status = run(codeCommand(), ["--install-extension", vsix, "--force"], ROOT);
   if (status !== 0) {
@@ -101,11 +115,11 @@ function install(): void {
     process.exitCode = 1;
     return;
   }
-  const home = ROOT;
   console.log(
     `\nDone. Reload VS Code, then:\n` +
-      `  1. Set "revab.home" to ${home} (or just open that folder once).\n` +
-      `  2. Put credentials in ${path.join(home, ".env")} (copy .env.example), then run "revab: Run doctor".\n` +
+      `  1. Run "revab: Set credentials" for each service you use, and put base URLs in the revab.environment setting.\n` +
+      `     (No checkout needed: the extension carries its own gateway. To use ${ROOT} instead, set "revab.home".)\n` +
+      `  2. Run "revab: Run doctor" to check the configuration.\n` +
       `  3. Pick "orchestrator" in the Chat agent dropdown.`,
   );
 }
@@ -169,7 +183,28 @@ async function uninstall(): Promise<void> {
     say(status === 0 ? "✓" : "!", status === 0 ? `uninstalled ${id}` : `could not run \`${codeCommand()}\`; remove it from the Extensions view`);
   }
 
-  // 3. Optionally remove what revab wrote into this checkout.
+  // 3. Optionally delete the bundled home (credentials, knowledge, projects) the extension created.
+  if (flag("purge-home")) {
+    const home = bundledHomePath({
+      platform: process.platform,
+      env: process.env,
+      homedir: os.homedir(),
+      extensionId: id,
+      ...(option("user-data-dir") ? { userDataDir: path.resolve(option("user-data-dir")!) } : {}),
+    });
+    const marker = path.join(home, ".revab-home.json");
+    if (!existsSync(home)) say("·", `no bundled home at ${home}`);
+    else if (!existsSync(marker)) say("!", `${home} has no .revab-home.json marker, so it is not the extension's home — left alone`);
+    else {
+      const count = (dir: string): number =>
+        readdirSync(dir, { withFileTypes: true }).reduce((n, e) => n + (e.isDirectory() ? count(path.join(dir, e.name)) : 1), 0);
+      const holds = ["knowledge", "projects", ".env", "reports"].filter((n) => existsSync(path.join(home, n)));
+      say(DRY ? "~" : "✓", `${DRY ? "would delete" : "deleted"} the bundled home ${home} (${count(home)} files; holds ${holds.join(", ") || "templates only"})`);
+      if (!DRY) rmSync(home, { recursive: true, force: true });
+    }
+  }
+
+  // 4. Optionally remove what revab wrote into this checkout.
   if (flag("purge-config")) {
     console.log("");
     editJson(path.join(ROOT, ".vscode", "mcp.json"), (v) => {
@@ -207,6 +242,7 @@ async function uninstall(): Promise<void> {
   console.log(
     `\nLeft untouched: .env, knowledge/, projects/, and any "revab.*" setting in your USER settings` +
       ` (delete those in Settings if you set revab.home globally).` +
+      (flag("purge-home") ? "" : `\nThe extension's own home folder (credentials in .env, knowledge, projects) is kept; add --purge-home to delete it.`) +
       (flag("purge-config") ? "" : `\nRe-run with --purge-config to also remove revab's entries from this checkout's config files.`),
   );
 }
@@ -215,10 +251,10 @@ async function main(): Promise<void> {
   const [command] = args.filter((a) => !a.startsWith("--") && args[args.indexOf(a) - 1]?.startsWith("--") !== true);
   switch (command) {
     case "package":
-      packageExtension();
+      await packageExtension();
       return;
     case "install":
-      install();
+      await install();
       return;
     case "uninstall":
       await uninstall();

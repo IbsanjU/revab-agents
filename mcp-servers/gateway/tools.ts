@@ -42,23 +42,24 @@ type RegisterToolArgs = [
 export async function captureAllTools(): Promise<CapturedTool[]> {
   beginCollecting();
   try {
-    // Static list rather than a directory scan so a stray folder can't be loaded,
-    // and so the set of hosted servers is reviewable in the diff.
-    const modules = [
-      "../jira/index.js",
-      "../confluence/index.js",
-      "../jtmf/index.js",
-      "../github/index.js",
-      "../git/index.js",
-      "../artifacts/index.js",
-      "../media/index.js",
-      "../notify/index.js",
-      "../playwright-runner/index.js",
-      "../allure-report/index.js",
-      "../codegen/index.js",
+    // Static list rather than a directory scan so a stray folder can't be loaded, and so the
+    // set of hosted servers is reviewable in the diff. Each specifier is a literal inside its
+    // own arrow function (not a variable) so a bundler can see and include every server.
+    const loaders: Array<() => Promise<unknown>> = [
+      () => import("../jira/index.js"),
+      () => import("../confluence/index.js"),
+      () => import("../jtmf/index.js"),
+      () => import("../github/index.js"),
+      () => import("../git/index.js"),
+      () => import("../artifacts/index.js"),
+      () => import("../media/index.js"),
+      () => import("../notify/index.js"),
+      () => import("../playwright-runner/index.js"),
+      () => import("../allure-report/index.js"),
+      () => import("../codegen/index.js"),
     ];
-    for (const specifier of modules) {
-      await import(specifier);
+    for (const load of loaders) {
+      await load();
     }
 
     const tools: CapturedTool[] = [];

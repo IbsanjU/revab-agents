@@ -53,7 +53,7 @@ curl http://localhost:7300/health      # {"ok":true,"tools":78}
 npx revab doctor                       # full config + connectivity report
 ```
 
-**VS Code extension.** `npm run extension:install` gives every VS Code window the agents and tools from one install; see [extension/README.md](extension/README.md). `npm run extension:uninstall -- --dry-run --purge-config` previews a clean removal.
+**VS Code extension.** `npm run extension:package` builds one `.vsix` that gives every VS Code window the agents and tools, with the gateway inside it and no clone needed to use it; see [extension/README.md](extension/README.md). `npm run extension:uninstall -- --dry-run --purge-config` previews a clean removal.
 
 **Code Mode.** To load two small tool definitions instead of all of them, register `http://localhost:7300/mcp/code` in place of `/mcp`. The model searches for tools, then writes one script that calls them; writes from code are preview-only. See [docs/code-mode.md](docs/code-mode.md) and run `npm run bench:codemode` for the measured saving.
 

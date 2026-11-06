@@ -78,3 +78,26 @@ export function vsixFileName(pkg: { name: string; version: string }): string {
 export function extensionId(pkg: { publisher: string; name: string }): string {
   return `${pkg.publisher}.${pkg.name}`;
 }
+
+/**
+ * Where VS Code keeps an extension's private storage, which is where the bundled home lives.
+ * `userDataDir` is the folder that contains `User/` (override it for Insiders, VSCodium or a
+ * portable install). Extension folders are lowercased by VS Code.
+ */
+export function bundledHomePath(input: {
+  platform: NodeJS.Platform;
+  env: Record<string, string | undefined>;
+  homedir: string;
+  extensionId: string;
+  userDataDir?: string;
+}): string {
+  const sep = input.platform === "win32" ? "\\" : "/";
+  const join = (...parts: string[]) => parts.join(sep);
+  let base = input.userDataDir;
+  if (!base) {
+    if (input.platform === "win32") base = join(input.env.APPDATA ?? join(input.homedir, "AppData", "Roaming"), "Code");
+    else if (input.platform === "darwin") base = join(input.homedir, "Library", "Application Support", "Code");
+    else base = join(input.env.XDG_CONFIG_HOME ?? join(input.homedir, ".config"), "Code");
+  }
+  return join(base, "User", "globalStorage", input.extensionId.toLowerCase(), "home");
+}
