@@ -2,7 +2,7 @@
   "name": "revab-agents",
   "displayName": "revab agents (QE)",
   "description": "One install: the revab QE agents, their MCP tools, and a shared background gateway, in every VS Code window.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "publisher": "your-org",
   "repository": {
