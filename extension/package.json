@@ -1,12 +1,17 @@
 {
   "name": "revab-agents",
   "displayName": "revab agents (QE)",
-  "description": "Starts the revab gateway and registers its QE tools with VS Code \u2014 no manual server juggling.",
-  "version": "0.1.0",
+  "description": "One install: the revab QE agents, their MCP tools, and a shared background gateway, in every VS Code window.",
+  "version": "0.2.0",
   "private": true,
   "publisher": "your-org",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IbsanjU/revab-agents.git",
+    "directory": "extension"
+  },
   "engines": {
-    "vscode": "^1.96.0"
+    "vscode": "^1.101.0"
   },
   "categories": [
     "AI",
@@ -19,6 +24,11 @@
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
+      {
+        "command": "revab.chooseHome",
+        "title": "revab: Choose framework folder",
+        "category": "revab"
+      },
       {
         "command": "revab.start",
         "title": "revab: Start gateway",
@@ -48,11 +58,22 @@
         "command": "revab.applyApprovalDefaults",
         "title": "revab: Auto-approve read-only tools (writes still confirm)",
         "category": "revab"
+      },
+      {
+        "command": "revab.openLog",
+        "title": "revab: Open gateway log",
+        "category": "revab"
       }
     ],
     "configuration": {
       "title": "revab agents",
       "properties": {
+        "revab.home": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "markdownDescription": "Absolute path of your `revab-agents` checkout. The gateway runs there and reads its `.env`, `projects/`, `knowledge/` and `skills/`. Leave empty to use an open workspace folder that is a checkout."
+        },
         "revab.gateway.port": {
           "type": "number",
           "default": 7300,
@@ -65,19 +86,64 @@
         },
         "revab.gateway.command": {
           "type": "string",
-          "default": "npx revab start",
-          "description": "Command used to launch the gateway from the workspace root."
+          "default": "",
+          "markdownDescription": "Advanced: replace the launch command (split on spaces, no shell). Leave empty to use the compiled CLI, or tsx if the project is not built."
+        },
+        "revab.nodePath": {
+          "type": "string",
+          "default": "node",
+          "scope": "machine",
+          "description": "Node.js executable used to run the gateway."
         }
       }
-    }
+    },
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "revab.gateway",
+        "label": "revab gateway"
+      }
+    ],
+    "chatAgents": [
+      {
+        "path": "./agents/automation.agent.md"
+      },
+      {
+        "path": "./agents/bsa.agent.md"
+      },
+      {
+        "path": "./agents/documenter.agent.md"
+      },
+      {
+        "path": "./agents/importer.agent.md"
+      },
+      {
+        "path": "./agents/orchestrator.agent.md"
+      },
+      {
+        "path": "./agents/planner.agent.md"
+      },
+      {
+        "path": "./agents/reporter.agent.md"
+      },
+      {
+        "path": "./agents/researcher.agent.md"
+      },
+      {
+        "path": "./agents/self-improve.agent.md"
+      },
+      {
+        "path": "./agents/test-planner.agent.md"
+      }
+    ]
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "watch": "tsc -p tsconfig.json --watch"
+    "watch": "tsc -p tsconfig.json --watch",
+    "vscode:prepublish": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
-    "@types/vscode": "^1.96.0",
+    "@types/vscode": "1.101.0",
     "typescript": "^5.5.0"
   }
 }
