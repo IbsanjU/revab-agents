@@ -170,3 +170,53 @@ test("codemode_search finds real tools by keyword", async () => {
   assert.ok(names.some((n) => n.startsWith("confluence_")), names.join(", "));
   assert.match(String(body.declarations), /declare const codemode/);
 });
+
+test("disabled tools are absent from MCP, REST discovery, REST calls and Code Mode alike", async () => {
+  const { filterTools } = await import("./filter.js");
+  const spec = "jira_search, knowledge_search, codemode_execute";
+  const { kept, removed } = filterTools(tools, spec);
+  assert.equal(removed.length, 2);
+
+  const local = buildApp(kept, { disabled: spec, removed }).listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => local.once("listening", resolve));
+  const base = `http://127.0.0.1:${(local.address() as AddressInfo).port}`;
+  const call = async (path: string, body: unknown) => {
+    const res = await fetch(`${base}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    return { status: res.status, body: (await res.json()) as Record<string, unknown> };
+  };
+  const listNames = async (path: string) => {
+    const res = await fetch(`${base}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }),
+    });
+    const text = await res.text();
+    const json = JSON.parse(text.includes("data:") ? text.split("data:")[1]!.trim() : text) as { result: { tools: Array<{ name: string }> } };
+    return json.result.tools.map((t) => t.name);
+  };
+  try {
+    const health = (await (await fetch(`${base}/health`)).json()) as { tools: number; disabled: number; codeMode: string[] };
+    assert.equal(health.disabled, 2);
+    assert.equal(health.tools, tools.length - 2);
+    assert.deepEqual(health.codeMode, ["codemode_search"], "Code Mode's own tools can be disabled too");
+
+    const mcp = await listNames("/mcp");
+    assert.ok(!mcp.includes("jira_search") && !mcp.includes("knowledge_search"), "absent from MCP");
+    assert.ok(mcp.includes("jira_get_issue"), "other tools remain");
+
+    const discovery = (await (await fetch(`${base}/api/tools`)).json()) as {
+      tools: Array<{ name: string }>;
+      disabled: Array<{ name: string; server: string }>;
+    };
+    assert.deepEqual(discovery.disabled.map((d) => d.name).sort(), ["jira_search", "knowledge_search"], "a client can show what is off");
+    assert.ok(!discovery.tools.some((t) => t.name === "jira_search"), "absent from REST discovery");
+    assert.equal((await call("/api/jira/jira_search", { jql: "x" })).status, 404, "REST call refused");
+    assert.equal((await call("/api/codemode/codemode_execute", { code: "return 1" })).status, 404);
+
+    const viaCode = await call("/api/codemode/codemode_search", { query: "jira search" });
+    assert.ok(!(viaCode.body.matches as Array<{ name: string }>).some((m) => m.name === "jira_search"), "not findable through Code Mode");
+  } finally {
+    local.closeAllConnections();
+    await new Promise<void>((resolve) => local.close(() => resolve()));
+  }
+});

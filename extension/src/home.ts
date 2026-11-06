@@ -11,6 +11,10 @@ import * as path from "node:path";
 export interface FsLike {
   exists(p: string): boolean;
   read(p: string): string;
+  /** Modification time of one file, in ms. */
+  mtimeMs?(p: string): number;
+  /** Newest modification time among the project's TypeScript sources, in ms. */
+  newestSourceMtimeMs?(home: string): number;
 }
 
 /** A directory is a framework checkout if its package.json names it and it has the agent specs. */
@@ -52,21 +56,40 @@ export interface Launch {
   args: string[];
   cwd: string;
   env: Record<string, string>;
+  /** Why this launch was chosen, when that is worth telling the user (for example a stale build). */
+  note?: string;
+}
+
+/** True when sources were edited after the compiled CLI was built, e.g. after a `git pull`. */
+export function distIsStale(home: string, fs: FsLike): boolean {
+  const dist = path.join(home, "dist", "cli", "index.js");
+  if (!fs.mtimeMs || !fs.newestSourceMtimeMs || !fs.exists(dist)) return false;
+  return fs.newestSourceMtimeMs(home) > fs.mtimeMs(dist);
 }
 
 /**
- * How to start the gateway: the compiled CLI if `npm run build` has been run, otherwise the
- * TypeScript sources through tsx. Plain `node` with no shell and no `npx`, so paths with
+ * How to start the gateway: the compiled CLI if it is current, otherwise the TypeScript sources
+ * through tsx. A stale build is skipped on purpose: after a `git pull` it would silently run the
+ * old gateway, ignoring new settings such as disabled tools. Plain `node` with no shell and no `npx`, so paths with
  * spaces work and nothing is downloaded at launch. `process.execPath` is deliberately not
  * used: inside the editor it is the editor binary, not node.
  */
 export function gatewayLaunch(home: string, port: number, fs: FsLike, nodePath = "node"): Launch {
   const env = { GATEWAY_MCP_PORT: String(port) };
   const dist = path.join(home, "dist", "cli", "index.js");
-  if (fs.exists(dist)) return { command: nodePath, args: [dist, "start"], cwd: home, env };
-  if (fs.exists(path.join(home, "node_modules", "tsx"))) {
-    return { command: nodePath, args: ["--import", "tsx", path.join(home, "cli", "index.ts"), "start"], cwd: home, env };
+  const haveTsx = fs.exists(path.join(home, "node_modules", "tsx"));
+  const fromSources: Launch = {
+    command: nodePath,
+    args: ["--import", "tsx", path.join(home, "cli", "index.ts"), "start"],
+    cwd: home,
+    env,
+  };
+  if (fs.exists(dist)) {
+    if (!distIsStale(home, fs)) return { command: nodePath, args: [dist, "start"], cwd: home, env };
+    if (haveTsx) return { ...fromSources, note: "dist/ is older than the sources, so the gateway runs from source. Run `npm run build` to use the compiled build." };
+    return { command: nodePath, args: [dist, "start"], cwd: home, env, note: "dist/ is older than the sources and tsx is not installed; run `npm run build`." };
   }
+  if (haveTsx) return fromSources;
   throw new Error(`Dependencies are not installed in ${home}. Run \`npm install\` there, then start the gateway again.`);
 }
 

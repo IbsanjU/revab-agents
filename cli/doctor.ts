@@ -9,6 +9,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import {
+  checkDisabledTools,
   overallStatus,
   runEnvChecks,
   type CheckResult,
@@ -158,12 +159,34 @@ async function checkProjects(root: string): Promise<CheckResult[]> {
 }
 
 /** Run every check. Returns true when nothing failed (warnings are acceptable). */
+/** Resolve GATEWAY_DISABLED_TOOLS against the real tool list, then see which agents it affects. */
+async function checkDisabled(env: NodeJS.ProcessEnv): Promise<CheckResult[]> {
+  if (!env.GATEWAY_DISABLED_TOOLS?.trim()) return [];
+  const [{ captureAllTools }, { filterTools }, { AGENTS }] = await Promise.all([
+    import("../mcp-servers/gateway/tools.js"),
+    import("../mcp-servers/gateway/filter.js"),
+    import("../prompts/agents/index.js"),
+  ]);
+  const { removed, unmatched } = filterTools(await captureAllTools(), env.GATEWAY_DISABLED_TOOLS);
+  const results = [checkDisabledTools(removed.map((t) => t.name), AGENTS)];
+  if (unmatched.length > 0) {
+    results.push({
+      name: "disabled tools (typo?)",
+      status: "warn",
+      detail: `no tool matches: ${unmatched.join(", ")}`,
+      fix: "Check the spelling against `revab tools`; an entry that matches nothing disables nothing.",
+    });
+  }
+  return results;
+}
+
 export async function runDoctor(options: DoctorOptions = {}): Promise<boolean> {
   const root = options.cwd ?? process.cwd();
 
   const results: CheckResult[] = [
     await checkEnvFile(root),
     ...runEnvChecks(process.env),
+    ...(await checkDisabled(process.env)),
     ...(await checkProjects(root)),
     await checkGateway(Number(process.env.GATEWAY_MCP_PORT ?? 7300)),
   ];

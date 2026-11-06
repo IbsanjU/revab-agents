@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as path from "node:path";
-import { gatewayLaunch, isFrameworkHome, parsePid, resolveHome, runtimePaths, tailLines, type FsLike } from "./home.js";
+import { distIsStale, gatewayLaunch, isFrameworkHome, parsePid, resolveHome, runtimePaths, tailLines, type FsLike } from "./home.js";
 
 const J = (...p: string[]) => path.join(...p);
 
@@ -72,4 +72,31 @@ test("parsePid accepts a pid and rejects junk, zero and one", () => {
 
 test("tailLines keeps the last non-empty lines", () => {
   assert.equal(tailLines("a\n\nb\nc\n", 2), "b\nc");
+});
+
+function withTimes(base: FsLike, dist: number, newest: number): FsLike {
+  return { ...base, mtimeMs: () => dist, newestSourceMtimeMs: () => newest };
+}
+
+test("a build older than the sources is skipped in favour of tsx, with a note saying why", () => {
+  const base = checkout("/r", { [J("/r", "dist", "cli", "index.js")]: "" }, [J("/r", "node_modules", "tsx")]);
+  const stale = gatewayLaunch("/r", 7300, withTimes(base, 100, 200));
+  assert.deepEqual(stale.args.slice(0, 2), ["--import", "tsx"]);
+  assert.match(stale.note ?? "", /npm run build/);
+  const fresh = gatewayLaunch("/r", 7300, withTimes(base, 300, 200));
+  assert.equal(fresh.args[0], J("/r", "dist", "cli", "index.js"));
+  assert.equal(fresh.note, undefined);
+});
+
+test("a stale build with no tsx still runs, but says so", () => {
+  const base = checkout("/r", { [J("/r", "dist", "cli", "index.js")]: "" });
+  const launch = gatewayLaunch("/r", 7300, withTimes(base, 100, 200));
+  assert.equal(launch.args[0], J("/r", "dist", "cli", "index.js"));
+  assert.match(launch.note ?? "", /tsx is not installed/);
+});
+
+test("staleness is not claimed when times are unavailable or there is no build", () => {
+  const base = checkout("/r", { [J("/r", "dist", "cli", "index.js")]: "" });
+  assert.equal(distIsStale("/r", base), false, "no timing support: assume current");
+  assert.equal(distIsStale("/r", withTimes(checkout("/r"), 1, 2)), false, "no dist at all");
 });
