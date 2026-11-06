@@ -7,6 +7,7 @@
  * editor window happens to have open.
  */
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 
 export interface FsLike {
   exists(p: string): boolean;
@@ -112,7 +113,9 @@ export function gatewayLaunch(home: string, port: number, fs: FsLike, nodePath =
   const haveTsx = fs.exists(path.join(home, "node_modules", "tsx"));
   const fromSources: Launch = {
     command: nodePath,
-    args: ["--import", "tsx", path.join(home, "cli", "index.ts"), "start"],
+    // An absolute URL, not the bare name "tsx": `--import tsx` is resolved from the CURRENT folder, so a
+    // launcher run from anywhere else (the terminal command) could not find it.
+    args: ["--import", pathToFileURL(path.join(home, "node_modules", "tsx", "dist", "loader.mjs")).href, path.join(home, "cli", "index.ts"), "start"],
     cwd: home,
     env,
   };

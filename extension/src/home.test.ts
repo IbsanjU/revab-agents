@@ -49,7 +49,9 @@ test("launch prefers the compiled CLI, falls back to tsx, and refuses without de
     env: { GATEWAY_MCP_PORT: "7300" },
   });
   const dev = checkout("/r", {}, [J("/r", "node_modules", "tsx")]);
-  assert.deepEqual(gatewayLaunch("/r", 7400, dev, "/opt/node").args.slice(0, 3), ["--import", "tsx", J("/r", "cli", "index.ts")]);
+  const fromSource = gatewayLaunch("/r", 7400, dev, "/opt/node").args;
+  assert.deepEqual([fromSource[0], fromSource[2]], ["--import", J("/r", "cli", "index.ts")]);
+  assert.match(fromSource[1]!, /^file:\/\/\/.*node_modules\/tsx\/dist\/loader\.mjs$/, "the loader is an absolute URL, not the bare name tsx");
   assert.equal(gatewayLaunch("/r", 7400, dev, "/opt/node").command, "/opt/node");
   assert.throws(() => gatewayLaunch("/r", 7300, checkout("/r")), /npm install/);
 });
@@ -81,7 +83,8 @@ function withTimes(base: FsLike, dist: number, newest: number): FsLike {
 test("a build older than the sources is skipped in favour of tsx, with a note saying why", () => {
   const base = checkout("/r", { [J("/r", "dist", "cli", "index.js")]: "" }, [J("/r", "node_modules", "tsx")]);
   const stale = gatewayLaunch("/r", 7300, withTimes(base, 100, 200));
-  assert.deepEqual(stale.args.slice(0, 2), ["--import", "tsx"]);
+  assert.equal(stale.args[0], "--import");
+  assert.match(stale.args[1]!, /tsx\/dist\/loader\.mjs$/);
   assert.match(stale.note ?? "", /npm run build/);
   const fresh = gatewayLaunch("/r", 7300, withTimes(base, 300, 200));
   assert.equal(fresh.args[0], J("/r", "dist", "cli", "index.js"));

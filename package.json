@@ -17,6 +17,7 @@
     "build:prompts": "tsx scripts/build-prompts.ts",
     "eval": "tsx scripts/run-evals.ts",
     "bench:parallel": "tsx scripts/bench-parallel.ts",
+    "revab": "tsx cli/index.ts",
     "extension:package": "tsx scripts/extension.ts package",
     "extension:install": "tsx scripts/extension.ts install",
     "extension:uninstall": "tsx scripts/extension.ts uninstall",

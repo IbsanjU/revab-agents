@@ -31,6 +31,7 @@ import {
   type Runtime,
 } from "./home.js";
 import { MARKER, parseInstalledVersion, planSeed, type SeedFs } from "./seed.js";
+import { cliArgsFrom, shimContent, shimFileName } from "./shim.js";
 import {
   SECRETS,
   agentToolRefs,
@@ -140,6 +141,52 @@ const seedFs: SeedFs = {
   },
 };
 
+/** How to run the CLI for a resolved runtime: the bundle, or the checkout's build (or sources). */
+function computeLaunch(resolved: Exclude<Runtime, { mode: "none" }>, port: number, nodePath: string) {
+  return resolved.mode === "bundled"
+    ? bundledLaunch(resolved.bundle, resolved.home, port, nodePath)
+    : gatewayLaunch(resolved.home, port, realFs, nodePath);
+}
+
+/**
+ * Put a `revab` command on the PATH of terminals VS Code opens. Without this, `revab` is "not
+ * found": there is no global install, `npx revab` needs a built checkout, and bundled mode has no
+ * checkout at all. Only terminals opened after activation see it.
+ */
+function installTerminalCommand(context: vscode.ExtensionContext): void {
+  const r = runtime();
+  if (r.mode === "none") return;
+  try {
+    const { nodePath } = config();
+    const launch = computeLaunch(r, config().port, nodePath);
+    const binDir = path.join(context.globalStorageUri.fsPath, "bin");
+    fs.mkdirSync(binDir, { recursive: true });
+    const file = path.join(binDir, shimFileName(process.platform));
+    fs.writeFileSync(
+      file,
+      shimContent({ platform: process.platform, node: launch.command, cliArgs: cliArgsFrom(launch.args), home: r.home }),
+      { mode: 0o755 },
+    );
+    if (process.platform !== "win32") fs.chmodSync(file, 0o755);
+    context.environmentVariableCollection.description = "Adds the `revab` command (doctor, init, tools, call) to terminals.";
+    context.environmentVariableCollection.prepend("PATH", binDir + path.delimiter);
+    terminalBin = binDir;
+  } catch (err) {
+    OUTPUT.appendLine(`[revab] could not install the terminal command: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+let terminalBin: string | undefined;
+
+async function showTerminalCommand(): Promise<void> {
+  if (!terminalBin) return void vscode.window.showWarningMessage("revab: the terminal command is not installed (no framework folder or bundle yet).");
+  const choice = await vscode.window.showInformationMessage(
+    `revab: type \`revab doctor\`, \`revab tools\` or \`revab call <tool> '{...}'\` in a NEW integrated terminal. To use it outside VS Code, add this folder to your PATH: ${terminalBin}`,
+    "Copy folder path",
+  );
+  if (choice === "Copy folder path") await vscode.env.clipboard.writeText(terminalBin);
+}
+
 /** Create or refresh the bundled home from the shipped templates. Never deletes or overwrites user data. */
 function ensureSeeded(home: string): void {
   const templates = path.join(extensionPath, "resources", "home");
@@ -248,9 +295,7 @@ async function startGateway(): Promise<void> {
   try {
     launch = command
       ? { command: command.split(" ")[0]!, args: command.split(" ").slice(1), cwd: root, env: {} as Record<string, string> }
-      : resolved.mode === "bundled"
-        ? bundledLaunch(resolved.bundle, root, port, nodePath)
-        : gatewayLaunch(root, port, realFs, nodePath);
+      : computeLaunch(resolved, port, nodePath);
     launch.env = built.env;
     if (launch.note) OUTPUT.appendLine(`[revab] ${launch.note}`);
   } catch (err) {
@@ -604,6 +649,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.commands.registerCommand("revab.doctor", runDoctor),
     vscode.commands.registerCommand("revab.openHome", openHome),
+    vscode.commands.registerCommand("revab.showTerminalCommand", showTerminalCommand),
     vscode.commands.registerCommand("revab.showTools", showTools),
     vscode.commands.registerCommand("revab.openLog", openLog),
     vscode.commands.registerCommand("revab.chooseHome", async () => {
@@ -615,6 +661,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("revab.showCredentials", showCredentials),
     vscode.commands.registerCommand("revab.chooseTools", chooseTools),
     vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("revab.home") || e.affectsConfiguration("revab.nodePath")) installTerminalCommand(context);
       if (e.affectsConfiguration("revab.gateway.port") || e.affectsConfiguration("revab.tools.disabled")) mcpChanged.fire();
       if (e.affectsConfiguration("revab.environment") || e.affectsConfiguration("revab.tools.disabled")) {
         void restartIfOwned("Settings changed.");
@@ -623,6 +670,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   registerMcp(context);
+  installTerminalCommand(context);
 
   // Keep the status bar honest across windows: the gateway may be started or stopped from anywhere.
   const timer = setInterval(async () => {

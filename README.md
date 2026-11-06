@@ -53,6 +53,8 @@ curl http://localhost:7300/health      # {"ok":true,"tools":78}
 npx revab doctor                       # full config + connectivity report
 ```
 
+**The `revab` command.** In a checkout: `npm run revab -- doctor` (no build needed), or `npm run build` and then `npx revab doctor`. `revab` on its own is not a global command. With the VS Code extension installed, open a new integrated terminal and `revab doctor` works anywhere.
+
 **VS Code extension.** `npm run extension:package` builds one `.vsix` that gives every VS Code window the agents and tools, with the gateway inside it and no clone needed to use it; see [extension/README.md](extension/README.md). `npm run extension:uninstall -- --dry-run --purge-config` previews a clean removal.
 
 **Code Mode.** To load two small tool definitions instead of all of them, register `http://localhost:7300/mcp/code` in place of `/mcp`. The model searches for tools, then writes one script that calls them; writes from code are preview-only. See [docs/code-mode.md](docs/code-mode.md) and run `npm run bench:codemode` for the measured saving.
