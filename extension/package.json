@@ -63,6 +63,26 @@
         "command": "revab.openLog",
         "title": "revab: Open gateway log",
         "category": "revab"
+      },
+      {
+        "command": "revab.setCredentials",
+        "title": "revab: Set credentials",
+        "category": "revab"
+      },
+      {
+        "command": "revab.clearCredentials",
+        "title": "revab: Clear credentials",
+        "category": "revab"
+      },
+      {
+        "command": "revab.showCredentials",
+        "title": "revab: Show configured credentials (names only)",
+        "category": "revab"
+      },
+      {
+        "command": "revab.chooseTools",
+        "title": "revab: Choose tools (enable / disable)",
+        "category": "revab"
       }
     ],
     "configuration": {
@@ -94,6 +114,27 @@
           "default": "node",
           "scope": "machine",
           "description": "Node.js executable used to run the gateway."
+        },
+        "revab.environment": {
+          "type": "object",
+          "default": {},
+          "scope": "machine",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "markdownDescription": "Non-secret settings passed to the gateway, e.g. `{ \"JIRA_BASE_URL\": \"https://acme.atlassian.net\", \"JIRA_EMAIL\": \"me@acme.com\" }`. Only an allowlist of names is accepted. **Tokens and other credentials do not go here**: use **revab: Set credentials**, which stores them encrypted."
+        },
+        "revab.tools.disabled": {
+          "type": "array",
+          "default": [],
+          "scope": "machine",
+          "items": {
+            "type": "string"
+          },
+          "markdownDescription": "Tools switched off at the gateway, so they are absent from every client. Entries are a tool name (`jira_search`), a server (`jira/*`) or a prefix (`confluence_*`). Use **revab: Choose tools** to pick them from a list."
         }
       }
     },

@@ -166,6 +166,36 @@ export function checkPlaceholders(env: Env): CheckResult[] {
     }));
 }
 
+/**
+ * Warn when a disabled tool is one an agent's spec lists. The agent keeps working but loses a
+ * capability silently, which is the kind of "it is broken" report this check exists to prevent.
+ * `disabled` are tool names (already resolved from the spec by the caller).
+ */
+export function checkDisabledTools(
+  disabled: readonly string[],
+  agents: ReadonlyArray<{ name: string; tools: readonly string[] }>,
+): CheckResult {
+  if (disabled.length === 0) return { name: "disabled tools", status: "ok", detail: "none disabled" };
+  const off = new Set(disabled);
+  const affected = agents
+    .map((agent) => ({
+      name: agent.name,
+      lost: agent.tools
+        .map((t) => t.replace(/^mcp__gateway(-code)?__/, ""))
+        .filter((t) => off.has(t)),
+    }))
+    .filter((a) => a.lost.length > 0);
+  if (affected.length === 0) {
+    return { name: "disabled tools", status: "ok", detail: `${disabled.length} disabled; no agent spec uses them` };
+  }
+  return {
+    name: "disabled tools",
+    status: "warn",
+    detail: affected.map((a) => `${a.name} loses ${a.lost.join(", ")}`).join("; "),
+    fix: "Re-enable those tools (revab: Choose tools, or GATEWAY_DISABLED_TOOLS), or accept that those agents cannot do that step.",
+  };
+}
+
 /** Run every env-only check. Live probes (ports, health) are added by the CLI. */
 export function runEnvChecks(env: Env): CheckResult[] {
   return [

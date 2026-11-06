@@ -125,3 +125,25 @@ test("a fully configured env produces no failures", () => {
   const failures = runEnvChecks(env).filter((r) => r.status === "fail");
   assert.deepEqual(failures, [], `unexpected failures: ${failures.map((f) => f.name).join(", ")}`);
 });
+
+test("checkDisabledTools: ok when nothing is disabled or no agent uses what is", async () => {
+  const { checkDisabledTools } = await import("./doctor.js");
+  const agents = [{ name: "researcher", tools: ["Read", "mcp__gateway__jira_search"] }];
+  assert.equal(checkDisabledTools([], agents).status, "ok");
+  assert.equal(checkDisabledTools(["notify_teams"], agents).status, "ok");
+});
+
+test("checkDisabledTools: warns naming each agent and the tool it loses, for both gateway prefixes", async () => {
+  const { checkDisabledTools } = await import("./doctor.js");
+  const agents = [
+    { name: "researcher", tools: ["mcp__gateway__jira_search", "mcp__gateway-code__codemode_execute"] },
+    { name: "bsa", tools: ["mcp__gateway__jira_search", "mcp__gateway__jira_create_issue"] },
+    { name: "planner", tools: ["Read"] },
+  ];
+  const result = checkDisabledTools(["jira_search", "codemode_execute"], agents);
+  assert.equal(result.status, "warn");
+  assert.match(result.detail, /researcher loses jira_search, codemode_execute/);
+  assert.match(result.detail, /bsa loses jira_search/);
+  assert.doesNotMatch(result.detail, /planner/);
+  assert.match(result.fix ?? "", /Re-enable/);
+});

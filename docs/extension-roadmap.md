@@ -6,9 +6,9 @@ Bundled agents, MCP registration for `gateway` and `gateway-code`, one shared de
 
 What phase 1 still needs from you: a clone of the repo with `npm install` run once, and credentials in the checkout's `.env`.
 
-## Phase 2 (planned): credentials and tools in the extension's settings
+## Phase 2 (built): credentials and tools in the extension
 
-Goal: no hand-edited `.env`, and tools you can switch on and off per user.
+Delivered: no hand-edited `.env` needed, and tools you can switch on and off. Details in `extension/README.md`. The design below is what was built, with these differences: non-secret values are one allowlisted `revab.environment` object rather than a setting per variable, and the gateway reports disabled tools in `/api/tools` so the picker can show them as off.
 
 **Credentials.** A **revab: Set credentials** command asks for each service (Jira, Confluence, JTMF, GitHub, notifications) and stores the secret in VS Code's `SecretStorage`, never in settings JSON. On start, the extension passes them to the gateway as environment variables, which the gateway already reads (`JIRA_API_TOKEN` and the rest); a value in `.env` still works and the extension's value wins. Non-secret values (base URLs, emails, custom field ids) become ordinary `revab.*` settings. The gateway never needs to learn about VS Code.
 

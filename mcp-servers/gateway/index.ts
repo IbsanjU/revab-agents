@@ -29,6 +29,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { intEnv, optionalEnv } from "../shared/config.js";
 import { captureAllTools, type CapturedTool } from "./tools.js";
 import { buildCodeModeTools } from "./codemode.js";
+import { filterTools } from "./filter.js";
 import { classifyTool } from "../../utils/toolClassification.js";
 
 const PORT = intEnv("GATEWAY_MCP_PORT", 7300);
@@ -61,23 +62,40 @@ function toRestBody(result: { content?: Array<{ text?: string }>; isError?: bool
   }
 }
 
-export function buildApp(tools: CapturedTool[]): express.Express {
+export interface AppOptions {
+  /** Extra tools to switch off (same spec as GATEWAY_DISABLED_TOOLS); applied to the Code Mode tools too. */
+  disabled?: string;
+  /** Tools removed before reaching here. Reported (name and server only) so a client can show them as off. */
+  removed?: Array<{ name: string; server: string }>;
+}
+
+export function buildApp(tools: CapturedTool[], options: AppOptions = {}): express.Express {
   const app = express();
   app.use(express.json({ limit: "8mb" }));
 
   // Code Mode: two tools that script the other 78. Served on /mcp/code and over REST, never
   // mixed into /mcp, so existing clients see exactly the tools they always did.
-  const codeTools = buildCodeModeTools(tools, {
-    timeoutMs: intEnv("CODEMODE_TIMEOUT_MS", 60_000),
-    maxCalls: intEnv("CODEMODE_MAX_CALLS", 100),
-  });
+  const codeTools = filterTools(
+    buildCodeModeTools(tools, {
+      timeoutMs: intEnv("CODEMODE_TIMEOUT_MS", 60_000),
+      maxCalls: intEnv("CODEMODE_MAX_CALLS", 100),
+    }),
+    options.disabled,
+  ).kept;
 
   app.get("/health", (_req: Request, res: Response) => {
-    res.json({ ok: true, name: "gateway", tools: tools.length, codeMode: codeTools.map((t) => t.name) });
+    res.json({
+      ok: true,
+      name: "gateway",
+      tools: tools.length,
+      disabled: options.removed?.length ?? 0,
+      codeMode: codeTools.map((t) => t.name),
+    });
   });
 
   app.get("/api/tools", sharedSecretGuard, (_req: Request, res: Response) => {
     res.json({
+      disabled: (options.removed ?? []).map((t) => ({ name: t.name, server: t.server })),
       tools: [...tools, ...codeTools].map((t) => ({
         server: t.server,
         name: t.name,
@@ -176,9 +194,14 @@ export function buildApp(tools: CapturedTool[]): express.Express {
 
 /** Boot the gateway. Exported so the `revab start` CLI can reuse it. */
 export async function startGateway(): Promise<void> {
-  const tools = await captureAllTools();
-  const app = buildApp(tools);
+  const disabledSpec = optionalEnv("GATEWAY_DISABLED_TOOLS");
+  const { kept: tools, removed, unmatched } = filterTools(await captureAllTools(), disabledSpec);
+  const app = buildApp(tools, { ...(disabledSpec ? { disabled: disabledSpec } : {}), removed: removed.map((t) => ({ name: t.name, server: t.server })) });
   const servers = new Set(tools.map((t) => t.server)).size;
+  if (removed.length > 0) console.log(`[gateway] ${removed.length} tool(s) disabled by GATEWAY_DISABLED_TOOLS`);
+  if (unmatched.length > 0) {
+    console.warn(`[gateway] GATEWAY_DISABLED_TOOLS entries that matched no tool (typo?): ${unmatched.join(", ")}`);
+  }
   app.listen(PORT, "127.0.0.1", () => {
     console.log(
       `[gateway] ${tools.length} tools from ${servers} servers on http://localhost:${PORT} (loopback only)\n` +

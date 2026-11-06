@@ -16,7 +16,20 @@ const PORT = 7394;
 const commands = new Map<string, (...a: unknown[]) => unknown>();
 const providers: Array<{ id: string; provider: { provideMcpServerDefinitions(): Array<Record<string, unknown>> } }> = [];
 const messages: string[] = [];
-const settings: Record<string, unknown> = { "revab.home": REPO, "revab.gateway.port": PORT, "revab.gateway.autoStart": true };
+const outputLines: string[] = [];
+const secretStore = new Map<string, string>();
+const answers: {
+  quickPick?: (items: Array<Record<string, unknown>>) => unknown;
+  inputBox?: () => string | undefined;
+  warning?: (message: string) => string | undefined;
+} = {};
+const settings: Record<string, unknown> = {
+  "revab.home": REPO,
+  "revab.gateway.port": PORT,
+  "revab.gateway.autoStart": true,
+  "revab.tools.disabled": [],
+  "revab.environment": {},
+};
 
 class Definition {
   constructor(public label: string, public uri: { toString(): string }, public headers: object, public version?: string) {}
@@ -24,13 +37,14 @@ class Definition {
 const disposable = { dispose() {} };
 const stub = {
   window: {
-    createOutputChannel: () => ({ appendLine() {}, append() {}, show() {}, dispose() {} }),
+    createOutputChannel: () => ({ appendLine: (l: string) => void outputLines.push(l), append() {}, show() {}, dispose() {} }),
     createStatusBarItem: () => ({ show() {}, dispose() {}, text: "", tooltip: "", command: "" }),
     showInformationMessage: async (m: string) => void messages.push(m),
-    showWarningMessage: async (m: string) => void messages.push(m),
+    showWarningMessage: async (m: string) => (messages.push(m), answers.warning?.(m)),
     showErrorMessage: async (m: string) => void messages.push(m),
     showOpenDialog: async () => undefined,
-    showQuickPick: async () => undefined,
+    showQuickPick: async (items: Array<Record<string, unknown>>) => answers.quickPick?.(items),
+    showInputBox: async () => answers.inputBox?.(),
     showTextDocument: async () => undefined,
     createTerminal: () => ({ show() {}, sendText() {} }),
   },
@@ -38,7 +52,7 @@ const stub = {
     workspaceFolders: [] as unknown[],
     getConfiguration: (section: string) => ({
       get: (key: string, fallback: unknown) => settings[`${section}.${key}`] ?? fallback,
-      update: async () => undefined,
+      update: async (key: string, value: unknown) => void (settings[`${section}.${key}`] = value),
     }),
     onDidChangeConfiguration: () => disposable,
   },
@@ -56,6 +70,7 @@ const stub = {
     fire() {}
     dispose() {}
   },
+  QuickPickItemKind: { Separator: -1, Default: 0 },
   StatusBarAlignment: { Right: 2 },
   ConfigurationTarget: { Global: 1, Workspace: 2 },
 };
@@ -74,8 +89,14 @@ const health = async () => {
   }
 };
 
-let ext: { activate(c: { subscriptions: unknown[] }): Promise<void>; deactivate(): void };
-const context = { subscriptions: [] as unknown[] };
+let ext: { activate(c: { subscriptions: unknown[]; secrets: typeof secrets }): Promise<void>; deactivate(): void };
+const secrets = {
+  get: async (k: string) => secretStore.get(k),
+  store: async (k: string, v: string) => void secretStore.set(k, v),
+  delete: async (k: string) => void secretStore.delete(k),
+  onDidChange: () => disposable,
+};
+const context = { subscriptions: [] as unknown[], secrets };
 
 before(async () => {
   process.env.JIRA_BASE_URL ??= "https://example.atlassian.net";
@@ -97,7 +118,7 @@ test("activation registers both MCP servers as class instances, labelled as the 
   await ext.activate(context);
   assert.equal(providers.length, 1);
   assert.equal(providers[0]!.id, "revab.gateway", "must match contributes.mcpServerDefinitionProviders");
-  const defs = providers[0]!.provider.provideMcpServerDefinitions() as unknown as Definition[];
+  const defs = (await providers[0]!.provider.provideMcpServerDefinitions()) as unknown as Definition[];
   assert.ok(defs.every((d) => d instanceof Definition), "plain objects are not accepted by the editor");
   assert.deepEqual(defs.map((d) => [d.label, String(d.uri)]), [
     ["gateway", `http://127.0.0.1:${PORT}/mcp`],
@@ -134,5 +155,96 @@ test("a bad revab.home is reported, and nothing is spawned", async () => {
   messages.length = 0;
   await (commands.get("revab.start") as () => Promise<void>)();
   assert.match(messages.join("\n"), /not a revab-agents checkout/);
+  assert.equal(await health(), false);
+});
+
+
+// ---- phase 2: credentials and tool selection ----------------------------------------------
+
+const SECRET = "s3cret-value-DO-NOT-LOG";
+const get = (path: string, headers: Record<string, string> = {}) =>
+  fetch(`http://127.0.0.1:${PORT}${path}`, { headers, signal: AbortSignal.timeout(3000) });
+const run = (id: string) => (commands.get(id) as () => Promise<void>)();
+
+test("a stored credential reaches the gateway: it enforces the shared secret and the extension sends it", async () => {
+  settings["revab.home"] = REPO;
+  answers.quickPick = (items) => items.find((i) => String(i.detail).startsWith("MCP_SHARED_SECRET"));
+  answers.inputBox = () => SECRET;
+  await run("revab.setCredentials");
+  assert.equal(secretStore.get("MCP_SHARED_SECRET"), SECRET, "stored in SecretStorage");
+  assert.equal(JSON.stringify(settings).includes(SECRET), false, "never written to settings");
+
+  await run("revab.restart");
+  assert.equal((await get("/api/tools")).status, 401, "the gateway now requires the secret");
+  assert.equal((await get("/api/tools", { "x-mcp-secret": SECRET })).status, 200);
+
+  const defs = (await providers[0]!.provider.provideMcpServerDefinitions()) as unknown as Definition[];
+  assert.ok(defs.every((d) => (d.headers as Record<string, string>)["x-mcp-secret"] === SECRET), "MCP definitions carry the header");
+});
+
+test("the secret never appears in the output channel, messages, or the gateway log", async () => {
+  await run("revab.showCredentials");
+  const everything = [outputLines.join("\n"), messages.join("\n"), fs.readFileSync(path.join(REPO, ".revab", "gateway.log"), "utf8")].join("\n");
+  assert.equal(everything.includes(SECRET), false);
+  assert.match(outputLines.join("\n"), /MCP_SHARED_SECRET \(secret\)/, "named, not shown");
+});
+
+test("revab.environment is an allowlist: dangerous variables and pasted tokens are refused by name", async () => {
+  settings["revab.environment"] = { JIRA_BASE_URL: "https://x.atlassian.net", NODE_OPTIONS: "--require /evil.js", JIRA_API_TOKEN: "pasted-in-settings" };
+  messages.length = 0;
+  outputLines.length = 0;
+  await run("revab.restart");
+  const warned = messages.join("\n");
+  assert.match(warned, /NODE_OPTIONS/);
+  assert.match(warned, /JIRA_API_TOKEN/);
+  const log = outputLines.join("\n");
+  assert.equal(log.includes("--require /evil.js") || log.includes("pasted-in-settings"), false, "values are never printed");
+  assert.match(log, /JIRA_BASE_URL/);
+  settings["revab.environment"] = {};
+});
+
+test("disabled tools are gone from the gateway, and the gateway reports them", async () => {
+  settings["revab.tools.disabled"] = ["jira_search", "confluence/*"];
+  await run("revab.restart");
+  const body = (await (await get("/api/tools", { "x-mcp-secret": SECRET })).json()) as {
+    tools: Array<{ name: string; server: string }>;
+    disabled: Array<{ name: string }>;
+  };
+  const still = body.tools.filter((t) => t.name === "jira_search" || t.server === "confluence").map((t) => t.name);
+  assert.deepEqual(still, [], `these should be disabled but are present (log tail: ${fs.readFileSync(path.join(REPO, ".revab", "gateway.log"), "utf8").split("\n").slice(-6).join(" | ")})`);
+  assert.ok(body.disabled.some((t) => t.name === "jira_search"), `disabled list: ${JSON.stringify(body.disabled)}`);
+  assert.ok(body.tools.some((t) => t.name === "jira_get_issue"), "other tools remain");
+});
+
+test("the tool picker warns about agents that lose a tool, and a cancel changes nothing", async () => {
+  settings["revab.tools.disabled"] = ["confluence/*"];
+  await run("revab.restart");
+  // Uncheck knowledge_search, which several agents list.
+  answers.quickPick = (items) => items.filter((i) => i.tool !== undefined && i.tool !== "knowledge_search");
+  let warning = "";
+  answers.warning = (m) => ((warning = m), undefined); // user cancels
+  const before = JSON.stringify(settings["revab.tools.disabled"]);
+  await run("revab.chooseTools");
+  assert.match(warning, /removes capabilities from agents/);
+  assert.equal(JSON.stringify(settings["revab.tools.disabled"]), before, "cancelling must not save");
+});
+
+test("confirming the picker saves the choice and keeps a hand-written pattern", async () => {
+  answers.warning = () => "Disable anyway";
+  await run("revab.chooseTools");
+  const saved = settings["revab.tools.disabled"] as string[];
+  assert.ok(saved.includes("knowledge_search"));
+  assert.ok(saved.includes("confluence/*"), "the pattern the picker cannot show is preserved");
+});
+
+test("clearing a credential removes it", async () => {
+  answers.quickPick = (items) => items.filter((i) => String(i.detail).startsWith("MCP_SHARED_SECRET"));
+  await run("revab.clearCredentials");
+  assert.equal(secretStore.has("MCP_SHARED_SECRET"), false);
+});
+
+test("final cleanup: stop the gateway the extension started", async () => {
+  settings["revab.tools.disabled"] = [];
+  await run("revab.stop");
   assert.equal(await health(), false);
 });
