@@ -44,6 +44,7 @@ Then, once:
 | `revab: Open framework home folder` | Reveal the home folder (`.env`, `projects/`, `knowledge/`, `skills/`) |
 | `revab: Start / Stop / Restart gateway` | Manage the shared gateway. Stop only affects a gateway this extension started |
 | `revab: Run doctor` | Checks env, auth and ports in a terminal |
+| `revab: Set up speech-to-text` | Installs faster-whisper into a private Python environment so agents can transcribe recordings (`transcribe_media`) |
 | `revab: Show available tools` | Searchable list of every tool |
 | `revab: Open gateway log` | `<checkout>/.revab/gateway.log` |
 | `revab: Set credentials` / `Clear credentials` | Store or delete a token. Stored encrypted by VS Code, never in settings |
@@ -90,6 +91,7 @@ It is a normal folder: put `.env` there if you prefer a file to **Set credential
 
 ## Limits in bundled mode
 
+- Speech-to-text needs Python 3.9+ on your machine (the extension does not bundle Python). Run **revab: Set up speech-to-text** once; models download on first use.
 - No async task queue (`npm run task`, `npm run worker`) and no `build:prompts`: those need a checkout (set `revab.home`). Agents that dispatch with the Task tool are unaffected.
 - PDF text and metadata extraction work. PDF.js is given inert stand-ins for its optional native canvas, so nothing can be *rendered*; this repository never renders PDFs.
 - OCR (tesseract) downloads its language data on first use, so it needs network access then.

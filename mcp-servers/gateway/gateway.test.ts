@@ -1,5 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import path from "node:path";
 import type { AddressInfo } from "net";
 import type { Server } from "http";
 import { buildApp } from "./index.js";
@@ -219,4 +220,55 @@ test("disabled tools are absent from MCP, REST discovery, REST calls and Code Mo
     local.closeAllConnections();
     await new Promise<void>((resolve) => local.close(() => resolve()));
   }
+});
+
+// ---- transcribe_media through the real gateway, with a stand-in Python ------------------------
+
+test("transcribe_media: a cited transcript comes back, and bad input is refused before Python runs", { skip: process.platform === "win32" }, async () => {
+  const { chmodSync, mkdirSync, rmSync, writeFileSync } = await import("node:fs");
+  const dir = path.join(process.cwd(), ".workspaces", "whisper-gateway-test");
+  mkdirSync(dir, { recursive: true });
+  const media = path.join(dir, "Standup Call.mp3");
+  writeFileSync(media, "not really audio; the stand-in does not read it");
+  writeFileSync(path.join(dir, "notes.txt"), "text");
+  const python = path.join(dir, "fake-python");
+  writeFileSync(
+    python,
+    `#!/bin/sh\ncat > "${dir}/request.json"; printf '%s\\n' '{"ok":true,"language":"en","languageProbability":0.99,"durationSeconds":42,"segments":[{"start":0,"end":5,"text":"Welcome everyone."},{"start":75,"end":80,"text":"Login must lock after five tries."}]}'\n`,
+  );
+  chmodSync(python, 0o755);
+  const previous = process.env.WHISPER_PYTHON;
+  process.env.WHISPER_PYTHON = python;
+  try {
+    const rel = path.relative(process.cwd(), media);
+    const ok = await post("/api/media/transcribe_media", { filePath: rel, model: "tiny", language: "en" });
+    assert.equal(ok.status, 200, JSON.stringify(ok.body));
+    assert.equal(ok.body.language, "en");
+    assert.equal(ok.body.text, "Welcome everyone. Login must lock after five tries.");
+    const segments = ok.body.segments as Array<{ citation: string }>;
+    assert.deepEqual(segments.map((s) => s.citation), ["transcript:Standup-Call@00:00:00", "transcript:Standup-Call@00:01:15"]);
+
+    const { readFileSync } = await import("node:fs");
+    const sent = JSON.parse(readFileSync(path.join(dir, "request.json"), "utf8"));
+    assert.equal(sent.model, "tiny");
+    assert.equal(sent.path, media, "Python receives the resolved path inside the root");
+
+    const text = await post("/api/media/transcribe_media", { filePath: path.relative(process.cwd(), path.join(dir, "notes.txt")) });
+    assert.match(JSON.stringify(text.body), /does not look like an audio or video file/);
+    const escape = await post("/api/media/transcribe_media", { filePath: "../outside.mp3" });
+    assert.match(JSON.stringify(escape.body), /escapes root/);
+    const missing = await post("/api/media/transcribe_media", { filePath: path.relative(process.cwd(), path.join(dir, "gone.wav")) });
+    assert.match(JSON.stringify(missing.body), /File not found/);
+    const badModel = await post("/api/media/transcribe_media", { filePath: rel, model: "someone/else" });
+    assert.equal(badModel.status, 400, "the model is validated by the tool schema");
+  } finally {
+    if (previous === undefined) delete process.env.WHISPER_PYTHON;
+    else process.env.WHISPER_PYTHON = previous;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("transcribe_media is read-only for approval purposes, so clients can auto-approve it", async () => {
+  const { tools: listed } = (await (await fetch(`${baseUrl}/api/tools`)).json()) as { tools: Array<{ name: string; risk: string }> };
+  assert.equal(listed.find((t) => t.name === "transcribe_media")?.risk, "read");
 });

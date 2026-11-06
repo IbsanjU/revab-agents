@@ -136,7 +136,7 @@ individual `npm run serve:<name>` scripts still work unchanged for debugging a s
 | jtmf | 7313 | repo-agnostic | `jtmf_get_test_case`, `jtmf_search_tests`, `jtmf_get_test_plan`, `jtmf_create_test_case`, `jtmf_update_test_case`, `jtmf_delete_test_case`, `jtmf_raw_get` |
 | github | 7320 | repo-agnostic | `github_search_code`, `github_search_repos`, `github_search_issues`, `github_search_commits`, `github_search_topics`, `github_get_file`, `github_save_file` |
 | artifacts | 7314 | this repo only | `list_files`, `read_repo_file`, `knowledge_append`, `knowledge_search`, `consensus_score` |
-| media | 7319 | this repo, or a manifest `project` | `get_file_metadata`, `read_pdf_text`, `read_docx_text`, `read_excel_rows`, `read_csv_rows`, `create_pdf`, `create_docx`, `ocr_image`, `ocr_pdf`, `read_diagram`, `create_diagram`, `media_extract_requirements` |
+| media | 7319 | this repo, or a manifest `project` | `get_file_metadata`, `read_pdf_text`, `read_docx_text`, `transcribe_media`, `read_excel_rows`, `read_csv_rows`, `create_pdf`, `create_docx`, `ocr_image`, `ocr_pdf`, `read_diagram`, `create_diagram`, `media_extract_requirements` |
 | notify | 7321 | target-agnostic | `notify_teams`, `notify_email` — both dryRun-first |
 | git | 7322 | project-scoped (or this repo when `project` is omitted) | `git_log`, `git_branches`, `git_search` (commit-message search across all branches, or `git grep` content search at one ref), `git_diff`, `git_show` — all read-only, invoked directly (no shell) so free-text search terms can't be interpreted as shell syntax |
 | playwright-runner | 7316 | project-scoped | `run_bdd`, `run_playwright`, `get_test_files` |
@@ -176,6 +176,7 @@ rather than failing the whole run.
 The `media` server lets agents read and generate non-text-file content:
 - `get_file_metadata` — size, detected MIME type, and type-specific details (image width/height, PDF page count/info, DOCX word count) as JSON, ready to feed to Copilot as context.
 - `read_pdf_text` / `read_docx_text` — extract text from local PDFs/DOCX files.
+- `transcribe_media` — speech-to-text for local audio/video with [faster-whisper](https://github.com/SYSTRAN/faster-whisper), run locally; every segment comes with a `transcript:<file>@HH:MM:SS` citation. One-time setup: `revab whisper-setup` (see [Transcription](#transcription)).
 - `read_excel_rows` / `read_csv_rows` — parse a local `.xlsx`/`.xls`/`.csv` into structured rows (first row = headers), for bulk ticket intake via the `bsa` agent's `bulk-create-tickets` skill.
 - `create_pdf` / `create_docx` — generate a styled PDF or DOCX report from a title + sections (heading/body), with an optional accent color for PDFs.
 - `ocr_image` — local tesseract OCR for screenshots/scans/whiteboard photos (no data leaves the machine); returns text plus blocks with bounding boxes and confidence scores.

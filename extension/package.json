@@ -88,6 +88,11 @@
         "command": "revab.openHome",
         "title": "revab: Open framework home folder",
         "category": "revab"
+      },
+      {
+        "command": "revab.setupSpeechToText",
+        "title": "revab: Set up speech-to-text (faster-whisper)",
+        "category": "revab"
       }
     ],
     "configuration": {

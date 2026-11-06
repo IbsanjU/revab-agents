@@ -196,6 +196,45 @@ export function checkDisabledTools(
   };
 }
 
+export interface WhisperProbe {
+  /** Whether the interpreter could be run at all. */
+  ran: boolean;
+  python: string;
+  fasterWhisper?: string;
+  av?: string;
+  error?: string;
+}
+
+/**
+ * Speech-to-text is optional, so "not set up" is fine. What is not fine is a setup that looks done
+ * and cannot transcribe: an explicitly configured Python that is missing or broken, or a PyAV new
+ * enough (17+) to crash faster-whisper's audio decoding.
+ */
+export function checkWhisper(env: Env, probe: WhisperProbe): CheckResult {
+  const configured = !!env.WHISPER_PYTHON?.trim();
+  if (probe.fasterWhisper) {
+    const avMajor = Number((probe.av ?? "").split(".")[0]);
+    if (Number.isFinite(avMajor) && avMajor >= 17) {
+      return {
+        name: "speech-to-text",
+        status: "fail",
+        detail: `faster-whisper ${probe.fasterWhisper} with av ${probe.av}: this PyAV rejects an argument faster-whisper passes, so every transcription fails`,
+        fix: 'Run `revab whisper-setup` (pins av<17), or `pip install "av<17"` in that environment.',
+      };
+    }
+    return { name: "speech-to-text", status: "ok", detail: `faster-whisper ${probe.fasterWhisper}${probe.av ? `, av ${probe.av}` : ""} (${probe.python})` };
+  }
+  if (configured) {
+    return {
+      name: "speech-to-text",
+      status: "fail",
+      detail: `WHISPER_PYTHON is set to ${env.WHISPER_PYTHON} but faster-whisper is not usable there${probe.error ? ` (${probe.error})` : ""}`,
+      fix: "Install it in that Python (`pip install faster-whisper \"av<17\"`), fix the path, or unset WHISPER_PYTHON and run `revab whisper-setup`.",
+    };
+  }
+  return { name: "speech-to-text", status: "ok", detail: "not set up (optional); run `revab whisper-setup` to enable transcribe_media" };
+}
+
 /** Run every env-only check. Live probes (ports, health) are added by the CLI. */
 export function runEnvChecks(env: Env): CheckResult[] {
   return [

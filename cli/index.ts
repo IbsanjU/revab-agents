@@ -15,6 +15,7 @@
 import { runDoctor } from "./doctor.js";
 import { runInit } from "./init.js";
 import { runCall, runTools } from "./call.js";
+import { runWhisperSetup } from "./whisper.js";
 
 const USAGE = `revab — QE agent framework operator CLI
 
@@ -24,6 +25,8 @@ Usage:
   revab start [--port N]   Start the gateway (all tools, one process: MCP + REST)
   revab tools [name] [--json]   List gateway tools (read/write) — works without MCP
   revab call <tool> [json]       Call a tool over the gateway REST API — works without MCP
+  revab whisper-setup [--check] [--python <path>]
+                           Install faster-whisper (speech-to-text) in its own environment
   revab --help             Show this message
 
 Docs: README.md · configuration reference: .env.example`;
@@ -56,6 +59,11 @@ async function main(): Promise<void> {
     case "call":
       process.exit(await runCall(rest[0], rest[1]));
       return;
+    case "whisper-setup": {
+      const py = rest.indexOf("--python");
+      process.exit(runWhisperSetup({ checkOnly: rest.includes("--check"), ...(py !== -1 && rest[py + 1] ? { python: rest[py + 1] } : {}) }));
+      return;
+    }
     case "--help":
     case "-h":
     case undefined:
