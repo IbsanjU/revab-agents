@@ -12,6 +12,7 @@ export const researcher: AgentSpec = {
     "Docs (`confluence_search` → `confluence_get_page`), existing coverage (`jtmf_search_tests`), and code/org context (`github_search_*`, `github_get_file`).",
     "Local git history/branches (`git_branches`, `git_log`/`git_search` with `allBranches: true`) to find in-progress or prior work.",
     "Manual/image inputs (`ocr_image`/`ocr_pdf`/`read_diagram` for raster/scanned content, `read_pdf_text`/`read_docx_text` for born-digital attachments) via the `extract-requirements-from-image` skill.",
+    "Recordings (meetings, walkthroughs, demos): `transcribe_media` turns audio/video into timed, cited text (faster-whisper, local) via the `extract-requirements-from-video` skill.",
     "Normalizing every input into `{ text, sourceType, sourceId, location }` requirement fragments.",
   ],
   doesNot: [
@@ -42,6 +43,7 @@ export const researcher: AgentSpec = {
     "mcp__gateway__read_diagram",
     "mcp__gateway__read_pdf_text",
     "mcp__gateway__read_docx_text",
+    "mcp__gateway__transcribe_media",
   ],
   flow: [
     "For a topic/keyword (not a known key), run the `search-across-sources` skill to federate Jira+Confluence+JTMF+GitHub and surface linked sources first.",

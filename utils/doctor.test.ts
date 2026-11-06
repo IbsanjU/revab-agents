@@ -147,3 +147,24 @@ test("checkDisabledTools: warns naming each agent and the tool it loses, for bot
   assert.doesNotMatch(result.detail, /planner/);
   assert.match(result.fix ?? "", /Re-enable/);
 });
+
+test("checkWhisper: not set up is fine (optional), set up is reported, and both bad cases fail with a fix", async () => {
+  const { checkWhisper } = await import("./doctor.js");
+  const none = checkWhisper({}, { ran: false, python: "python3", error: "Python not found" });
+  assert.equal(none.status, "ok");
+  assert.match(none.detail, /optional/);
+
+  const good = checkWhisper({}, { ran: true, python: "/v/bin/python", fasterWhisper: "1.2.1", av: "16.1.0" });
+  assert.equal(good.status, "ok");
+  assert.match(good.detail, /faster-whisper 1\.2\.1, av 16\.1\.0/);
+
+  // The trap this framework hit: a fresh `pip install faster-whisper` pulls PyAV 17+, which crashes decoding.
+  const badAv = checkWhisper({}, { ran: true, python: "/v/bin/python", fasterWhisper: "1.2.1", av: "19.0.2" });
+  assert.equal(badAv.status, "fail");
+  assert.match(badAv.fix ?? "", /av<17/);
+
+  // An explicitly configured python that cannot import it must not pass as "optional".
+  const broken = checkWhisper({ WHISPER_PYTHON: "/opt/py" }, { ran: true, python: "/opt/py", error: "ModuleNotFoundError" });
+  assert.equal(broken.status, "fail");
+  assert.match(broken.detail, /WHISPER_PYTHON is set to \/opt\/py/);
+});

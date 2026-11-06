@@ -7,9 +7,12 @@
  * finding, and exits non-zero on any failure so it can gate CI or an onboarding script.
  */
 import { promises as fs } from "fs";
+import { WHISPER_PROBE_SCRIPT, resolveWhisperPython } from "../utils/whisper.js";
 import path from "path";
+import { execFile } from "child_process";
 import {
   checkDisabledTools,
+  checkWhisper,
   overallStatus,
   runEnvChecks,
   type CheckResult,
@@ -159,6 +162,22 @@ async function checkProjects(root: string): Promise<CheckResult[]> {
 }
 
 /** Run every check. Returns true when nothing failed (warnings are acceptable). */
+/** Run the interpreter once, briefly, to see whether faster-whisper (and a compatible PyAV) is importable. */
+async function probeWhisper(env: NodeJS.ProcessEnv, root: string): Promise<CheckResult> {
+  const python = resolveWhisperPython(env, root);
+  const probe = await new Promise<Parameters<typeof checkWhisper>[1]>((resolve) => {
+    execFile(python, ["-c", WHISPER_PROBE_SCRIPT], { timeout: 15_000, windowsHide: true }, (err, stdout) => {
+      if (err && !stdout) return resolve({ ran: false, python, error: (err as NodeJS.ErrnoException).code === "ENOENT" ? "Python not found" : err.message.split("\n")[0] });
+      try {
+        resolve({ ran: true, python, ...(JSON.parse(stdout.trim().split(/\r?\n/).at(-1) ?? "") as object) });
+      } catch {
+        resolve({ ran: true, python, error: "could not read the Python environment" });
+      }
+    });
+  });
+  return checkWhisper(env, probe);
+}
+
 /** Resolve GATEWAY_DISABLED_TOOLS against the real tool list, then see which agents it affects. */
 async function checkDisabled(env: NodeJS.ProcessEnv): Promise<CheckResult[]> {
   if (!env.GATEWAY_DISABLED_TOOLS?.trim()) return [];
@@ -187,6 +206,7 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<boolean> {
     await checkEnvFile(root),
     ...runEnvChecks(process.env),
     ...(await checkDisabled(process.env)),
+    await probeWhisper(process.env, root),
     ...(await checkProjects(root)),
     await checkGateway(Number(process.env.GATEWAY_MCP_PORT ?? 7300)),
   ];

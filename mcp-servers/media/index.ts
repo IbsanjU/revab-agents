@@ -20,6 +20,14 @@ import { parseDiagram } from "../../utils/diagramParse.js";
 import { execCommand } from "../../utils/exec.js";
 import { semanticBoolean } from "../../utils/semanticBoolean.js";
 import { semanticNumber } from "../../utils/semanticNumber.js";
+import {
+  MODELS,
+  WhisperError,
+  buildWhisperRequest,
+  isMediaFile,
+  resolveWhisperPython,
+  runWhisper,
+} from "../../utils/whisper.js";
 
 /**
  * Media MCP server: reads/writes multimedia and document files so their content
@@ -496,6 +504,61 @@ startMcpHttpServer({
           return errorResult(err);
         } finally {
           await parser_holder.parser?.destroy();
+        }
+      }
+    );
+
+    server.registerTool(
+      "transcribe_media",
+      {
+        description:
+          "Transcribe speech from a local audio or video file with faster-whisper (runs on this machine; the only " +
+          "network use is a one-time model download). Returns the text and timed segments, each with a ready-made " +
+          "citation like `transcript:<file>@00:12:34` for requirements, test cases and tickets (hard rule 9). Use it for " +
+          "recordings of meetings, walkthroughs and demos; for text already in a document use read_pdf_text/read_docx_text. " +
+          "Needs a one-time setup: `revab whisper-setup`. The first run with a model downloads it (tiny ~75 MB, small " +
+          "~465 MB, large-v3 ~3 GB), so use a small model for a quick look. Long recordings take a while: raise timeoutSeconds.",
+        inputSchema: {
+          filePath: z.string().describe("Audio or video file, relative to the repo (or the project's repo if `project` is given)"),
+          project: z.string().optional().describe("Manifest project name to resolve filePath against (default: this framework repo)"),
+          model: z
+            .enum(MODELS)
+            .optional()
+            .describe("Model size. tiny/base are fast, small is a good default, large-v3 is the most accurate. Default: WHISPER_MODEL or small"),
+          language: z.string().optional().describe('Language code such as "en". Omit to detect it'),
+          task: z.enum(["transcribe", "translate"]).optional().describe('"translate" produces English text from any language'),
+          vadFilter: semanticBoolean(z.boolean().optional()).describe("Skip silence (default true; faster and fewer hallucinations)"),
+          wordTimestamps: semanticBoolean(z.boolean().optional()).describe("Also return per-word timings (default false)"),
+          beamSize: semanticNumber(z.number().optional()).describe("Search width 1-10 (default 5); lower is faster"),
+          device: z.enum(["auto", "cpu", "cuda"]).optional().describe("Default: WHISPER_DEVICE or auto"),
+          timeoutSeconds: semanticNumber(z.number().optional()).describe("Stop after this long (default 600, max 7200)"),
+          maxChars: semanticNumber(z.number().optional()).describe("Cut the returned transcript at a segment boundary after this many characters (default 60000)"),
+        },
+      },
+      async ({ filePath, project, model, language, task, vadFilter, wordTimestamps, beamSize, device, timeoutSeconds, maxChars }) => {
+        try {
+          const root = await resolveRoot(project);
+          const target = resolveWithinRoot(root, filePath);
+          if (!isMediaFile(target)) {
+            throw new Error(`"${filePath}" does not look like an audio or video file (supported: mp3, wav, flac, m4a, aac, ogg, opus, wma, mp4, mov, mkv, webm, avi, m4v).`);
+          }
+          const stat = await fs.stat(target).catch(() => undefined);
+          if (!stat?.isFile()) throw new Error(`File not found: ${filePath}`);
+
+          const request = buildWhisperRequest({ path: target, model, language, task, vadFilter, wordTimestamps, beamSize, device, env: process.env });
+          const seconds = Math.min(7200, Math.max(10, timeoutSeconds ?? 600));
+          const result = await runWhisper({
+            python: resolveWhisperPython(process.env, process.cwd()),
+            request,
+            env: process.env,
+            cwd: root,
+            timeoutMs: seconds * 1000,
+            maxChars: Math.max(1000, maxChars ?? 60000),
+          });
+          return textResult({ file: path.relative(root, target), ...result });
+        } catch (err) {
+          if (err instanceof WhisperError) return errorResult(new Error(`[${err.kind}] ${err.message}`));
+          return errorResult(err);
         }
       }
     );

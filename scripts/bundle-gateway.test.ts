@@ -55,6 +55,10 @@ test("the bundled gateway runs outside the repo with only its shipped packages",
 
     const logPath = path.join(work, "gateway.log");
     const logFd = openSync(logPath, "w");
+    // The speech-to-text setup command is part of the bundled CLI too (it reports; it must not crash or install).
+    const check = spawnSync(process.execPath, [result.file, "whisper-setup", "--check"], { cwd: home, env, encoding: "utf8", timeout: 60_000 });
+    assert.match(check.stdout + check.stderr, /faster-whisper/, "whisper-setup is available from the bundle");
+
     child = spawn(process.execPath, [result.file, "start"], { cwd: home, env, stdio: ["ignore", logFd, logFd] });
     closeSync(logFd);
     const base = `http://127.0.0.1:${PORT}`;
@@ -77,6 +81,10 @@ test("the bundled gateway runs outside the repo with only its shipped packages",
     const made = await post("/api/media/create_pdf", { targetPath: "reports/t.pdf", title: "T", sections: [{ heading: "H", body: "pdf round trip works" }] });
     const text = await post("/api/media/read_pdf_text", { filePath: "reports/t.pdf" });
     assert.match(String(text.text), /pdf round trip works/, `create_pdf said ${JSON.stringify(made)}; read_pdf_text said ${JSON.stringify(text)}`);
+
+    // The transcription tool is hosted by the bundle (its Python helper travels inside the bundle as a string).
+    const missingPython = await post("/api/media/transcribe_media", { filePath: "reports/none.wav" });
+    assert.match(JSON.stringify(missingPython), /File not found/, "transcribe_media is registered and validates before running Python");
 
     const code = await post("/api/codemode/codemode_execute", { code: "return 6 * 7" });
     assert.equal(code.result, 42, "Code Mode's worker sandbox works from the bundle");

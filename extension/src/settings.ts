@@ -51,6 +51,10 @@ export const PLAIN_KEYS: readonly string[] = [
   "BROWSERSTACK_USERNAME",
   "HTTP_TIMEOUT_MS",
   "HTTP_MAX_RETRIES",
+  "WHISPER_PYTHON",
+  "WHISPER_MODEL",
+  "WHISPER_DEVICE",
+  "WHISPER_COMPUTE_TYPE",
 ];
 
 const SECRET_KEYS = new Set(SECRETS.map((s) => s.key));

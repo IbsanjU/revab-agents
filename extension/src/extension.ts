@@ -343,15 +343,23 @@ function safeRead(p: string): string | undefined {
   }
 }
 
-/** Run `revab doctor` in a terminal so its output is readable and re-runnable. */
-function runDoctor(): void {
+/**
+ * Run a `revab` sub-command in a terminal so its output is readable and re-runnable. Bundled mode has no
+ * checkout to run from: it runs the bundled CLI itself, in the home folder. In a checkout, `npm run revab`
+ * runs the CLI from source, so no build is needed.
+ */
+function runCliInTerminal(title: string, subcommand: string): void {
   const r = runtime();
   const root = r.mode === "none" ? undefined : r.home;
-  const terminal = vscode.window.createTerminal({ name: "revab doctor", ...(root ? { cwd: root } : {}) });
+  const terminal = vscode.window.createTerminal({ name: title, ...(root ? { cwd: root } : {}) });
   terminal.show();
-  // Bundled mode has no checkout to `npx` from: run the bundled CLI itself.
-  terminal.sendText(r.mode === "bundled" ? `"${config().nodePath}" "${r.bundle}" doctor` : "npx revab doctor");
+  terminal.sendText(r.mode === "bundled" ? `"${config().nodePath}" "${r.bundle}" ${subcommand}` : `npm run --silent revab -- ${subcommand}`);
 }
+
+const runDoctor = (): void => runCliInTerminal("revab doctor", "doctor");
+
+/** Installs faster-whisper into a private environment (the speech-to-text tool needs it). */
+const setupSpeechToText = (): void => runCliInTerminal("revab speech-to-text setup", "whisper-setup");
 
 /** Reveal the home folder, where `.env`, `projects/` and `knowledge/` live, in the OS file manager. */
 async function openHome(): Promise<void> {
@@ -603,6 +611,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       await startGateway();
     }),
     vscode.commands.registerCommand("revab.doctor", runDoctor),
+    vscode.commands.registerCommand("revab.setupSpeechToText", setupSpeechToText),
     vscode.commands.registerCommand("revab.openHome", openHome),
     vscode.commands.registerCommand("revab.showTools", showTools),
     vscode.commands.registerCommand("revab.openLog", openLog),
