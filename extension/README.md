@@ -1,33 +1,47 @@
 # revab agents — VS Code extension
 
-One install gives every VS Code window the QE agents and their tools, whichever folder is open.
+One install gives every VS Code window the QE agents and their tools, whichever folder is open. **No clone of the repository is needed to use it.**
 
 - **Agents.** The orchestrator and specialists are bundled (`contributes.chatAgents`), so they appear in the Chat agent dropdown everywhere. Pick **orchestrator**; it dispatches to the others.
 - **Tools.** The gateway's tools are registered with VS Code's MCP support as `gateway` (every tool) and `gateway-code` (the two-tool [Code Mode](../docs/code-mode.md) endpoint).
-- **One shared gateway.** It runs in the background, started detached from your `revab-agents` checkout. Every window reuses it, and closing a window does not stop it.
+- **The gateway is inside the extension.** It is bundled (the whole gateway and all eleven servers in one file, plus the few packages that cannot be inlined), and runs from a home folder the extension creates in VS Code's storage. Nothing to install or clone.
+- **One shared gateway.** It runs in the background, started detached. Every window reuses it, and closing a window does not stop it.
+
+### Two modes
+
+| | Bundled (default) | Framework checkout |
+|---|---|---|
+| When | `revab.home` is empty and no open folder is a checkout | `revab.home` is set, or an open folder is a `revab-agents` checkout |
+| Gateway | the one shipped in the extension | the checkout's own (compiled, or from source) |
+| Home folder | `<VS Code storage>/<publisher.name>/home`, created on first start | the checkout |
+| Task queue, `build:prompts`, editing agent specs | not available | available |
+
+A wrong `revab.home` is reported, never silently replaced by the bundle.
 
 ## Install
 
+Someone builds the `.vsix` once from a checkout; everyone else just installs the file.
+
 ```bash
-# once, in your revab-agents checkout
+# in a revab-agents checkout (the person building the extension)
 npm install
-npm run build:prompts      # only if you changed prompts/
-npm run extension:install  # builds the .vsix and runs `code --install-extension`
+npm run extension:package   # → extension/revab-agents-<version>.vsix (about 27 MB)
+npm run extension:install   # the same, then `code --install-extension`
 ```
 
-No `code` command on your PATH? `npm run extension:package` builds `extension/revab-agents-<version>.vsix`; install it from the Extensions view (⋯ → Install from VSIX…).
+Install the file from the Extensions view (⋯ → Install from VSIX…) or `code --install-extension <file>`. The `.vsix` is platform-independent: it contains JavaScript and WASM only, no native binaries.
 
 Then, once:
 
-1. **Point it at your checkout.** Run **revab: Choose framework folder**, or set `revab.home` to the checkout's path. (If a window already has the checkout open, it is found automatically.)
-2. **Add credentials**, either way (they can be mixed; see below): run **revab: Set credentials** for each token, and put non-secret values in the `revab.environment` setting; or use `<checkout>/.env` (copy `.env.example`; `npx revab init` does this). Then run **revab: Run doctor**.
-3. **Add your test project** to `<checkout>/projects/manifest.json`.
+1. **Add credentials**, either way (they can be mixed; see below): run **revab: Set credentials** for each token, and put non-secret values in the `revab.environment` setting; or use `<checkout>/.env` (copy `.env.example`; `npx revab init` does this). Then run **revab: Run doctor**.
+2. **Add your test project** to `projects/manifest.json` in the home folder (**revab: Open framework home folder** reveals it). Only projects listed there can be touched by the agents.
 
 ## Commands
 
 | Command | Does |
 | --- | --- |
-| `revab: Choose framework folder` | Pick and validate your checkout, then start the gateway |
+| `revab: Choose framework folder` | Optional: pick and validate a checkout to run from instead of the bundle |
+| `revab: Open framework home folder` | Reveal the home folder (`.env`, `projects/`, `knowledge/`, `skills/`) |
 | `revab: Start / Stop / Restart gateway` | Manage the shared gateway. Stop only affects a gateway this extension started |
 | `revab: Run doctor` | Checks env, auth and ports in a terminal |
 | `revab: Show available tools` | Searchable list of every tool |
@@ -41,7 +55,7 @@ Then, once:
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| `revab.home` | empty | Path of your `revab-agents` checkout |
+| `revab.home` | empty | Optional: path of a `revab-agents` checkout to run from. Empty = the bundled gateway |
 | `revab.gateway.port` | `7300` | Gateway port (loopback only) |
 | `revab.gateway.autoStart` | `true` | Start (or reuse) the gateway when a window opens |
 | `revab.nodePath` | `node` | Node.js used to run the gateway |
@@ -65,14 +79,32 @@ Things to know:
 
 **revab: Choose tools** lists every tool grouped by server, checked when enabled. Unchecked tools are switched off **at the gateway**, so they disappear from MCP, REST and Code Mode for every client, not just this editor. Before saving it warns which agents list a tool you are removing (read from the checkout's generated agent files) and asks you to confirm; those agents keep working but cannot do that step. Hand-written patterns in `revab.tools.disabled` (`jira/*`, `confluence_*`) are kept untouched. `npx revab doctor` repeats the warning and flags an entry that matches nothing, which usually means a typo.
 
+## The home folder (bundled mode)
+
+Created on first start from templates the extension ships, and never emptied. Two kinds of file:
+
+- **Framework-owned, refreshed when the extension updates:** `skills/` (a skill of your own, added beside them, is kept) and `.env.example`.
+- **Yours, written only if missing and never overwritten:** `knowledge/` (starting from a short `memory.md` and an empty `learnings.md`, not this repository's own history), `projects/`, and `.env`, which the extension never creates or touches.
+
+It is a normal folder: put `.env` there if you prefer a file to **Set credentials**.
+
+## Limits in bundled mode
+
+- No async task queue (`npm run task`, `npm run worker`) and no `build:prompts`: those need a checkout (set `revab.home`). Agents that dispatch with the Task tool are unaffected.
+- PDF text and metadata extraction work. PDF.js is given inert stand-ins for its optional native canvas, so nothing can be *rendered*; this repository never renders PDFs.
+- OCR (tesseract) downloads its language data on first use, so it needs network access then.
+- Tools that act on a target project (`run_bdd`, `scaffold_*`) use that project's own Node and dependencies, as before.
+- The bundle has only been run on Linux. Windows and macOS are untested.
+
 ## Uninstall
 
 ```bash
 npm run extension:uninstall -- --dry-run --purge-config   # see exactly what would change
 npm run extension:uninstall -- --purge-config
+npm run extension:uninstall -- --purge-home               # also delete the bundled home folder
 ```
 
-This stops the gateway the extension started and removes the extension. `--purge-config` also removes revab's own entries from this checkout: `gateway`/`gateway-code` in `.vscode/mcp.json` and `.mcp.json` (only entries pointing at a local gateway), `revab.*` and the tool approvals revab wrote in `.vscode/settings.json`, and `.revab/`. It never touches `.env`, `knowledge/`, `projects/`, or any other server or setting. If you set `revab.home` in your user settings, delete it there.
+This stops the gateway the extension started and removes the extension. VS Code leaves an extension's storage behind, so the bundled home folder (your `.env`, knowledge and projects) is **kept** unless you add `--purge-home`; that deletes it only if it carries the extension's marker file, and lists what it holds first. For VS Code Insiders, VSCodium or a portable install add `--user-data-dir <dir>` (the folder that contains `User/`). `--purge-config` also removes revab's own entries from a checkout: `gateway`/`gateway-code` in `.vscode/mcp.json` and `.mcp.json` (only entries pointing at a local gateway), `revab.*` and the tool approvals revab wrote in `.vscode/settings.json`, and `.revab/`. It never touches `.env`, `knowledge/`, `projects/`, or any other server or setting. If you set `revab.home` in your user settings, delete it there.
 
 ## Approval prompts
 
@@ -86,10 +118,13 @@ Verified by tests, without an editor: the launch logic (including skipping a sta
 
 If a workspace also has `.vscode/mcp.json` entries for `gateway`, you may see the servers twice; remove the file's entries, or the extension's.
 
+Also verified, without an editor: the bundle starts and serves every tool from outside the repository with only its shipped packages (a PDF round trip, Code Mode's sandbox, and file tools reading the home folder all work), `doctor` from the bundle does not start a gateway, and the extension seeds, refreshes and respects the home folder.
+
 ## Build
 
 ```bash
-cd extension && npm install && npm run build
+npm run extension:package      # builds everything (the gateway bundle, templates, agents, VSIX)
+cd extension && npm install && npm run build   # just the extension code
 ```
 
-Requires VS Code 1.101 or newer (the stable MCP provider API).
+Requires VS Code 1.101 or newer (the stable MCP provider API). The user running the gateway needs Node.js on their PATH (or set `revab.nodePath`); the extension does not bundle Node.

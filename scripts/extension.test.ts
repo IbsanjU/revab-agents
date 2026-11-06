@@ -98,3 +98,41 @@ test("running it twice is safe", posixOnly, () => {
   assert.equal(again.status, 0, again.stderr);
   assert.match(again.stdout, /nothing of revab's to remove/);
 });
+
+function homeFixture(withMarker: boolean) {
+  const { root, fake } = fixture();
+  const udd = path.join(root, "user-data");
+  const home = path.join(udd, "User", "globalStorage", "acme.revab-agents", "home");
+  mkdirSync(path.join(home, "knowledge"), { recursive: true });
+  writeFileSync(path.join(home, ".env"), "JIRA_API_TOKEN=mine\n");
+  writeFileSync(path.join(home, "knowledge", "learnings.md"), "mine\n");
+  if (withMarker) writeFileSync(path.join(home, ".revab-home.json"), "{}");
+  return { root, fake, udd, home };
+}
+
+test("--purge-home is never implied: a plain uninstall keeps the bundled home", posixOnly, () => {
+  const { root, fake, udd, home } = homeFixture(true);
+  const out = run(root, fake, "--user-data-dir", udd);
+  assert.equal(out.status, 0, out.stderr);
+  assert.equal(existsSync(home), true);
+  assert.match(out.stdout, /add --purge-home to delete it/);
+});
+
+test("--purge-home --dry-run reports what would go and deletes nothing", posixOnly, () => {
+  const { root, fake, udd, home } = homeFixture(true);
+  const out = run(root, fake, "--purge-home", "--dry-run", "--user-data-dir", udd);
+  assert.match(out.stdout, /would delete the bundled home .*\(\d+ files; holds knowledge, \.env/);
+  assert.equal(existsSync(path.join(home, ".env")), true);
+});
+
+test("--purge-home deletes the extension's home, and only when it carries the marker", posixOnly, () => {
+  const marked = homeFixture(true);
+  const out = run(marked.root, marked.fake, "--purge-home", "--user-data-dir", marked.udd);
+  assert.equal(out.status, 0, out.stderr);
+  assert.equal(existsSync(marked.home), false);
+
+  const unmarked = homeFixture(false);
+  const kept = run(unmarked.root, unmarked.fake, "--purge-home", "--user-data-dir", unmarked.udd);
+  assert.match(kept.stdout, /not the extension's home — left alone/);
+  assert.equal(existsSync(path.join(unmarked.home, ".env")), true, "an unmarked folder is never deleted");
+});

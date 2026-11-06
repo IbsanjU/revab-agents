@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as path from "node:path";
-import { distIsStale, gatewayLaunch, isFrameworkHome, parsePid, resolveHome, runtimePaths, tailLines, type FsLike } from "./home.js";
+import { bundledLaunch, distIsStale, gatewayLaunch, isFrameworkHome, resolveRuntime, parsePid, resolveHome, runtimePaths, tailLines, type FsLike } from "./home.js";
 
 const J = (...p: string[]) => path.join(...p);
 
@@ -99,4 +99,28 @@ test("staleness is not claimed when times are unavailable or there is no build",
   const base = checkout("/r", { [J("/r", "dist", "cli", "index.js")]: "" });
   assert.equal(distIsStale("/r", base), false, "no timing support: assume current");
   assert.equal(distIsStale("/r", withTimes(checkout("/r"), 1, 2)), false, "no dist at all");
+});
+
+test("runtime: a checkout wins over the bundle, a bad setting is reported not replaced, and the bundle is the fallback", () => {
+  const fs = checkout("/a");
+  const base = { bundledHome: "/data/home", bundleFile: "/ext/bundle/revab.cjs", fs };
+  assert.deepEqual(resolveRuntime({ ...base, configured: "/a", workspaceFolders: [] }), { mode: "checkout", home: "/a", source: "setting" });
+  assert.deepEqual(resolveRuntime({ ...base, configured: "", workspaceFolders: ["/x", "/a"] }), { mode: "checkout", home: "/a", source: "workspace" });
+  assert.deepEqual(resolveRuntime({ ...base, configured: "", workspaceFolders: ["/x"] }), { mode: "bundled", home: "/data/home", bundle: "/ext/bundle/revab.cjs" });
+  const bad = resolveRuntime({ ...base, configured: "/typo", workspaceFolders: [] });
+  assert.equal(bad.mode, "none", "a wrong revab.home must not quietly fall back to the bundle");
+  assert.match((bad as { problem?: string }).problem ?? "", /not a revab-agents checkout/);
+});
+
+test("runtime: with no bundle (a source build) and no checkout there is nothing to run", () => {
+  assert.deepEqual(resolveRuntime({ configured: "", workspaceFolders: [], bundledHome: "/d", bundleFile: undefined, fs: checkout("/a") }), { mode: "none" });
+});
+
+test("bundled launch is plain node on the bundle, in the home folder", () => {
+  assert.deepEqual(bundledLaunch("/ext/bundle/revab.cjs", "/data/home", 7400, "/opt/node"), {
+    command: "/opt/node",
+    args: ["/ext/bundle/revab.cjs", "start"],
+    cwd: "/data/home",
+    env: { GATEWAY_MCP_PORT: "7400" },
+  });
 });

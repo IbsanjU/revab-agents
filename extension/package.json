@@ -1,8 +1,8 @@
 {
   "name": "revab-agents",
   "displayName": "revab agents (QE)",
-  "description": "One install: the revab QE agents, their MCP tools, and a shared background gateway, in every VS Code window.",
-  "version": "0.3.0",
+  "description": "One install: the revab QE agents, their MCP tools, and a bundled shared gateway, in every VS Code window. No clone needed.",
+  "version": "0.4.0",
   "private": true,
   "publisher": "your-org",
   "repository": {
@@ -83,6 +83,11 @@
         "command": "revab.chooseTools",
         "title": "revab: Choose tools (enable / disable)",
         "category": "revab"
+      },
+      {
+        "command": "revab.openHome",
+        "title": "revab: Open framework home folder",
+        "category": "revab"
       }
     ],
     "configuration": {
@@ -92,7 +97,7 @@
           "type": "string",
           "default": "",
           "scope": "machine",
-          "markdownDescription": "Absolute path of your `revab-agents` checkout. The gateway runs there and reads its `.env`, `projects/`, `knowledge/` and `skills/`. Leave empty to use an open workspace folder that is a checkout."
+          "markdownDescription": "Optional. Absolute path of a `revab-agents` checkout to run the gateway from (needed for the task queue and prompt regeneration). Leave empty to use the gateway bundled in this extension, with its own home folder (**revab: Open framework home folder**)."
         },
         "revab.gateway.port": {
           "type": "number",
