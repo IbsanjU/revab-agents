@@ -114,7 +114,7 @@ Per-call confirmation is a VS Code setting you own. **revab: Auto-approve read-o
 
 Verified by tests, without an editor: the launch logic (including skipping a stale build), one detached gateway shared by repeated starts, stop, a bad `revab.home`, the MCP provider returning class instances with the right labels and the shared-secret header, a stored credential reaching a real gateway and being enforced, secrets never appearing in the output, messages or gateway log, the `revab.environment` allowlist, disabled tools disappearing from the gateway, the picker's agent warning and cancel, and the manifest matching the generated agents. The VSIX builds.
 
-**Not verified: a real VS Code.** That VS Code lists the bundled agents, accepts the MCP provider, and resolves the agents' `gateway/<tool>` references against the extension-provided server has not been tried. See `docs/RUNBOOK.md` §3c for the checks. If the agents' tool references do not resolve, the fallback is a `.vscode/mcp.json` with the same `gateway` entry.
+**Not verified: a real VS Code.** (`docs/RUNBOOK.md` §3d is a 13-step checklist for doing this.) That VS Code lists the bundled agents, accepts the MCP provider, and resolves the agents' `gateway/<tool>` references against the extension-provided server has not been tried. See `docs/RUNBOOK.md` §3c for the checks. If the agents' tool references do not resolve, the fallback is a `.vscode/mcp.json` with the same `gateway` entry.
 
 If a workspace also has `.vscode/mcp.json` entries for `gateway`, you may see the servers twice; remove the file's entries, or the extension's.
 
