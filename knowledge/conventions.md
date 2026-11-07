@@ -79,6 +79,10 @@ Team/org conventions the agents must follow. The self-improvement agent updates 
   `.github/agents/*.agent.md` files carry a one-line pointer, not a duplicated copy. Tighten a
   specific persona directly in its own file instead of re-pasting shared text.
 
+## No external AI provider (2026-11-07)
+- The framework depends on **no external AI provider**: no provider SDK, no hosted-model endpoint, no provider API key. Models are whatever the user's own editor runs (VS Code Copilot Chat, Claude Code). Enforced by `check:conventions` rule 6. Local tools (faster-whisper) are not external providers.
+- Anything that would "ask a model" (evals, reviews, summaries) is either a person in their editor or a deterministic check; never a call from this repo.
+
 ## Design heuristics (from prompt-engineering research, 2026-07-12)
 - **Batch tool loads, not one-by-one**: when a task needs several tools from the same MCP server
   (e.g. multiple `mcp_jira_*` calls), issue one batched discovery/read pass rather than N sequential

@@ -82,3 +82,8 @@ Entry format:
 - Grant a tool to an agent only when a skill or its own flow needs it. "Minimal tool list" erodes by convenience grants; the graph finding plus a `because` eval per grant keeps each one justified.
 - Right-sizing must scale the writing, not the approval. Make the safety floor explicit (up-tier, never down) so a request cannot be shrunk into a light plan by looking small.
 
+### 2026-11-07 (behavior evals without a provider)
+- A rule like "no external AI provider" is only real if a check enforces it. Encode it as a convention check on dependencies and endpoints (docs may mention providers; code and config may not).
+- When no model can be called from the repo, score behavior from evidence the framework itself controls: an opt-in, value-free call log of what the agent actually did, plus a person's explicit verdict on what a log cannot show. Keep the two separate so a human "pass" can never override a failed log check.
+- Tests of "unwritable path" must use a path under a regular file, not `/proc/...`: a recursive `mkdir` there can hang the test run.
+

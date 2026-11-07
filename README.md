@@ -99,6 +99,7 @@ npm run typecheck
 npm run check:conventions   # also fails if docs/graph.md is stale or a new graph finding appears
 npm run build:graph          # regenerate the capability graph (docs/graph.md)
 npm run lessons -- list      # structured lessons by confidence (promote / reinforce / check)
+npm run eval:behavior -- list # behavior evals: run in Copilot, scored from the call log (docs/behavior-evals.md)
 npx revab init --browser     # opt in: policy-controlled browser for `verify` (see docs/browser-verification.md)
 ```
 
