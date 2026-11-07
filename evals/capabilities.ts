@@ -116,6 +116,11 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
       { tool: "Bash", because: "the planner plans and never executes — execution is the orchestrator's to dispatch" },
       { tool: "Write", because: "plans are saved on approval; it must not write code" },
     ],
+    mustState: [
+      { text: "size-and-slice", because: "sizing is its first move; without it every request gets full ceremony or none" },
+      { text: "never whether you ask", because: "right-sizing must not become a way to skip the approval gate" },
+      { text: "Up-tier, never down", because: "risky work must not be shrunk into a light plan by its apparent size" },
+    ],
   },
   {
     agent: "test-planner",

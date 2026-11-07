@@ -8,7 +8,8 @@
         "knowledge_search"
       ],
       "skills": [
-        "self-check"
+        "self-check",
+        "size-and-slice"
       ],
       "handoffTo": [
         "orchestrator"
@@ -529,6 +530,13 @@
         "git_diff",
         "git_log"
       ]
+    },
+    {
+      "name": "size-and-slice",
+      "owners": [
+        "planner"
+      ],
+      "mentionsTools": []
     },
     {
       "name": "skillify",
@@ -1429,6 +1437,7 @@
         "test-planner"
       ],
       "skills": [
+        "size-and-slice",
         "qe-test-plan-builder",
         "build-test-plan-interactive",
         "test-design-techniques",
