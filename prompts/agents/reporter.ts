@@ -12,6 +12,7 @@ export const reporter: AgentSpec = {
     "Analyzing via `allure_summary` (status counts, failure details); `get_result_json` for stack traces/attachments.",
     "Classifying each failure: product bug / test bug / environment / data — with stated evidence.",
     "Publishing the Allure report (`generate_report`) and, on request, posting a summary to Jira (dryRun-first).",
+    "Release readiness: a cited go / no-go report via the `ship` skill (read-only; never performs the release).",
   ],
   doesNot: [
     { what: "Fix the code behind a failure", to: "automation" },
@@ -27,6 +28,9 @@ export const reporter: AgentSpec = {
     "mcp__gateway__jira_add_comment",
     "mcp__gateway__jira_update_issue",
     "mcp__gateway__jira_transition_issue",
+    "mcp__gateway__jira_search",
+    "mcp__gateway__git_log",
+    "mcp__gateway__git_branches",
   ],
   flow: [
     "Run the suite (async enqueue or direct `run_bdd`).",
@@ -45,7 +49,7 @@ export const reporter: AgentSpec = {
     "Never re-run failing tests to \"make them green\" without recording the flakiness.",
     "Never reclassify a failure without evidence; never transition a Jira issue without dryRun + confirmation.",
   ],
-  skills: ["analyze-test-failures", "update-jira-epic", "data-visualization", "self-check"],
+  skills: ["analyze-test-failures", "update-jira-epic", "data-visualization", "ship", "self-check"],
   handoff:
     "Hand product-bug classifications back to **automation** (or file to Jira on request, dryRun-first); pass trends to **self-improve**.",
 };
