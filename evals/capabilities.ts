@@ -153,6 +153,9 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
     mustHave: [
       { tool: "mcp__gateway__allure_summary", because: "failure analysis reads Allure results" },
       { tool: "mcp__gateway__jira_transition_issue", because: "its own flow posts to Jira via update-jira-epic after approval — without this tool that step is impossible" },
+      { tool: "mcp__gateway__git_log", because: "the ship skill scopes a release from commit history" },
+      { tool: "mcp__gateway__git_branches", because: "the ship skill identifies the release branch/range" },
+      { tool: "mcp__gateway__jira_search", because: "the ship skill lists open blockers for the release scope" },
     ],
     mustNotHave: [
       { tool: "mcp__gateway__scaffold_step", because: "fixing code belongs to automation" },

@@ -137,11 +137,11 @@ _Implements Playwright + Cucumber BDD code from test cases in a target project v
 
 _Runs suites and turns Allure results into actionable, classified failure summaries for a target project — dryRun-first for any Jira write-back._
 
-- **Owns:** Running suites: enqueue async `run-bdd` (poll `npm run task -- status`) or call `run_bdd` for quick feedback.; Analyzing via `allure_summary` (status counts, failure details); `get_result_json` for stack traces/attachments.; Classifying each failure: product bug / test bug / environment / data — with stated evidence.; Publishing the Allure report (`generate_report`) and, on request, posting a summary to Jira (dryRun-first)..
+- **Owns:** Running suites: enqueue async `run-bdd` (poll `npm run task -- status`) or call `run_bdd` for quick feedback.; Analyzing via `allure_summary` (status counts, failure details); `get_result_json` for stack traces/attachments.; Classifying each failure: product bug / test bug / environment / data — with stated evidence.; Publishing the Allure report (`generate_report`) and, on request, posting a summary to Jira (dryRun-first).; Release readiness: a cited go / no-go report via the `ship` skill (read-only; never performs the release)..
 - **Does NOT (hand off):** Fix the code behind a failure → automation; Transition a Jira issue's status without dryRun + explicit approval → the user.
-- **Tools:** `Read`, `Bash`, `mcp__gateway__run_bdd`, `mcp__gateway__allure_summary`, `mcp__gateway__get_result_json`, `mcp__gateway__generate_report`, `mcp__gateway__jira_add_comment`, `mcp__gateway__jira_update_issue`, `mcp__gateway__jira_transition_issue`.
+- **Tools:** `Read`, `Bash`, `mcp__gateway__run_bdd`, `mcp__gateway__allure_summary`, `mcp__gateway__get_result_json`, `mcp__gateway__generate_report`, `mcp__gateway__jira_add_comment`, `mcp__gateway__jira_update_issue`, `mcp__gateway__jira_transition_issue`, `mcp__gateway__jira_search`, `mcp__gateway__git_log`, `mcp__gateway__git_branches`.
 - **Flow:** 1) Run the suite (async enqueue or direct `run_bdd`). 2) Analyze with `allure_summary`; pull `get_result_json` for detail when needed. 3) Classify each failure with evidence. 4) Report: verdict line `X passed / Y failed / Z broken (N total)` · failures table sorted by severity (blocking > major > minor): scenario, classification, severity, root-cause hypothesis, suggested owner · flakiness notes. 5) Publish the report; optionally post to Jira via `update-jira-epic` (dryRun-first) after approval.
-- **Skills:** `analyze-test-failures`, `update-jira-epic`, `data-visualization`, `self-check`.
+- **Skills:** `analyze-test-failures`, `update-jira-epic`, `data-visualization`, `ship`, `self-check`.
 - **Hands off:** Hand product-bug classifications back to **automation** (or file to Jira on request, dryRun-first); pass trends to **self-improve**.
 
 ### documenter

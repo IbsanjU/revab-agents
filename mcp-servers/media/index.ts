@@ -4,7 +4,8 @@ import path from "path";
 import os from "os";
 import { z } from "zod";
 import PDFDocument from "pdfkit";
-import { PDFParse } from "pdf-parse";
+import type { PDFParse } from "pdf-parse";
+import { newPdfParser } from "../../utils/pdfParse.js";
 import * as mammoth from "mammoth";
 import * as XLSX from "xlsx";
 import { imageSize } from "image-size";
@@ -188,7 +189,7 @@ async function extractFromSingleFile(
   }
 
   if (mimeType === "application/pdf" || ext === ".pdf") {
-    const parser = new PDFParse({ data: buffer });
+    const parser = await newPdfParser(buffer);
     try {
       const textResult = await parser.getText();
       const rawText = textResult.text.trim();
@@ -438,7 +439,7 @@ startMcpHttpServer({
               extra = { imageMetadataError: e instanceof Error ? e.message : String(e) };
             }
           } else if (mimeType === "application/pdf" || ext === ".pdf") {
-            const parser = new PDFParse({ data: buffer });
+            const parser = await newPdfParser(buffer);
             try {
               const info = await parser.getInfo();
               extra = { pageCount: info.total, info: info.info };
@@ -482,7 +483,7 @@ startMcpHttpServer({
           const root = await resolveRoot(project);
           const target = resolveWithinRoot(root, filePath);
           const buffer = await readFileWithLimit(target);
-          const parser = new PDFParse({ data: buffer });
+          const parser = await newPdfParser(buffer);
           parser_holder.parser = parser;
           const result = await parser.getText();
           const text = maxChars ? result.text.slice(0, maxChars) : result.text;
@@ -731,7 +732,7 @@ startMcpHttpServer({
           const root = await resolveRoot(project);
           const target = resolveWithinRoot(root, filePath);
           const buffer = await readFileWithLimit(target);
-          const parser = new PDFParse({ data: buffer });
+          const parser = await newPdfParser(buffer);
           holder.parser = parser;
           const limit = Math.max(1, maxPages ?? 10);
           const shots = await parser.getScreenshot({ first: limit });

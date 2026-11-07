@@ -1,12 +1,17 @@
 {
   "name": "revab-agents",
   "displayName": "revab agents (QE)",
-  "description": "Starts the revab gateway and registers its QE tools with VS Code \u2014 no manual server juggling.",
-  "version": "0.1.0",
+  "description": "One install: the revab QE agents, their MCP tools, and a bundled shared gateway, in every VS Code window. No clone needed.",
+  "version": "0.4.1",
   "private": true,
   "publisher": "your-org",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IbsanjU/revab-agents.git",
+    "directory": "extension"
+  },
   "engines": {
-    "vscode": "^1.96.0"
+    "vscode": "^1.101.0"
   },
   "categories": [
     "AI",
@@ -19,6 +24,11 @@
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
+      {
+        "command": "revab.chooseHome",
+        "title": "revab: Choose framework folder",
+        "category": "revab"
+      },
       {
         "command": "revab.start",
         "title": "revab: Start gateway",
@@ -48,11 +58,52 @@
         "command": "revab.applyApprovalDefaults",
         "title": "revab: Auto-approve read-only tools (writes still confirm)",
         "category": "revab"
+      },
+      {
+        "command": "revab.openLog",
+        "title": "revab: Open gateway log",
+        "category": "revab"
+      },
+      {
+        "command": "revab.setCredentials",
+        "title": "revab: Set credentials",
+        "category": "revab"
+      },
+      {
+        "command": "revab.clearCredentials",
+        "title": "revab: Clear credentials",
+        "category": "revab"
+      },
+      {
+        "command": "revab.showCredentials",
+        "title": "revab: Show configured credentials (names only)",
+        "category": "revab"
+      },
+      {
+        "command": "revab.chooseTools",
+        "title": "revab: Choose tools (enable / disable)",
+        "category": "revab"
+      },
+      {
+        "command": "revab.openHome",
+        "title": "revab: Open framework home folder",
+        "category": "revab"
+      },
+      {
+        "command": "revab.showTerminalCommand",
+        "title": "revab: Show terminal command (how to run revab)",
+        "category": "revab"
       }
     ],
     "configuration": {
       "title": "revab agents",
       "properties": {
+        "revab.home": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "markdownDescription": "Optional. Absolute path of a `revab-agents` checkout to run the gateway from (needed for the task queue and prompt regeneration). Leave empty to use the gateway bundled in this extension, with its own home folder (**revab: Open framework home folder**)."
+        },
         "revab.gateway.port": {
           "type": "number",
           "default": 7300,
@@ -65,19 +116,85 @@
         },
         "revab.gateway.command": {
           "type": "string",
-          "default": "npx revab start",
-          "description": "Command used to launch the gateway from the workspace root."
+          "default": "",
+          "markdownDescription": "Advanced: replace the launch command (split on spaces, no shell). Leave empty to use the compiled CLI, or tsx if the project is not built."
+        },
+        "revab.nodePath": {
+          "type": "string",
+          "default": "node",
+          "scope": "machine",
+          "description": "Node.js executable used to run the gateway."
+        },
+        "revab.environment": {
+          "type": "object",
+          "default": {},
+          "scope": "machine",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "markdownDescription": "Non-secret settings passed to the gateway, e.g. `{ \"JIRA_BASE_URL\": \"https://acme.atlassian.net\", \"JIRA_EMAIL\": \"me@acme.com\" }`. Only an allowlist of names is accepted. **Tokens and other credentials do not go here**: use **revab: Set credentials**, which stores them encrypted."
+        },
+        "revab.tools.disabled": {
+          "type": "array",
+          "default": [],
+          "scope": "machine",
+          "items": {
+            "type": "string"
+          },
+          "markdownDescription": "Tools switched off at the gateway, so they are absent from every client. Entries are a tool name (`jira_search`), a server (`jira/*`) or a prefix (`confluence_*`). Use **revab: Choose tools** to pick them from a list."
         }
       }
-    }
+    },
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "revab.gateway",
+        "label": "revab gateway"
+      }
+    ],
+    "chatAgents": [
+      {
+        "path": "./agents/automation.agent.md"
+      },
+      {
+        "path": "./agents/bsa.agent.md"
+      },
+      {
+        "path": "./agents/documenter.agent.md"
+      },
+      {
+        "path": "./agents/importer.agent.md"
+      },
+      {
+        "path": "./agents/orchestrator.agent.md"
+      },
+      {
+        "path": "./agents/planner.agent.md"
+      },
+      {
+        "path": "./agents/reporter.agent.md"
+      },
+      {
+        "path": "./agents/researcher.agent.md"
+      },
+      {
+        "path": "./agents/self-improve.agent.md"
+      },
+      {
+        "path": "./agents/test-planner.agent.md"
+      }
+    ]
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "watch": "tsc -p tsconfig.json --watch"
+    "watch": "tsc -p tsconfig.json --watch",
+    "vscode:prepublish": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
-    "@types/vscode": "^1.96.0",
+    "@types/vscode": "1.101.0",
     "typescript": "^5.5.0"
   }
 }

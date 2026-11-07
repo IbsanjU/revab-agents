@@ -178,6 +178,46 @@ copilot   # interactive mode
 Compare the output to the Claude Code transcript quoted in §4 — same prompt shape, same
 `my-project` stub, so the two are meant to be an apples-to-apples comparison across hosts.
 
+### 3d. Verify the VS Code extension on a real machine
+
+**Status: written but never run.** The extension (`extension/`) was tested against a stub of VS Code's API, with a real gateway, but no editor was available. These are the checks that need a real VS Code. Do them in order; each says what you should see and what a failure means. Please paste the results table at the end back so the docs can be corrected.
+
+**Setup (5 minutes).**
+
+1. In a `revab-agents` checkout: `npm install`, then `npm run extension:package`. This writes `extension/revab-agents-<version>.vsix`.
+2. Install it: Extensions view → ⋯ → **Install from VSIX…** (or `code --install-extension <file>`), then reload VS Code. You need VS Code 1.101 or newer and Node on your PATH.
+3. **Open an unrelated folder**, not the `revab-agents` checkout. That is the point: everything below must work without it.
+
+| # | Check | You should see | If not |
+|---|---|---|---|
+| 1 | Wait about 10 seconds after the window loads. Look at the status bar. | `revab` with a check mark. Click it: a list of about 80 tools. | Open the output channel **revab agents** and the file `<home>/.revab/gateway.log`. No Node on PATH, or a firewall blocking loopback port 7300, are the usual causes. Set `revab.nodePath` if needed. |
+| 2 | Output channel **revab agents**. | A line `mode: bundled gateway (no checkout needed); home <path>` and `gateway up on :7300`. | If it says `framework checkout`, a `revab.home` setting is in effect; clear it. |
+| 3 | Run **revab: Open framework home folder**. | Your file manager opens a folder containing `skills/`, `projects/`, `knowledge/`, `.env.example` and `.revab-home.json`. No `.env`. | Report the path it opened. |
+| 3b | Open a **new** integrated terminal (any folder) and run `revab doctor`. | A configuration report that mentions `my-project`, even though you are not in the home folder. | "revab: command not found" means the terminal was opened before the extension started, or PATH changes are blocked: run **revab: Show terminal command**. |
+| 4 | Chat view → the agent dropdown. | **orchestrator** is listed. The nine specialists are **not** (they are hidden on purpose). | If specialists show up, VS Code is not honouring `user-invocable: false`. If nothing shows up, the bundled agents (`contributes.chatAgents`) were not picked up: note your VS Code version. |
+| 5 | Command **MCP: List Servers**. | `gateway` and `gateway-code`, both running. | If neither appears, the MCP provider was not accepted. Fallback: copy `.vscode/mcp.json` from the repo into the folder. |
+| 6 | Pick **orchestrator** and send: `Call the knowledge_search tool with the query "dry-run" and tell me the first file it returns.` | A tool call is shown and a file such as `knowledge/conventions.md` comes back. | If it says the tool is not available, the agent's `gateway/<tool>` reference did not resolve against the extension-provided server. Note exactly what the tool picker (the tools button in Chat) names the server and tools. This is the most important check. |
+| 7 | Ask the orchestrator to run `codemode_execute` with `return 6 * 7`. | It asks for confirmation (this tool is classed as a write), then returns 42. | If it runs without asking, approval defaults were changed. |
+| 8 | Open a **second window** on any other folder. | The status bar shows running within seconds; the output says `already running`. `<home>/.revab/gateway.pid` is unchanged. | A second start (a changed pid, or EADDRINUSE in the log) means the windows are not sharing. |
+| 9 | Close the **first** window. In the second, repeat check 6. | Still works. | The gateway was tied to the first window. |
+| 10 | **revab: Set credentials** → *Gateway shared secret* → any value → **Restart**. Repeat check 6. | The tool call still works, because the extension sends the secret. Open `http://127.0.0.1:7300/api/tools` in a browser: it now answers 401. | A tool call failing with 401 means the header was not sent. |
+| 11 | **revab: Show configured credentials (names only)**. | Variable names with `(secret)`, never a value. | If a value appears anywhere, that is a security bug: report it. |
+| 12 | **revab: Choose tools** → uncheck `jira_search` → confirm. | A warning naming the agents that lose it, then a restart. Afterwards `jira_search` is absent from the tool list. | Report the warning text. |
+| 13 | In the repo: `npm run extension:uninstall -- --dry-run --purge-home`, then without `--dry-run` if the plan looks right. | The gateway stops, the extension is removed, and the home folder is deleted only because of `--purge-home`. Uninstall without that flag leaves it. | For Insiders, VSCodium or a portable install add `--user-data-dir <dir>`. |
+
+**What to send back.**
+
+```
+VS Code version / OS:
+Node version:
+1  pass/fail  notes
+2  ...
+13 ...
+Anything that surprised you:
+```
+
+Failures on 4, 5 or 6 are the interesting ones: they would mean the extension's agents or MCP registration need a different shape, and the fixes are small but need the exact observation. Failures on 1 or 2 are almost always environment.
+
 ## 4. Worked example: parallel dispatch, end to end
 
 This reproduces, step for step, a real run against this repo. `my-project` is the stub
