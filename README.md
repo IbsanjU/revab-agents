@@ -98,6 +98,7 @@ npm test                     # unit tests
 npm run typecheck
 npm run check:conventions   # also fails if docs/graph.md is stale or a new graph finding appears
 npm run build:graph          # regenerate the capability graph (docs/graph.md)
+npm run lessons -- list      # structured lessons by confidence (promote / reinforce / check)
 ```
 
 ## VS Code extension
