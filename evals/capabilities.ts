@@ -201,6 +201,10 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
       { tool: "mcp__gateway__knowledge_append", because: "persisting learnings is its core job" },
       { tool: "Edit", because: "it proposes and applies approved spec/skill upgrades" },
     ],
+    mustState: [
+      { text: "lessons -- reinforce", because: "a repeat observation must raise support on the existing lesson, not add a duplicate" },
+      { text: "lessons -- promote", because: "promotion of repeatedly confirmed lessons is how learning becomes a skill or rule" },
+    ],
     mustNotHave: [],
   },
 ];

@@ -23,6 +23,7 @@ and **not trivially re-derivable** from the code itself. If it fails the bar, do
 | Destination | What belongs there |
 |---|---|
 | `knowledge/learnings.md` | Dated, durable learnings: org quirks, failed approaches, patterns that worked. |
+| `knowledge/lessons.md` | A behaviour with a **trigger** and an **action** that you can cite evidence for (see Phase 4b). Prefer this over `learnings.md` for anything an agent should *do differently*. |
 | `knowledge/conventions.md` | A decided, ongoing convention the whole framework should follow. |
 | `knowledge/memory.md` | A changed framework fact (new port, tool name, setup step) future sessions must start with. |
 | a **skill** (`skillify`) | A repeatable *process* — promote it to `skills/<name>/SKILL.md` instead of prose. |
@@ -36,6 +37,19 @@ Before writing, `knowledge_search` (artifacts server) for an existing entry on t
 ## Phase 4 — Write it
 Append a dated, factual, flat entry (`### YYYY-MM-DD`, one line per learning). Via the artifacts
 `knowledge_append` tool or a direct edit. Keep it short — a rule, not a story.
+
+## Phase 4b — Structured lessons (`knowledge/lessons.md`)
+A lesson is one block of `key: value` lines: `id` (kebab-case), `trigger` (when it applies), `action`
+(what to do), `scope` (`global` or `project:<name>` — a project's lesson must not leak into another),
+`domain`, `support` (independent observations, start at 1), `contradict` (start at 0), `evidence`
+(where it was observed: PR, commit, file — no citation, no lesson) and `last` (ISO date).
+- **Search first** (`knowledge_search`). If the lesson exists, do **not** add a duplicate: run
+  `npm run lessons -- reinforce <id> --evidence "<where>"` (add `--against` if it was contradicted).
+- Never write a confidence number: it is computed as `(1 - 0.7^support) * 0.5^contradict`.
+- At 3 supporting observations and no contradiction `npm run lessons -- promote` lists it as ready:
+  fold it into the skill it belongs to, or `prompts/shared/conduct.ts` if it applies to every agent,
+  as a proposed diff for the user to approve. A lesson contradicted as often as supported goes to
+  review: fix it or delete it.
 
 ## Rules
 - Generic or nothing: if you can't state it in reusable form, it isn't a learning yet.

@@ -28,7 +28,7 @@ model: inherit
 ## Flow
 1. Review the session for corrections the user had to make, learnings, failed approaches, and repeated manual steps.
 2. Run `npm run correction -- list`; for each open correction run `capture-correction` — fold its generalized rule into that agent's `prompts/agents/<name>.ts`, rebuild, mark it applied, and add an eval case. Group by rule text/theme first, not just by agent: the same theme appearing under 2+ different agents means the fix belongs in `prompts/shared/conduct.ts`, once, generic — not duplicated per agent.
-3. For each learning, run `capture-learning`: generalize it into reusable form FIRST, apply the durable/generalizable/non-sensitive bar, `knowledge_search` for an existing entry, then update/consolidate rather than append a duplicate.
+3. Run `npm run lessons -- promote`; for each lesson ready to promote (3+ observations, none against) propose the diff that folds it into its skill or `prompts/shared/conduct.ts`. For each learning, run `capture-learning`: generalize it into reusable form FIRST, apply the durable/generalizable/non-sensitive bar, `knowledge_search` for an existing entry, then update/consolidate rather than append a duplicate.
 4. For each repeated process, run `skillify`; for a capability the framework lacks, run `build-capability` (research → route to skill/tool/util → validate → adopt). Extract twice-written logic into generic modules.
 5. Propose agent/skill/script upgrades as diffs to `prompts/**` (base persona/tool changes on tools actually invoked this session, not abstract guesses).
 6. Verify: `npm run typecheck`, `npm run eval`, `npm run check:conventions`; update `knowledge/memory.md` if framework facts changed and flag doc/reality drift.
@@ -37,6 +37,7 @@ model: inherit
 - Generalize before you store — rewrite a one-off observation into its parameterized, reusable form; if you can't, it isn't a learning yet.
 - Prove an improvement rather than asserting it: every behavior fix gets an eval case, and `npm run eval` must pass before you call it done.
 - Keep knowledge entries short, factual, dated; delete entries proven wrong instead of stacking corrections.
+- A lesson needs a trigger, an action and cited evidence; record a repeat with `npm run lessons -- reinforce`, never as a near-duplicate, and never write a confidence number by hand.
 - End every session with at least one persisted generic learning or an explicit "nothing new learned".
 - Don't wait for session end when a repeated pattern was already flagged mid-session (another agent's `capture-correction` ⚠ REPEATED PATTERN notice) — fold it the moment you're invoked to.
 - Remember agents are generated — propose edits to `prompts/agents/*.ts` (then `npm run build:prompts`), never to a generated `.agent.md`.
