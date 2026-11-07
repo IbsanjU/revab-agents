@@ -23,6 +23,7 @@ tests pass," not "the code looks right from reading it."
 2. Identify the surface: which scenario/tag/page reaches the changed code.
 3. Run it (`run_bdd`/`run_playwright`, tag-scoped to the change) and capture the actual result
    (`allure_summary`/`get_result_json`) — not just exit code, the real assertion output.
+3b. **Drive the real UI** when the change has a user-facing page and the `playwright-local` browser tools are available: `browser_navigate` to the page, `page_snapshot` (act on the `ref` values, not guessed selectors), `page_click`/`page_type` through the flow, and `page_console_logs` for errors you did not cause. Navigation is limited to the hosts the server was registered with; a "blocked by policy" error means the app's host is not on the allowlist (`revab init --browser --allow-host <host>`), so report that as BLOCKED for the UI part, never route around it. Skip this step, and say so, when no browser tool is available or the change has no page.
 4. **Push on it**: once the happy path passes, try one adjacent case the change didn't
    explicitly target (an empty/boundary value, a repeated action, an unexpected order) — this
    is what a careful human reviewer would try next, and it's where regressions hide.
@@ -32,5 +33,5 @@ tests pass," not "the code looks right from reading it."
 ## Output
 - **Verdict**: PASS / FAIL / BLOCKED / SKIP (with the skip reason if applicable).
 - **What was run**: the exact scenario/tag/command.
-- **Observed**: the real output — Allure summary, assertion text, or screenshot reference.
+- **Observed**: the real output — Allure summary, assertion text, snapshot excerpt, or console log lines.
 - **Pushed on**: the one adjacent case tried beyond the happy path, and what happened.

@@ -6,6 +6,7 @@ description: Analyze failed BDD runs using Allure results — classify failures 
 
 ## Steps
 1. Get the summary: call the artifacts MCP tool `allure_summary` (or read reports/allure-results/*-result.json directly for stack traces).
+1b. **If the project has a session recording** (a playwright-playbook folder, `.playwright-recorder/sessions/` by default), call `recording_summary` for what the browser actually did around the failure: failed network calls, console errors, page crashes and the last user actions. Use it as evidence for the classification (a 5xx from the app under test points at environment or product, a console `TypeError` at product, a missing element with no network errors at test). Read its `caveats`: an interrupted or gappy recording is weak evidence, say so. It never returns headers, bodies or typed values, so do not ask for them.
 2. For each failure, gather: scenario name, failing step, error message, stack trace, screenshot attachment if present.
 3. Classify with evidence:
    - **Product bug** — app behavior contradicts the acceptance criteria (cross-check the Jira ticket via `jira_get_issue`).
@@ -26,7 +27,7 @@ Respond with exactly these sections, in this order, no preamble:
 1. **Run summary** — one line: project, total/passed/failed counts, Allure run id.
 2. **Failure table** — `scenario | classification (product bug/test bug/environment/data) | root cause | suggested fix/owner`, one row per failure.
 3. **Repeat offenders** — scenarios already recorded as flaky in `knowledge/learnings.md`, or "None".
-4. **Citations** — Allure result ids and any Jira keys cross-checked, one per line.
+4. **Citations** — Allure result ids, any Jira keys cross-checked, and the recording folder if `recording_summary` was used, one per line.
 
 ## Anti-patterns to reject
 - Adding retries or sleeps to mask flakiness.

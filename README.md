@@ -99,6 +99,7 @@ npm run typecheck
 npm run check:conventions   # also fails if docs/graph.md is stale or a new graph finding appears
 npm run build:graph          # regenerate the capability graph (docs/graph.md)
 npm run lessons -- list      # structured lessons by confidence (promote / reinforce / check)
+npx revab init --browser     # opt in: policy-controlled browser for `verify` (see docs/browser-verification.md)
 ```
 
 ## VS Code extension
@@ -144,7 +145,7 @@ individual `npm run serve:<name>` scripts still work unchanged for debugging a s
 | notify | 7321 | target-agnostic | `notify_teams`, `notify_email` — both dryRun-first |
 | git | 7322 | project-scoped (or this repo when `project` is omitted) | `git_log`, `git_branches`, `git_search` (commit-message search across all branches, or `git grep` content search at one ref), `git_diff`, `git_show` — all read-only, invoked directly (no shell) so free-text search terms can't be interpreted as shell syntax |
 | playwright-runner | 7316 | project-scoped | `run_bdd`, `run_playwright`, `get_test_files` |
-| allure-report | 7317 | project-scoped | `generate_report`, `allure_summary`, `get_result_json` |
+| allure-report | 7317 | project-scoped | `generate_report`, `allure_summary`, `get_result_json`, `recording_summary` |
 | codegen | 7318 | project-scoped | `scaffold_feature`, `scaffold_step`, `scaffold_page`, `detect_conventions` |
 | playwright | 7315 | target-agnostic | Official `@playwright/mcp` — browser automation tools (navigate, click, snapshot, etc.) |
 

@@ -20,6 +20,7 @@ const USAGE = `revab — QE agent framework operator CLI
 
 Usage:
   revab init [--force]     Scaffold .env, register the gateway, seed a sample project
+  revab init --browser [--allow-host app.test]   also register the policy-controlled browser server
   revab doctor [--json]    Diagnose env, auth, ports, and gateway health
   revab start [--port N]   Start the gateway (all tools, one process: MCP + REST)
   revab tools [name] [--json]   List gateway tools (read/write) — works without MCP
@@ -33,7 +34,11 @@ async function main(): Promise<void> {
 
   switch (command) {
     case "init":
-      await runInit({ force: rest.includes("--force") });
+      await runInit({
+        force: rest.includes("--force"),
+        browser: rest.includes("--browser"),
+        allowHosts: rest.flatMap((a, i) => (a === "--allow-host" && rest[i + 1] ? [rest[i + 1]] : [])),
+      });
       return;
     case "doctor": {
       const ok = await runDoctor({ json: rest.includes("--json") });

@@ -5,6 +5,7 @@ import { startMcpHttpServer, textResult, errorResult } from "../shared/server.js
 import { intEnv } from "../shared/config.js";
 import { resolveProjectRepoPath, assertWithinRepo } from "../../utils/manifest.js";
 import { execCommand } from "../../utils/exec.js";
+import { findRecordingDir, summarizeRecording } from "../../utils/recordingSummary.js";
 
 /**
  * Allure-report MCP server.
@@ -100,6 +101,42 @@ startMcpHttpServer({
           assertWithinRepo(repoRoot, file);
           const content = await fs.readFile(file, "utf8");
           return textResult(JSON.parse(content));
+        } catch (err) {
+          return errorResult(err);
+        }
+      }
+    );
+
+    server.registerTool(
+      "recording_summary",
+      {
+        description:
+          "Summarize one playwright-playbook session recording inside a target project's repo: session status, " +
+          "failed network calls (origin+path only), console errors, page crashes, and the last few user actions. " +
+          "Reads only what failure analysis needs: never headers, bodies, typed values, cookies or the trace. " +
+          "Use it to see what the browser did around a failure; it does not replace the Allure results.",
+        inputSchema: {
+          project: z.string().describe("Project name from projects.manifest.json"),
+          recordingDir: z
+            .string()
+            .optional()
+            .describe("Relative to the project repo: a session folder, or a folder of sessions (newest is used). Default: .playwright-recorder/sessions (the recorder's own output folder)"),
+        },
+      },
+      async ({ project, recordingDir }) => {
+        try {
+          const repoRoot = await resolveProjectRepoPath(project);
+          const base = path.resolve(repoRoot, recordingDir ?? ".playwright-recorder/sessions");
+          assertWithinRepo(repoRoot, base);
+          const dir = await findRecordingDir(base);
+          if (!dir) {
+            throw new Error(
+              `No recording found under ${path.relative(repoRoot, base) || "."} (a session folder has a manifest.json). ` +
+                "Record one with playwright-playbook, or pass recordingDir."
+            );
+          }
+          assertWithinRepo(repoRoot, dir);
+          return textResult({ project, recording: path.relative(repoRoot, dir), ...(await summarizeRecording(dir)) });
         } catch (err) {
           return errorResult(err);
         }

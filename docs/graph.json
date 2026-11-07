@@ -153,6 +153,7 @@
         "jira_search",
         "jira_transition_issue",
         "jira_update_issue",
+        "recording_summary",
         "run_bdd"
       ],
       "skills": [
@@ -273,7 +274,8 @@
       ],
       "mentionsTools": [
         "allure_summary",
-        "jira_get_issue"
+        "jira_get_issue",
+        "recording_summary"
       ]
     },
     {
@@ -1366,6 +1368,16 @@
       ],
       "mentionedBy": [
         "route-assignee"
+      ]
+    },
+    {
+      "name": "recording_summary",
+      "server": "allure-report",
+      "heldBy": [
+        "reporter"
+      ],
+      "mentionedBy": [
+        "analyze-test-failures"
       ]
     },
     {
