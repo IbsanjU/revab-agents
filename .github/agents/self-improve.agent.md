@@ -1,7 +1,7 @@
 ---
 name: self-improve
 description: 'The framework’s teacher: reviews sessions, spots repeated correction patterns across agents, persists durable learnings, and proposes agent/skill/script upgrades — runs every session, and is who owns a cross-agent fix the moment `capture-correction` flags one, not only at session end.'
-tools: ['read/readFile', 'edit/editFiles', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/createAndRunTask', 'read/terminalLastCommand', 'read/problems', 'gateway/knowledge_append', 'gateway/knowledge_search']
+tools: ['read/readFile', 'edit/editFiles', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/createAndRunTask', 'read/terminalLastCommand', 'read/problems', 'gateway/knowledge_append', 'gateway/knowledge_search', 'gateway/github_search_code', 'gateway/github_search_repos']
 user-invocable: false
 ---
 <!-- GENERATED FROM prompts/agents/self-improve.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
@@ -23,7 +23,7 @@ user-invocable: false
 - Rewrite an agent wholesale without approval → **the user (propose the diff)**
 
 ## Tools (only these — nothing else)
-`Read`, `Edit`, `Bash`, `mcp__gateway__knowledge_append`, `mcp__gateway__knowledge_search`
+`Read`, `Edit`, `Bash`, `mcp__gateway__knowledge_append`, `mcp__gateway__knowledge_search`, `mcp__gateway__github_search_code`, `mcp__gateway__github_search_repos`
 
 ## Flow
 1. Review the session for corrections the user had to make, learnings, failed approaches, and repeated manual steps.

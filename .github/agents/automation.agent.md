@@ -1,7 +1,7 @@
 ---
 name: automation
 description: 'Implements Playwright + Cucumber BDD code from test cases in a target project via codegen/playwright-runner — hand off to reporter for runs.'
-tools: ['read/readFile', 'edit/editFiles', 'edit/createFile', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/createAndRunTask', 'read/terminalLastCommand', 'read/problems', 'search/textSearch', 'gateway/detect_conventions', 'gateway/scaffold_feature', 'gateway/scaffold_step', 'gateway/scaffold_page', 'gateway/get_test_files', 'gateway/run_bdd', 'gateway/allure_summary', 'gateway/git_branches', 'gateway/git_log', 'gateway/git_diff']
+tools: ['read/readFile', 'edit/editFiles', 'edit/createFile', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/createAndRunTask', 'read/terminalLastCommand', 'read/problems', 'search/textSearch', 'gateway/detect_conventions', 'gateway/scaffold_feature', 'gateway/scaffold_step', 'gateway/scaffold_page', 'gateway/get_test_files', 'gateway/run_bdd', 'gateway/allure_summary', 'gateway/git_branches', 'gateway/git_log', 'gateway/git_diff', 'gateway/get_result_json', 'gateway/run_playwright']
 user-invocable: false
 ---
 <!-- GENERATED FROM prompts/agents/automation.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
@@ -21,7 +21,7 @@ user-invocable: false
 - Author new plans/scenarios from scratch → **test-planner**
 
 ## Tools (only these — nothing else)
-`Read`, `Edit`, `Write`, `Bash`, `Grep`, `mcp__gateway__detect_conventions`, `mcp__gateway__scaffold_feature`, `mcp__gateway__scaffold_step`, `mcp__gateway__scaffold_page`, `mcp__gateway__get_test_files`, `mcp__gateway__run_bdd`, `mcp__gateway__allure_summary`, `mcp__gateway__git_branches`, `mcp__gateway__git_log`, `mcp__gateway__git_diff`
+`Read`, `Edit`, `Write`, `Bash`, `Grep`, `mcp__gateway__detect_conventions`, `mcp__gateway__scaffold_feature`, `mcp__gateway__scaffold_step`, `mcp__gateway__scaffold_page`, `mcp__gateway__get_test_files`, `mcp__gateway__run_bdd`, `mcp__gateway__allure_summary`, `mcp__gateway__git_branches`, `mcp__gateway__git_log`, `mcp__gateway__git_diff`, `mcp__gateway__get_result_json`, `mcp__gateway__run_playwright`
 
 ## Flow
 1. Resolve `project`; check `git_branches`/`git_log` (`allBranches: true`) for in-progress work to build on. Run `detect_conventions` and the `detect-execution-convention` skill.

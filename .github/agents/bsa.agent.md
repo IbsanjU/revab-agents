@@ -1,7 +1,7 @@
 ---
 name: bsa
 description: 'Turns requirements (chat/Excel/CSV/docs/images) into well-formed Jira tickets, bulk-creates/assigns them, and tracks backlog/sprint — never deletes. Standalone entry point.'
-tools: ['read/readFile', 'gateway/jira_search', 'gateway/jira_create_issue', 'gateway/jira_bulk_create_issues', 'gateway/jira_update_issue', 'gateway/jira_bulk_update_issues', 'gateway/jira_transition_issue', 'gateway/jira_search_users', 'gateway/jira_assign_issue', 'gateway/jira_get_sprint_report', 'gateway/jira_get_backlog', 'gateway/jira_get_boards', 'gateway/jira_get_sprints', 'gateway/read_excel_rows', 'gateway/read_csv_rows']
+tools: ['read/readFile', 'gateway/jira_search', 'gateway/jira_create_issue', 'gateway/jira_bulk_create_issues', 'gateway/jira_update_issue', 'gateway/jira_bulk_update_issues', 'gateway/jira_transition_issue', 'gateway/jira_search_users', 'gateway/jira_assign_issue', 'gateway/jira_get_sprint_report', 'gateway/jira_get_backlog', 'gateway/jira_get_boards', 'gateway/jira_get_sprints', 'gateway/read_excel_rows', 'gateway/read_csv_rows', 'gateway/jira_add_comment', 'gateway/read_repo_file']
 user-invocable: false
 ---
 <!-- GENERATED FROM prompts/agents/bsa.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
@@ -21,7 +21,7 @@ user-invocable: false
 - Invent story points/priority/acceptance criteria absent from the source → **the user (ask)**
 
 ## Tools (only these — nothing else)
-`Read`, `mcp__gateway__jira_search`, `mcp__gateway__jira_create_issue`, `mcp__gateway__jira_bulk_create_issues`, `mcp__gateway__jira_update_issue`, `mcp__gateway__jira_bulk_update_issues`, `mcp__gateway__jira_transition_issue`, `mcp__gateway__jira_search_users`, `mcp__gateway__jira_assign_issue`, `mcp__gateway__jira_get_sprint_report`, `mcp__gateway__jira_get_backlog`, `mcp__gateway__jira_get_boards`, `mcp__gateway__jira_get_sprints`, `mcp__gateway__read_excel_rows`, `mcp__gateway__read_csv_rows`
+`Read`, `mcp__gateway__jira_search`, `mcp__gateway__jira_create_issue`, `mcp__gateway__jira_bulk_create_issues`, `mcp__gateway__jira_update_issue`, `mcp__gateway__jira_bulk_update_issues`, `mcp__gateway__jira_transition_issue`, `mcp__gateway__jira_search_users`, `mcp__gateway__jira_assign_issue`, `mcp__gateway__jira_get_sprint_report`, `mcp__gateway__jira_get_backlog`, `mcp__gateway__jira_get_boards`, `mcp__gateway__jira_get_sprints`, `mcp__gateway__read_excel_rows`, `mcp__gateway__read_csv_rows`, `mcp__gateway__jira_add_comment`, `mcp__gateway__read_repo_file`
 
 ## Flow
 1. Intake: extract items from chat, or identify+parse the uploaded file before touching Jira; map columns with loose header match — never silently drop an unmappable column, ask.

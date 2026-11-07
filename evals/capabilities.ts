@@ -32,6 +32,7 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
   {
     agent: "orchestrator",
     mustHave: [
+      { tool: "mcp__gateway__git_branches", because: "its own flow checks for in-progress work before dispatching" },
       {
         tool: "Bash",
         because:
@@ -53,6 +54,14 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
   {
     agent: "researcher",
     mustHave: [
+      { tool: "mcp__gateway__confluence_download_attachment", because: "extract-requirements-from-image downloads the attachment first" },
+      { tool: "mcp__gateway__git_show", because: "structure-project-data dates content from commits" },
+      { tool: "mcp__gateway__github_search_commits", because: "structure-project-data and search-across-sources search commit history" },
+      { tool: "mcp__gateway__github_search_issues", because: "search-across-sources federates GitHub issues" },
+      { tool: "mcp__gateway__github_search_repos", because: "search-across-sources federates GitHub repos" },
+      { tool: "mcp__gateway__github_search_topics", because: "search-across-sources federates GitHub topics" },
+      { tool: "mcp__gateway__confluence_extract_links", because: "search-across-sources surfaces linked sources first" },
+      { tool: "mcp__gateway__jtmf_get_test_case", because: "search-across-sources resolves a test-case key directly" },
       { tool: "mcp__gateway__jira_get_issue", because: "reading tickets is its core job" },
       { tool: "mcp__gateway__ocr_image", because: "its own flow runs extract-requirements-from-image, which cannot execute at all without this tool" },
       { tool: "mcp__gateway-code__codemode_search", because: "its always-rule tells it to scan with Code Mode; the rule is dead text without both tools" },
@@ -71,6 +80,8 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
   {
     agent: "automation",
     mustHave: [
+      { tool: "mcp__gateway__get_result_json", because: "verify captures the real assertion output" },
+      { tool: "mcp__gateway__run_playwright", because: "verify runs the scenario the change affects" },
       { tool: "Bash", because: "it runs the target project's tooling" },
       { tool: "mcp__gateway__run_bdd", because: "execution must route through playwright-runner, not raw shell" },
       { tool: "mcp__gateway__git_diff", because: "verify/code-review/simplify — all mandatory pre-done steps — open by getting the diff first" },
@@ -82,6 +93,8 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
   {
     agent: "bsa",
     mustHave: [
+      { tool: "mcp__gateway__jira_add_comment", because: "bulk-create-tickets notes a ticket's source on creation" },
+      { tool: "mcp__gateway__read_repo_file", because: "route-assignee reads ownership files in the repo" },
       { tool: "mcp__gateway__jira_bulk_create_issues", because: "bulk intake is its core job" },
       { tool: "mcp__gateway__jira_search_users", because: "assignee accountIds must be resolved, never guessed" },
       { tool: "mcp__gateway__jira_get_boards", because: "sprint-backlog-report must resolve the board before it can resolve a sprint" },
@@ -151,6 +164,7 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
   {
     agent: "reporter",
     mustHave: [
+      { tool: "mcp__gateway__jira_get_issue", because: "analyze-test-failures cross-checks a failure against the Jira acceptance criteria" },
       { tool: "mcp__gateway__allure_summary", because: "failure analysis reads Allure results" },
       { tool: "mcp__gateway__jira_transition_issue", because: "its own flow posts to Jira via update-jira-epic after approval — without this tool that step is impossible" },
       { tool: "mcp__gateway__git_log", because: "the ship skill scopes a release from commit history" },
@@ -162,8 +176,23 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
     ],
   },
   {
+    agent: "documenter",
+    mustHave: [
+      { tool: "mcp__gateway__allure_summary", because: "consolidate-project-report reads the latest run" },
+      { tool: "mcp__gateway__get_result_json", because: "consolidate-project-report pulls failure detail" },
+      { tool: "mcp__gateway__jira_search", because: "consolidate-project-report lists ticket and epic state" },
+      { tool: "mcp__gateway__jira_get_epic_children", because: "consolidate-project-report walks each epic in scope" },
+      { tool: "mcp__gateway__confluence_search", because: "consolidate-project-report finds the HLRs" },
+      { tool: "mcp__gateway__confluence_get_children", because: "consolidate-project-report walks the HLR page tree" },
+      { tool: "mcp__gateway__jtmf_search_tests", because: "consolidate-project-report lists current test cases" },
+    ],
+    mustNotHave: [],
+  },
+  {
     agent: "self-improve",
     mustHave: [
+      { tool: "mcp__gateway__github_search_code", because: "build-capability looks for existing implementations on GitHub" },
+      { tool: "mcp__gateway__github_search_repos", because: "build-capability looks for existing implementations on GitHub" },
       { tool: "mcp__gateway__knowledge_append", because: "persisting learnings is its core job" },
       { tool: "Edit", because: "it proposes and applies approved spec/skill upgrades" },
     ],

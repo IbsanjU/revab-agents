@@ -18,6 +18,7 @@
       "name": "orchestrator",
       "tools": [
         "consensus_score",
+        "git_branches",
         "jira_search",
         "knowledge_search"
       ],
@@ -40,17 +41,25 @@
     {
       "name": "researcher",
       "tools": [
+        "confluence_download_attachment",
+        "confluence_extract_links",
         "confluence_get_children",
         "confluence_get_page",
         "confluence_search",
         "git_branches",
         "git_log",
         "git_search",
+        "git_show",
         "github_get_file",
         "github_search_code",
+        "github_search_commits",
+        "github_search_issues",
+        "github_search_repos",
+        "github_search_topics",
         "jira_get_epic_children",
         "jira_get_issue",
         "jira_search",
+        "jtmf_get_test_case",
         "jtmf_search_tests",
         "knowledge_search",
         "ocr_image",
@@ -106,11 +115,13 @@
       "tools": [
         "allure_summary",
         "detect_conventions",
+        "get_result_json",
         "get_test_files",
         "git_branches",
         "git_diff",
         "git_log",
         "run_bdd",
+        "run_playwright",
         "scaffold_feature",
         "scaffold_page",
         "scaffold_step"
@@ -137,6 +148,7 @@
         "git_branches",
         "git_log",
         "jira_add_comment",
+        "jira_get_issue",
         "jira_search",
         "jira_transition_issue",
         "jira_update_issue",
@@ -157,14 +169,21 @@
     {
       "name": "documenter",
       "tools": [
+        "allure_summary",
         "confluence_create_page",
+        "confluence_get_children",
         "confluence_get_page",
+        "confluence_search",
         "confluence_update_page",
         "confluence_upload_attachment",
         "create_diagram",
         "create_docx",
         "create_pdf",
-        "jira_get_issue"
+        "get_result_json",
+        "jira_get_epic_children",
+        "jira_get_issue",
+        "jira_search",
+        "jtmf_search_tests"
       ],
       "skills": [
         "consolidate-project-report",
@@ -179,6 +198,7 @@
     {
       "name": "bsa",
       "tools": [
+        "jira_add_comment",
         "jira_assign_issue",
         "jira_bulk_create_issues",
         "jira_bulk_update_issues",
@@ -192,7 +212,8 @@
         "jira_transition_issue",
         "jira_update_issue",
         "read_csv_rows",
-        "read_excel_rows"
+        "read_excel_rows",
+        "read_repo_file"
       ],
       "skills": [
         "bulk-create-tickets",
@@ -220,6 +241,8 @@
     {
       "name": "self-improve",
       "tools": [
+        "github_search_code",
+        "github_search_repos",
         "knowledge_append",
         "knowledge_search"
       ],
@@ -339,8 +362,7 @@
         "get_result_json",
         "jira_get_epic_children",
         "jira_search",
-        "jtmf_search_tests",
-        "knowledge_append"
+        "jtmf_search_tests"
       ]
     },
     {
@@ -357,8 +379,7 @@
         "automation"
       ],
       "mentionsTools": [
-        "detect_conventions",
-        "knowledge_append"
+        "detect_conventions"
       ]
     },
     {
@@ -399,10 +420,7 @@
       "owners": [
         "test-planner"
       ],
-      "mentionsTools": [
-        "ocr_image",
-        "ocr_pdf"
-      ]
+      "mentionsTools": []
     },
     {
       "name": "review-against-spec",
@@ -602,6 +620,7 @@
       "server": "allure-report",
       "heldBy": [
         "automation",
+        "documenter",
         "reporter"
       ],
       "mentionedBy": [
@@ -634,7 +653,9 @@
     {
       "name": "confluence_download_attachment",
       "server": "confluence",
-      "heldBy": [],
+      "heldBy": [
+        "researcher"
+      ],
       "mentionedBy": [
         "extract-requirements-from-image"
       ]
@@ -642,7 +663,9 @@
     {
       "name": "confluence_extract_links",
       "server": "confluence",
-      "heldBy": [],
+      "heldBy": [
+        "researcher"
+      ],
       "mentionedBy": [
         "search-across-sources"
       ]
@@ -657,6 +680,7 @@
       "name": "confluence_get_children",
       "server": "confluence",
       "heldBy": [
+        "documenter",
         "researcher"
       ],
       "mentionedBy": [
@@ -697,6 +721,7 @@
       "name": "confluence_search",
       "server": "confluence",
       "heldBy": [
+        "documenter",
         "planner",
         "researcher"
       ],
@@ -785,6 +810,8 @@
       "name": "get_result_json",
       "server": "allure-report",
       "heldBy": [
+        "automation",
+        "documenter",
         "reporter"
       ],
       "mentionedBy": [
@@ -806,6 +833,7 @@
       "server": "git",
       "heldBy": [
         "automation",
+        "orchestrator",
         "reporter",
         "researcher"
       ],
@@ -863,7 +891,9 @@
     {
       "name": "git_show",
       "server": "git",
-      "heldBy": [],
+      "heldBy": [
+        "researcher"
+      ],
       "mentionedBy": [
         "onboard-project",
         "structure-project-data"
@@ -892,7 +922,8 @@
       "name": "github_search_code",
       "server": "github",
       "heldBy": [
-        "researcher"
+        "researcher",
+        "self-improve"
       ],
       "mentionedBy": [
         "build-capability",
@@ -902,7 +933,9 @@
     {
       "name": "github_search_commits",
       "server": "github",
-      "heldBy": [],
+      "heldBy": [
+        "researcher"
+      ],
       "mentionedBy": [
         "search-across-sources",
         "structure-project-data"
@@ -911,7 +944,9 @@
     {
       "name": "github_search_issues",
       "server": "github",
-      "heldBy": [],
+      "heldBy": [
+        "researcher"
+      ],
       "mentionedBy": [
         "search-across-sources"
       ]
@@ -919,7 +954,10 @@
     {
       "name": "github_search_repos",
       "server": "github",
-      "heldBy": [],
+      "heldBy": [
+        "researcher",
+        "self-improve"
+      ],
       "mentionedBy": [
         "build-capability",
         "search-across-sources"
@@ -928,7 +966,9 @@
     {
       "name": "github_search_topics",
       "server": "github",
-      "heldBy": [],
+      "heldBy": [
+        "researcher"
+      ],
       "mentionedBy": [
         "search-across-sources"
       ]
@@ -937,6 +977,7 @@
       "name": "jira_add_comment",
       "server": "jira",
       "heldBy": [
+        "bsa",
         "reporter"
       ],
       "mentionedBy": [
@@ -1009,6 +1050,7 @@
       "name": "jira_get_epic_children",
       "server": "jira",
       "heldBy": [
+        "documenter",
         "researcher",
         "test-planner"
       ],
@@ -1021,6 +1063,7 @@
       "server": "jira",
       "heldBy": [
         "documenter",
+        "reporter",
         "researcher",
         "test-planner"
       ],
@@ -1072,6 +1115,7 @@
       "server": "jira",
       "heldBy": [
         "bsa",
+        "documenter",
         "orchestrator",
         "planner",
         "reporter",
@@ -1140,7 +1184,9 @@
     {
       "name": "jtmf_get_test_case",
       "server": "jtmf",
-      "heldBy": [],
+      "heldBy": [
+        "researcher"
+      ],
       "mentionedBy": [
         "search-across-sources"
       ]
@@ -1161,6 +1207,7 @@
       "name": "jtmf_search_tests",
       "server": "jtmf",
       "heldBy": [
+        "documenter",
         "researcher",
         "test-planner"
       ],
@@ -1188,9 +1235,7 @@
         "self-improve"
       ],
       "mentionedBy": [
-        "capture-learning",
-        "consolidate-project-report",
-        "detect-execution-convention"
+        "capture-learning"
       ]
     },
     {
@@ -1239,8 +1284,7 @@
         "researcher"
       ],
       "mentionedBy": [
-        "extract-requirements-from-image",
-        "qe-test-plan-builder"
+        "extract-requirements-from-image"
       ]
     },
     {
@@ -1250,8 +1294,7 @@
         "researcher"
       ],
       "mentionedBy": [
-        "extract-requirements-from-image",
-        "qe-test-plan-builder"
+        "extract-requirements-from-image"
       ]
     },
     {
@@ -1310,6 +1353,7 @@
       "name": "read_repo_file",
       "server": "artifacts",
       "heldBy": [
+        "bsa",
         "test-planner"
       ],
       "mentionedBy": [
@@ -1331,7 +1375,9 @@
     {
       "name": "run_playwright",
       "server": "playwright-runner",
-      "heldBy": [],
+      "heldBy": [
+        "automation"
+      ],
       "mentionedBy": [
         "verify"
       ]
@@ -1436,79 +1482,9 @@
   ],
   "findings": [
     {
-      "key": "skill-tool-gap:analyze-test-failures:reporter:jira_get_issue",
-      "kind": "skill-tool-gap",
-      "message": "skill `analyze-test-failures` (owner reporter) names `jira_get_issue`, which reporter does not hold"
-    },
-    {
-      "key": "skill-tool-gap:build-capability:self-improve:github_search_code",
-      "kind": "skill-tool-gap",
-      "message": "skill `build-capability` (owner self-improve) names `github_search_code`, which self-improve does not hold"
-    },
-    {
-      "key": "skill-tool-gap:build-capability:self-improve:github_search_repos",
-      "kind": "skill-tool-gap",
-      "message": "skill `build-capability` (owner self-improve) names `github_search_repos`, which self-improve does not hold"
-    },
-    {
-      "key": "skill-tool-gap:bulk-create-tickets:bsa:jira_add_comment",
-      "kind": "skill-tool-gap",
-      "message": "skill `bulk-create-tickets` (owner bsa) names `jira_add_comment`, which bsa does not hold"
-    },
-    {
       "key": "skill-tool-gap:capture-learning:self-improve:jira_get_boards",
       "kind": "skill-tool-gap",
       "message": "skill `capture-learning` (owner self-improve) names `jira_get_boards`, which self-improve does not hold"
-    },
-    {
-      "key": "skill-tool-gap:consolidate-project-report:documenter:allure_summary",
-      "kind": "skill-tool-gap",
-      "message": "skill `consolidate-project-report` (owner documenter) names `allure_summary`, which documenter does not hold"
-    },
-    {
-      "key": "skill-tool-gap:consolidate-project-report:documenter:confluence_get_children",
-      "kind": "skill-tool-gap",
-      "message": "skill `consolidate-project-report` (owner documenter) names `confluence_get_children`, which documenter does not hold"
-    },
-    {
-      "key": "skill-tool-gap:consolidate-project-report:documenter:confluence_search",
-      "kind": "skill-tool-gap",
-      "message": "skill `consolidate-project-report` (owner documenter) names `confluence_search`, which documenter does not hold"
-    },
-    {
-      "key": "skill-tool-gap:consolidate-project-report:documenter:get_result_json",
-      "kind": "skill-tool-gap",
-      "message": "skill `consolidate-project-report` (owner documenter) names `get_result_json`, which documenter does not hold"
-    },
-    {
-      "key": "skill-tool-gap:consolidate-project-report:documenter:jira_get_epic_children",
-      "kind": "skill-tool-gap",
-      "message": "skill `consolidate-project-report` (owner documenter) names `jira_get_epic_children`, which documenter does not hold"
-    },
-    {
-      "key": "skill-tool-gap:consolidate-project-report:documenter:jira_search",
-      "kind": "skill-tool-gap",
-      "message": "skill `consolidate-project-report` (owner documenter) names `jira_search`, which documenter does not hold"
-    },
-    {
-      "key": "skill-tool-gap:consolidate-project-report:documenter:jtmf_search_tests",
-      "kind": "skill-tool-gap",
-      "message": "skill `consolidate-project-report` (owner documenter) names `jtmf_search_tests`, which documenter does not hold"
-    },
-    {
-      "key": "skill-tool-gap:consolidate-project-report:documenter:knowledge_append",
-      "kind": "skill-tool-gap",
-      "message": "skill `consolidate-project-report` (owner documenter) names `knowledge_append`, which documenter does not hold"
-    },
-    {
-      "key": "skill-tool-gap:detect-execution-convention:automation:knowledge_append",
-      "kind": "skill-tool-gap",
-      "message": "skill `detect-execution-convention` (owner automation) names `knowledge_append`, which automation does not hold"
-    },
-    {
-      "key": "skill-tool-gap:extract-requirements-from-image:researcher:confluence_download_attachment",
-      "kind": "skill-tool-gap",
-      "message": "skill `extract-requirements-from-image` (owner researcher) names `confluence_download_attachment`, which researcher does not hold"
     },
     {
       "key": "skill-tool-gap:onboard-project:orchestrator:detect_conventions",
@@ -1524,21 +1500,6 @@
       "key": "skill-tool-gap:onboard-project:orchestrator:git_show",
       "kind": "skill-tool-gap",
       "message": "skill `onboard-project` (owner orchestrator) names `git_show`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:qe-test-plan-builder:test-planner:ocr_image",
-      "kind": "skill-tool-gap",
-      "message": "skill `qe-test-plan-builder` (owner test-planner) names `ocr_image`, which test-planner does not hold"
-    },
-    {
-      "key": "skill-tool-gap:qe-test-plan-builder:test-planner:ocr_pdf",
-      "kind": "skill-tool-gap",
-      "message": "skill `qe-test-plan-builder` (owner test-planner) names `ocr_pdf`, which test-planner does not hold"
-    },
-    {
-      "key": "skill-tool-gap:route-assignee:bsa:read_repo_file",
-      "kind": "skill-tool-gap",
-      "message": "skill `route-assignee` (owner bsa) names `read_repo_file`, which bsa does not hold"
     },
     {
       "key": "skill-tool-gap:search-across-sources:orchestrator:confluence_extract_links",
@@ -1621,11 +1582,6 @@
       "message": "skill `search-across-sources` (owner orchestrator) names `jtmf_search_tests`, which orchestrator does not hold"
     },
     {
-      "key": "skill-tool-gap:search-across-sources:researcher:confluence_extract_links",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner researcher) names `confluence_extract_links`, which researcher does not hold"
-    },
-    {
       "key": "skill-tool-gap:search-across-sources:researcher:confluence_save_page",
       "kind": "skill-tool-gap",
       "message": "skill `search-across-sources` (owner researcher) names `confluence_save_page`, which researcher does not hold"
@@ -1636,59 +1592,14 @@
       "message": "skill `search-across-sources` (owner researcher) names `github_save_file`, which researcher does not hold"
     },
     {
-      "key": "skill-tool-gap:search-across-sources:researcher:github_search_commits",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner researcher) names `github_search_commits`, which researcher does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:researcher:github_search_issues",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner researcher) names `github_search_issues`, which researcher does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:researcher:github_search_repos",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner researcher) names `github_search_repos`, which researcher does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:researcher:github_search_topics",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner researcher) names `github_search_topics`, which researcher does not hold"
-    },
-    {
       "key": "skill-tool-gap:search-across-sources:researcher:jira_save_issue",
       "kind": "skill-tool-gap",
       "message": "skill `search-across-sources` (owner researcher) names `jira_save_issue`, which researcher does not hold"
     },
     {
-      "key": "skill-tool-gap:search-across-sources:researcher:jtmf_get_test_case",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner researcher) names `jtmf_get_test_case`, which researcher does not hold"
-    },
-    {
       "key": "skill-tool-gap:sprint-backlog-report:bsa:jira_move_to_sprint",
       "kind": "skill-tool-gap",
       "message": "skill `sprint-backlog-report` (owner bsa) names `jira_move_to_sprint`, which bsa does not hold"
-    },
-    {
-      "key": "skill-tool-gap:structure-project-data:researcher:git_show",
-      "kind": "skill-tool-gap",
-      "message": "skill `structure-project-data` (owner researcher) names `git_show`, which researcher does not hold"
-    },
-    {
-      "key": "skill-tool-gap:structure-project-data:researcher:github_search_commits",
-      "kind": "skill-tool-gap",
-      "message": "skill `structure-project-data` (owner researcher) names `github_search_commits`, which researcher does not hold"
-    },
-    {
-      "key": "skill-tool-gap:verify:automation:get_result_json",
-      "kind": "skill-tool-gap",
-      "message": "skill `verify` (owner automation) names `get_result_json`, which automation does not hold"
-    },
-    {
-      "key": "skill-tool-gap:verify:automation:run_playwright",
-      "kind": "skill-tool-gap",
-      "message": "skill `verify` (owner automation) names `run_playwright`, which automation does not hold"
     },
     {
       "key": "unheld-tool:confluence_add_comment",
@@ -1699,16 +1610,6 @@
       "key": "unheld-tool:confluence_delete_page",
       "kind": "unheld-tool",
       "message": "tool `confluence_delete_page` (confluence) is held by no agent"
-    },
-    {
-      "key": "unheld-tool:confluence_download_attachment",
-      "kind": "unheld-tool",
-      "message": "tool `confluence_download_attachment` (confluence) is held by no agent"
-    },
-    {
-      "key": "unheld-tool:confluence_extract_links",
-      "kind": "unheld-tool",
-      "message": "tool `confluence_extract_links` (confluence) is held by no agent"
     },
     {
       "key": "unheld-tool:confluence_get_attachments",
@@ -1731,34 +1632,9 @@
       "message": "tool `get_file_metadata` (media) is held by no agent"
     },
     {
-      "key": "unheld-tool:git_show",
-      "kind": "unheld-tool",
-      "message": "tool `git_show` (git) is held by no agent"
-    },
-    {
       "key": "unheld-tool:github_save_file",
       "kind": "unheld-tool",
       "message": "tool `github_save_file` (github) is held by no agent"
-    },
-    {
-      "key": "unheld-tool:github_search_commits",
-      "kind": "unheld-tool",
-      "message": "tool `github_search_commits` (github) is held by no agent"
-    },
-    {
-      "key": "unheld-tool:github_search_issues",
-      "kind": "unheld-tool",
-      "message": "tool `github_search_issues` (github) is held by no agent"
-    },
-    {
-      "key": "unheld-tool:github_search_repos",
-      "kind": "unheld-tool",
-      "message": "tool `github_search_repos` (github) is held by no agent"
-    },
-    {
-      "key": "unheld-tool:github_search_topics",
-      "kind": "unheld-tool",
-      "message": "tool `github_search_topics` (github) is held by no agent"
     },
     {
       "key": "unheld-tool:jira_move_to_sprint",
@@ -1774,11 +1650,6 @@
       "key": "unheld-tool:jtmf_delete_test_case",
       "kind": "unheld-tool",
       "message": "tool `jtmf_delete_test_case` (jtmf) is held by no agent"
-    },
-    {
-      "key": "unheld-tool:jtmf_get_test_case",
-      "kind": "unheld-tool",
-      "message": "tool `jtmf_get_test_case` (jtmf) is held by no agent"
     },
     {
       "key": "unheld-tool:jtmf_get_test_plan",
@@ -1809,11 +1680,6 @@
       "key": "unheld-tool:notify_teams",
       "kind": "unheld-tool",
       "message": "tool `notify_teams` (notify) is held by no agent"
-    },
-    {
-      "key": "unheld-tool:run_playwright",
-      "kind": "unheld-tool",
-      "message": "tool `run_playwright` (playwright-runner) is held by no agent"
     }
   ]
 }

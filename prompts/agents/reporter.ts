@@ -31,6 +31,7 @@ export const reporter: AgentSpec = {
     "mcp__gateway__jira_search",
     "mcp__gateway__git_log",
     "mcp__gateway__git_branches",
+    "mcp__gateway__jira_get_issue",
   ],
   flow: [
     "Run the suite (async enqueue or direct `run_bdd`).",

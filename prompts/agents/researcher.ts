@@ -46,6 +46,14 @@ export const researcher: AgentSpec = {
     // From code, writes are preview-only, so this does not make the researcher a writer.
     "mcp__gateway-code__codemode_search",
     "mcp__gateway-code__codemode_execute",
+    "mcp__gateway__confluence_download_attachment",
+    "mcp__gateway__confluence_extract_links",
+    "mcp__gateway__git_show",
+    "mcp__gateway__github_search_commits",
+    "mcp__gateway__github_search_issues",
+    "mcp__gateway__github_search_repos",
+    "mcp__gateway__github_search_topics",
+    "mcp__gateway__jtmf_get_test_case",
   ],
   flow: [
     "For a topic/keyword (not a known key), run the `search-across-sources` skill to federate Jira+Confluence+JTMF+GitHub and surface linked sources first.",

@@ -31,6 +31,7 @@ export const orchestrator: AgentSpec = {
     "mcp__gateway__jira_search",
     "mcp__gateway__knowledge_search",
     "mcp__gateway__consensus_score",
+    "mcp__gateway__git_branches",
   ],
   flow: [
     "Resolve the `project` (ask once if ambiguous); if it isn't in the manifest, route to the `onboard-project` skill first. Check `git_branches` for existing in-progress work and flag it.",

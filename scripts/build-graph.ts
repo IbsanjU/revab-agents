@@ -10,17 +10,19 @@ import { promises as fs } from "fs";
 import path from "path";
 import { AGENTS } from "../prompts/agents/index.js";
 import { captureAllTools } from "../mcp-servers/gateway/tools.js";
-import { buildGraph, diffBaseline, renderGraphMarkdown } from "../utils/capabilityGraph.js";
+import { buildGraph, diffBaseline, renderGraphMarkdown, unexplained, type Baseline } from "../utils/capabilityGraph.js";
 
 const MD = path.resolve("docs/graph.md");
 const JSON_OUT = path.resolve("docs/graph.json");
 const BASELINE = path.resolve("docs/graph-baseline.json");
 
-async function readBaseline(): Promise<string[]> {
+async function readBaseline(): Promise<Baseline> {
   try {
-    return JSON.parse(await fs.readFile(BASELINE, "utf8")) as string[];
+    const raw = JSON.parse(await fs.readFile(BASELINE, "utf8")) as unknown;
+    if (Array.isArray(raw)) return Object.fromEntries((raw as string[]).map((k) => [k, ""])); // legacy: keys only, no reasons
+    return raw as Baseline;
   } catch {
-    return [];
+    return {};
   }
 }
 
@@ -35,7 +37,10 @@ async function main(): Promise<void> {
   const graph = buildGraph({ agents: AGENTS, skills, tools });
 
   if (args.has("--update-baseline")) {
-    await fs.writeFile(BASELINE, JSON.stringify(graph.findings.map((f) => f.key), null, 2) + "\n");
+    // Keeps existing reasons; new findings get a blank reason, which --check rejects until it is filled in.
+    const prev = await readBaseline();
+    const next = Object.fromEntries(graph.findings.map((f) => [f.key, prev[f.key] ?? ""]));
+    await fs.writeFile(BASELINE, JSON.stringify(next, null, 2) + "\n");
     console.log(`build-graph: baseline now holds ${graph.findings.length} finding(s)`);
   }
   const baseline = await readBaseline();
@@ -50,6 +55,7 @@ async function main(): Promise<void> {
     }
     const { added, stale } = diffBaseline(graph.findings, baseline);
     for (const f of added) problems.push(`new graph finding: ${f.message}`);
+    for (const k of unexplained(baseline)) problems.push(`accepted finding has no reason in docs/graph-baseline.json: ${k}`);
     for (const k of stale) problems.push(`fixed finding still in docs/graph-baseline.json (remove it): ${k}`);
     if (problems.length) {
       console.error(`build-graph --check — ${problems.length} problem(s):\n`);

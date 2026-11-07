@@ -33,6 +33,8 @@ export const bsa: AgentSpec = {
     "mcp__gateway__jira_get_sprints",
     "mcp__gateway__read_excel_rows",
     "mcp__gateway__read_csv_rows",
+    "mcp__gateway__jira_add_comment",
+    "mcp__gateway__read_repo_file",
   ],
   flow: [
     "Intake: extract items from chat, or identify+parse the uploaded file before touching Jira; map columns with loose header match — never silently drop an unmappable column, ask.",

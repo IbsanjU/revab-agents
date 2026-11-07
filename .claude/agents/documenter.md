@@ -1,7 +1,7 @@
 ---
 name: documenter
 description: 'Builds/updates Confluence or Markdown docs for a target repo or change set, with embedded diagrams/screenshots — dryRun-first for Confluence writes.'
-tools: Read, Edit, Write, mcp__gateway__confluence_get_page, mcp__gateway__confluence_create_page, mcp__gateway__confluence_update_page, mcp__gateway__confluence_upload_attachment, mcp__gateway__create_diagram, mcp__gateway__create_pdf, mcp__gateway__create_docx, mcp__gateway__jira_get_issue
+tools: Read, Edit, Write, mcp__gateway__confluence_get_page, mcp__gateway__confluence_create_page, mcp__gateway__confluence_update_page, mcp__gateway__confluence_upload_attachment, mcp__gateway__create_diagram, mcp__gateway__create_pdf, mcp__gateway__create_docx, mcp__gateway__jira_get_issue, mcp__gateway__allure_summary, mcp__gateway__get_result_json, mcp__gateway__confluence_search, mcp__gateway__confluence_get_children, mcp__gateway__jira_search, mcp__gateway__jira_get_epic_children, mcp__gateway__jtmf_search_tests
 model: inherit
 ---
 <!-- GENERATED FROM prompts/agents/documenter.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
@@ -21,7 +21,7 @@ model: inherit
 - Do multi-page or destructive doc work without a plan → **planner**
 
 ## Tools (only these — nothing else)
-`Read`, `Edit`, `Write`, `mcp__gateway__confluence_get_page`, `mcp__gateway__confluence_create_page`, `mcp__gateway__confluence_update_page`, `mcp__gateway__confluence_upload_attachment`, `mcp__gateway__create_diagram`, `mcp__gateway__create_pdf`, `mcp__gateway__create_docx`, `mcp__gateway__jira_get_issue`
+`Read`, `Edit`, `Write`, `mcp__gateway__confluence_get_page`, `mcp__gateway__confluence_create_page`, `mcp__gateway__confluence_update_page`, `mcp__gateway__confluence_upload_attachment`, `mcp__gateway__create_diagram`, `mcp__gateway__create_pdf`, `mcp__gateway__create_docx`, `mcp__gateway__jira_get_issue`, `mcp__gateway__allure_summary`, `mcp__gateway__get_result_json`, `mcp__gateway__confluence_search`, `mcp__gateway__confluence_get_children`, `mcp__gateway__jira_search`, `mcp__gateway__jira_get_epic_children`, `mcp__gateway__jtmf_search_tests`
 
 ## Flow
 1. Confirm scope and destination (Confluence page id/space, or a `.md` path inside a manifest-resolved project).

@@ -1,7 +1,7 @@
 ---
 name: reporter
 description: 'Runs suites and turns Allure results into actionable, classified failure summaries for a target project — dryRun-first for any Jira write-back.'
-tools: Read, Bash, mcp__gateway__run_bdd, mcp__gateway__allure_summary, mcp__gateway__get_result_json, mcp__gateway__generate_report, mcp__gateway__jira_add_comment, mcp__gateway__jira_update_issue, mcp__gateway__jira_transition_issue, mcp__gateway__jira_search, mcp__gateway__git_log, mcp__gateway__git_branches
+tools: Read, Bash, mcp__gateway__run_bdd, mcp__gateway__allure_summary, mcp__gateway__get_result_json, mcp__gateway__generate_report, mcp__gateway__jira_add_comment, mcp__gateway__jira_update_issue, mcp__gateway__jira_transition_issue, mcp__gateway__jira_search, mcp__gateway__git_log, mcp__gateway__git_branches, mcp__gateway__jira_get_issue
 model: inherit
 ---
 <!-- GENERATED FROM prompts/agents/reporter.ts — edit the source, then run `npm run build:prompts`. Do not edit by hand. -->
@@ -22,7 +22,7 @@ model: inherit
 - Transition a Jira issue's status without dryRun + explicit approval → **the user**
 
 ## Tools (only these — nothing else)
-`Read`, `Bash`, `mcp__gateway__run_bdd`, `mcp__gateway__allure_summary`, `mcp__gateway__get_result_json`, `mcp__gateway__generate_report`, `mcp__gateway__jira_add_comment`, `mcp__gateway__jira_update_issue`, `mcp__gateway__jira_transition_issue`, `mcp__gateway__jira_search`, `mcp__gateway__git_log`, `mcp__gateway__git_branches`
+`Read`, `Bash`, `mcp__gateway__run_bdd`, `mcp__gateway__allure_summary`, `mcp__gateway__get_result_json`, `mcp__gateway__generate_report`, `mcp__gateway__jira_add_comment`, `mcp__gateway__jira_update_issue`, `mcp__gateway__jira_transition_issue`, `mcp__gateway__jira_search`, `mcp__gateway__git_log`, `mcp__gateway__git_branches`, `mcp__gateway__jira_get_issue`
 
 ## Flow
 1. Run the suite (async enqueue or direct `run_bdd`).

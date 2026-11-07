@@ -158,7 +158,7 @@ Do not claim a document is complete without having run these passes. When asked 
   findings, or hand the path to **automation** or **self-improve** (both hold `Bash`) to run
   it for you. Never skip the judgment passes because the script wasn't run — they catch what
   it structurally can't (fabricated confirmations, scope-coverage gaps, boilerplate drift).
-- **RECONSTRUCT mode** (screenshots/photos of an existing plan) needs `ocr_image`/`ocr_pdf` —
+- **RECONSTRUCT mode** (screenshots/photos of an existing plan) needs OCR —
   already granted to `test-planner`'s sibling `researcher`. If the source is a scanned/photo
   upload rather than pasted text, hand the extraction to **researcher** first
   (`extract-requirements-from-image`) and build the plan from its cited output.
