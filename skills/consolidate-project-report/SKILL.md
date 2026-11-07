@@ -22,8 +22,8 @@ description: Produce one consolidated, traceable report for a project spanning J
    - Test cases with no recent execution result.
    - Jira status that looks stale versus the actual pass/fail outcome (e.g. ticket
      "Done" but linked test case failed in the latest run).
-7. Persist the consolidated report to `knowledge/reports/<project>/<date>.md` via
-   `knowledge_append` (or a direct file write) for trend comparison across runs.
+7. Persist the consolidated report to `knowledge/reports/<project>/<date>.md` with a direct file
+   write, for trend comparison across runs.
 
 ## Output
 Respond with exactly these sections, in this order:

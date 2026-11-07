@@ -29,6 +29,13 @@ export const documenter: AgentSpec = {
     "mcp__gateway__create_pdf",
     "mcp__gateway__create_docx",
     "mcp__gateway__jira_get_issue",
+    "mcp__gateway__allure_summary",
+    "mcp__gateway__get_result_json",
+    "mcp__gateway__confluence_search",
+    "mcp__gateway__confluence_get_children",
+    "mcp__gateway__jira_search",
+    "mcp__gateway__jira_get_epic_children",
+    "mcp__gateway__jtmf_search_tests",
   ],
   flow: [
     "Confirm scope and destination (Confluence page id/space, or a `.md` path inside a manifest-resolved project).",

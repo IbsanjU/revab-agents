@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { AgentSpec } from "../prompts/types.js";
-import { buildGraph, diffBaseline, gatewayToolName, handoffTargets, mentionedTools, renderGraphMarkdown } from "./capabilityGraph.js";
+import { buildGraph, diffBaseline, gatewayToolName, handoffTargets, mentionedTools, renderGraphMarkdown, unexplained } from "./capabilityGraph.js";
 
 const agent = (over: Partial<AgentSpec> & { name: string }): AgentSpec => ({
   description: "d", role: "r", owns: [], doesNot: [], tools: [], flow: [], handoff: "", ...over,
@@ -53,18 +53,29 @@ test("unheld tools, unowned skills and dangling references are reported", () => 
 
 test("diffBaseline separates new findings from fixed ones", () => {
   const f = [{ key: "k1", kind: "unheld-tool" as const, message: "m1" }, { key: "k2", kind: "unheld-tool" as const, message: "m2" }];
-  const d = diffBaseline(f, ["k2", "gone"]);
+  const d = diffBaseline(f, { k2: "why", gone: "why" });
   assert.deepEqual(d.added.map((x) => x.key), ["k1"]);
   assert.deepEqual(d.stale, ["gone"]);
+});
+
+test("an agent whose own instructions name a tool it lacks is an agent-tool-gap", () => {
+  const a = agent({ name: "a", flow: ["Check `git_log` first"] });
+  assert.ok(buildGraph({ agents: [a], skills: [], tools }).findings.some((f) => f.key === "agent-tool-gap:a:git_log"));
+  const ok = agent({ name: "a", flow: ["Check `git_log` first"], tools: ["mcp__gateway__git_log"] });
+  assert.ok(!buildGraph({ agents: [ok], skills: [], tools }).findings.some((f) => f.kind === "agent-tool-gap"));
+});
+
+test("a baseline entry with a blank reason is reported as unexplained", () => {
+  assert.deepEqual(unexplained({ a: "ok", b: "  ", c: "" }), ["b", "c"]);
 });
 
 test("rendering is deterministic and marks new vs accepted findings", () => {
   const g = buildGraph({ agents: [agent({ name: "a" })], skills: [], tools });
   const k = g.findings[0].key;
-  const one = renderGraphMarkdown(g, [k]);
-  assert.equal(one, renderGraphMarkdown(g, [k]));
-  assert.match(one, /accepted \(baseline\)/);
-  assert.match(renderGraphMarkdown(g, []), /\*\*new\*\*/);
+  const one = renderGraphMarkdown(g, { [k]: "because" });
+  assert.equal(one, renderGraphMarkdown(g, { [k]: "because" }));
+  assert.match(one, /accepted: because/);
+  assert.match(renderGraphMarkdown(g, {}), /\*\*new\*\*/);
 });
 
 test("the real repo graph has no dangling references (typos in specs fail here)", async () => {

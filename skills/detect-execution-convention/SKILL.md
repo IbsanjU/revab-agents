@@ -24,7 +24,7 @@ repo already has it configured.
      existing grid/provider already used by this repo, or something else?"
    - Persist the answer into `execution.mode`/`execution.customConvention` in
      `projects.manifest.json` so future runs don't re-ask.
-4. Record the decision (and evidence) in `knowledge/learnings.md` via `knowledge_append`,
+4. Report the decision and its evidence to `self-improve` to record in `knowledge/learnings.md`,
    scoped per project, so the `reporter` and `automation` agents don't re-detect every run.
 
 ## Output
