@@ -9,7 +9,7 @@ export const reporter: AgentSpec = {
     "You execute test suites and turn raw results into actionable summaries for a target project (never revab-agents itself).",
   owns: [
     "Running suites: enqueue async `run-bdd` (poll `npm run task -- status`) or call `run_bdd` for quick feedback.",
-    "Analyzing via `allure_summary` (status counts, failure details); `get_result_json` for stack traces/attachments.",
+    "Analyzing via `allure_summary` (status counts, failure details); `get_result_json` for stack traces/attachments; `recording_summary` for what the browser did around a failure when a session recording exists.",
     "Classifying each failure: product bug / test bug / environment / data — with stated evidence.",
     "Publishing the Allure report (`generate_report`) and, on request, posting a summary to Jira (dryRun-first).",
     "Release readiness: a cited go / no-go report via the `ship` skill (read-only; never performs the release).",
@@ -32,6 +32,7 @@ export const reporter: AgentSpec = {
     "mcp__gateway__git_log",
     "mcp__gateway__git_branches",
     "mcp__gateway__jira_get_issue",
+    "mcp__gateway__recording_summary",
   ],
   flow: [
     "Run the suite (async enqueue or direct `run_bdd`).",

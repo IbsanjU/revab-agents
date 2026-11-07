@@ -9,9 +9,14 @@
  */
 import { promises as fs } from "fs";
 import path from "path";
+import { BROWSER_PACKAGE, BROWSER_SERVER_NAME, browserServerEntry, parseAllowedHosts } from "../utils/browserServer.js";
 
 export interface InitOptions {
   force?: boolean;
+  /** Register the policy-controlled browser server (playwright-local). */
+  browser?: boolean;
+  /** Hosts the browser may navigate to, besides localhost. */
+  allowHosts?: string[];
   cwd?: string;
 }
 
@@ -122,6 +127,42 @@ async function ensureClaudeCodeMcpConfig(root: string, port: number): Promise<vo
   report("updated", ".mcp.json", "gateway added alongside existing entries");
 }
 
+/**
+ * Opt-in (`revab init --browser`): register the policy-controlled browser server so `verify` can drive the
+ * real UI of an app. Adds `playwright-local` to both MCP configs and never overwrites an existing entry.
+ */
+async function ensureBrowserServer(root: string, allowHosts: string[]): Promise<void> {
+  const { hosts, invalid } = parseAllowedHosts(allowHosts);
+  if (invalid.length) {
+    report("skipped", BROWSER_SERVER_NAME, `not registered: invalid host(s) ${invalid.join(", ")} (use bare hosts like app.test or *.test)`);
+    return;
+  }
+  const entry = browserServerEntry(hosts);
+  for (const [file, key] of [[path.join(".vscode", "mcp.json"), "servers"], [".mcp.json", "mcpServers"]] as const) {
+    const target = path.join(root, file);
+    let config: Record<string, Record<string, unknown>> = {};
+    if (await exists(target)) {
+      try {
+        config = JSON.parse(await fs.readFile(target, "utf8")) as typeof config;
+      } catch {
+        report("skipped", file, `existing file is not valid JSON, so ${BROWSER_SERVER_NAME} was not added`);
+        continue;
+      }
+    } else {
+      await fs.mkdir(path.dirname(target), { recursive: true });
+    }
+    config[key] ??= {};
+    if (config[key][BROWSER_SERVER_NAME]) {
+      report("skipped", file, `${BROWSER_SERVER_NAME} already registered (left as is)`);
+      continue;
+    }
+    config[key][BROWSER_SERVER_NAME] = entry;
+    await fs.writeFile(target, JSON.stringify(config, null, 2) + "\n", "utf8");
+    report("updated", file, `${BROWSER_SERVER_NAME} added; navigation limited to ${entry.env.PLAYWRIGHT_ALLOWED_HOSTS}`);
+  }
+  console.log(`\n  The browser server must be installed next to these configs:\n    npm install --save-dev github:IbsanjU/${BROWSER_PACKAGE}\n    (cd node_modules/${BROWSER_PACKAGE} && npm run setup)   # downloads the headless Chromium\n`);
+}
+
 /** Ensure the manifest index exists so the trust boundary has something to resolve. */
 async function ensureManifest(root: string): Promise<void> {
   const target = path.join(root, "projects", "manifest.json");
@@ -149,6 +190,7 @@ export async function runInit(options: InitOptions = {}): Promise<void> {
   await ensureMcpConfig(root, port);
   await ensureClaudeCodeMcpConfig(root, port);
   await ensureManifest(root);
+  if (options.browser) await ensureBrowserServer(root, options.allowHosts ?? []);
 
   console.log(`
 Next:

@@ -35,6 +35,13 @@ export const automation: AgentSpec = {
     "mcp__gateway__git_diff",
     "mcp__gateway__get_result_json",
     "mcp__gateway__run_playwright",
+    "mcp__playwright-local__browser_navigate",
+    "mcp__playwright-local__page_snapshot",
+    "mcp__playwright-local__page_click",
+    "mcp__playwright-local__page_type",
+    "mcp__playwright-local__page_wait_for",
+    "mcp__playwright-local__page_console_logs",
+    "mcp__playwright-local__browser_close",
   ],
   flow: [
     "Resolve `project`; check `git_branches`/`git_log` (`allBranches: true`) for in-progress work to build on. Run `detect_conventions` and the `detect-execution-convention` skill.",

@@ -80,6 +80,11 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
   {
     agent: "automation",
     mustHave: [
+      { tool: "mcp__playwright-local__browser_navigate", because: "verify drives the real UI through the policy-controlled browser server" },
+      { tool: "mcp__playwright-local__page_snapshot", because: "verify drives the real UI through the policy-controlled browser server" },
+      { tool: "mcp__playwright-local__page_click", because: "verify drives the real UI through the policy-controlled browser server" },
+      { tool: "mcp__playwright-local__page_type", because: "verify drives the real UI through the policy-controlled browser server" },
+      { tool: "mcp__playwright-local__page_console_logs", because: "verify drives the real UI through the policy-controlled browser server" },
       { tool: "mcp__gateway__get_result_json", because: "verify captures the real assertion output" },
       { tool: "mcp__gateway__run_playwright", because: "verify runs the scenario the change affects" },
       { tool: "Bash", because: "it runs the target project's tooling" },
@@ -87,6 +92,7 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
       { tool: "mcp__gateway__git_diff", because: "verify/code-review/simplify — all mandatory pre-done steps — open by getting the diff first" },
     ],
     mustNotHave: [
+      { tool: "mcp__playwright-local__page_eval", because: "running arbitrary script in a page is switched off by policy and is never granted" },
       { tool: "mcp__gateway__jira_create_issue", because: "ticket writes belong to bsa/reporter, dryRun-gated" },
     ],
   },
@@ -172,6 +178,7 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
       { tool: "mcp__gateway__jira_get_issue", because: "analyze-test-failures cross-checks a failure against the Jira acceptance criteria" },
       { tool: "mcp__gateway__allure_summary", because: "failure analysis reads Allure results" },
       { tool: "mcp__gateway__jira_transition_issue", because: "its own flow posts to Jira via update-jira-epic after approval — without this tool that step is impossible" },
+      { tool: "mcp__gateway__recording_summary", because: "analyze-test-failures uses a session recording as evidence for the classification" },
       { tool: "mcp__gateway__git_log", because: "the ship skill scopes a release from commit history" },
       { tool: "mcp__gateway__git_branches", because: "the ship skill identifies the release branch/range" },
       { tool: "mcp__gateway__jira_search", because: "the ship skill lists open blockers for the release scope" },

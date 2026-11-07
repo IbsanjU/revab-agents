@@ -74,6 +74,8 @@ const EXPLICIT: Record<string, ToolRisk> = {
   // Reads results that already exist — despite living beside the report generator.
   allure_summary: "read",
   get_result_json: "read",
+  // Reads a recorded browser session's summary; writes nothing.
+  recording_summary: "read",
   // Reads the repo's conventions; "detect" is read-only despite sitting in codegen.
   detect_conventions: "read",
   // Persists to knowledge/ — a real write to this repo.

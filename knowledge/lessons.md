@@ -11,9 +11,9 @@ trigger: when a feature talks to something outside the process (a subprocess, a 
 action: run it for real once, end to end, before calling it done; a test against a stub passing proves only the stub
 scope: global
 domain: verification
-support: 3
+support: 4
 contradict: 0
-evidence: PR #17 whisper-setup reported success while installing into the system Python and PyAV 19 crashed every transcription, both found only by running it; playwright-mcp-vscode PR #3 redirect bypass found only by driving a real browser; extension phase 2 ran a stale dist/ gateway that ignored new settings (memory.md)
+evidence: PR #17 whisper-setup reported success while installing into the system Python and PyAV 19 crashed every transcription, both found only by running it; playwright-mcp-vscode PR #3 redirect bypass found only by driving a real browser; extension phase 2 ran a stale dist/ gateway that ignored new settings (memory.md); stage 5: recording_summary default folder was one level too shallow, found only by testing against a real playwright-playbook recording; page_eval listed-but-refused found only by driving the real browser server
 last: 2026-11-07
 
 id: stacked-pr-closes-on-base-delete

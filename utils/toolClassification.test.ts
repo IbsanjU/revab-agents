@@ -56,6 +56,7 @@ test("tools whose names would mislead are pinned explicitly", () => {
   assert.equal(classifyTool("generate_report"), "write");
   // Reads results that already exist, despite sitting beside the generator.
   assert.equal(classifyTool("allure_summary"), "read");
+  assert.equal(classifyTool("recording_summary"), "read");
   assert.equal(classifyTool("get_result_json"), "read");
   // "detect" reads the repo's conventions even though it lives in codegen.
   assert.equal(classifyTool("detect_conventions"), "read");
