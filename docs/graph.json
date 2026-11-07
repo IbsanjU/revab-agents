@@ -1,0 +1,1819 @@
+{
+  "agents": [
+    {
+      "name": "planner",
+      "tools": [
+        "confluence_search",
+        "jira_search",
+        "knowledge_search"
+      ],
+      "skills": [
+        "self-check"
+      ],
+      "handoffTo": [
+        "orchestrator"
+      ]
+    },
+    {
+      "name": "orchestrator",
+      "tools": [
+        "consensus_score",
+        "jira_search",
+        "knowledge_search"
+      ],
+      "skills": [
+        "adversarial-review",
+        "onboard-project",
+        "review-delegated-work",
+        "route-to-specialist",
+        "search-across-sources",
+        "self-check"
+      ],
+      "handoffTo": [
+        "automation",
+        "planner",
+        "reporter",
+        "researcher",
+        "test-planner"
+      ]
+    },
+    {
+      "name": "researcher",
+      "tools": [
+        "confluence_get_children",
+        "confluence_get_page",
+        "confluence_search",
+        "git_branches",
+        "git_log",
+        "git_search",
+        "github_get_file",
+        "github_search_code",
+        "jira_get_epic_children",
+        "jira_get_issue",
+        "jira_search",
+        "jtmf_search_tests",
+        "knowledge_search",
+        "ocr_image",
+        "ocr_pdf",
+        "read_diagram",
+        "read_docx_text",
+        "read_pdf_text"
+      ],
+      "skills": [
+        "extract-requirements-from-image",
+        "extract-requirements-from-video",
+        "search-across-sources",
+        "self-check",
+        "structure-project-data"
+      ],
+      "handoffTo": [
+        "test-planner"
+      ]
+    },
+    {
+      "name": "test-planner",
+      "tools": [
+        "confluence_get_page",
+        "detect_conventions",
+        "get_test_files",
+        "git_diff",
+        "git_log",
+        "git_search",
+        "jira_get_epic_children",
+        "jira_get_issue",
+        "jtmf_create_test_case",
+        "jtmf_search_tests",
+        "jtmf_update_test_case",
+        "knowledge_search",
+        "read_repo_file",
+        "scaffold_feature"
+      ],
+      "skills": [
+        "build-test-plan-interactive",
+        "qe-test-plan-builder",
+        "review-against-spec",
+        "self-check",
+        "test-design-techniques",
+        "upload-to-jtmf"
+      ],
+      "handoffTo": [
+        "automation",
+        "researcher"
+      ]
+    },
+    {
+      "name": "automation",
+      "tools": [
+        "allure_summary",
+        "detect_conventions",
+        "get_test_files",
+        "git_branches",
+        "git_diff",
+        "git_log",
+        "run_bdd",
+        "scaffold_feature",
+        "scaffold_page",
+        "scaffold_step"
+      ],
+      "skills": [
+        "code-review",
+        "detect-execution-convention",
+        "security-review",
+        "self-check",
+        "simplify",
+        "verify"
+      ],
+      "handoffTo": [
+        "reporter",
+        "test-planner"
+      ]
+    },
+    {
+      "name": "reporter",
+      "tools": [
+        "allure_summary",
+        "generate_report",
+        "get_result_json",
+        "git_branches",
+        "git_log",
+        "jira_add_comment",
+        "jira_search",
+        "jira_transition_issue",
+        "jira_update_issue",
+        "run_bdd"
+      ],
+      "skills": [
+        "analyze-test-failures",
+        "data-visualization",
+        "self-check",
+        "ship",
+        "update-jira-epic"
+      ],
+      "handoffTo": [
+        "automation",
+        "self-improve"
+      ]
+    },
+    {
+      "name": "documenter",
+      "tools": [
+        "confluence_create_page",
+        "confluence_get_page",
+        "confluence_update_page",
+        "confluence_upload_attachment",
+        "create_diagram",
+        "create_docx",
+        "create_pdf",
+        "jira_get_issue"
+      ],
+      "skills": [
+        "consolidate-project-report",
+        "data-visualization",
+        "self-check"
+      ],
+      "handoffTo": [
+        "planner",
+        "self-improve"
+      ]
+    },
+    {
+      "name": "bsa",
+      "tools": [
+        "jira_assign_issue",
+        "jira_bulk_create_issues",
+        "jira_bulk_update_issues",
+        "jira_create_issue",
+        "jira_get_backlog",
+        "jira_get_boards",
+        "jira_get_sprint_report",
+        "jira_get_sprints",
+        "jira_search",
+        "jira_search_users",
+        "jira_transition_issue",
+        "jira_update_issue",
+        "read_csv_rows",
+        "read_excel_rows"
+      ],
+      "skills": [
+        "bulk-create-tickets",
+        "bulk-update-tickets",
+        "route-assignee",
+        "self-check",
+        "sprint-backlog-report"
+      ],
+      "handoffTo": [
+        "reporter"
+      ]
+    },
+    {
+      "name": "importer",
+      "tools": [
+        "knowledge_append"
+      ],
+      "skills": [
+        "self-check"
+      ],
+      "handoffTo": [
+        "self-improve"
+      ]
+    },
+    {
+      "name": "self-improve",
+      "tools": [
+        "knowledge_append",
+        "knowledge_search"
+      ],
+      "skills": [
+        "build-capability",
+        "capture-correction",
+        "capture-learning",
+        "skillify"
+      ],
+      "handoffTo": []
+    }
+  ],
+  "skills": [
+    {
+      "name": "adversarial-review",
+      "owners": [
+        "orchestrator"
+      ],
+      "mentionsTools": [
+        "consensus_score"
+      ]
+    },
+    {
+      "name": "analyze-test-failures",
+      "owners": [
+        "reporter"
+      ],
+      "mentionsTools": [
+        "allure_summary",
+        "jira_get_issue"
+      ]
+    },
+    {
+      "name": "build-capability",
+      "owners": [
+        "self-improve"
+      ],
+      "mentionsTools": [
+        "github_search_code",
+        "github_search_repos",
+        "knowledge_search"
+      ]
+    },
+    {
+      "name": "build-test-plan-interactive",
+      "owners": [
+        "test-planner"
+      ],
+      "mentionsTools": []
+    },
+    {
+      "name": "bulk-create-tickets",
+      "owners": [
+        "bsa"
+      ],
+      "mentionsTools": [
+        "jira_add_comment",
+        "jira_assign_issue",
+        "jira_bulk_create_issues",
+        "jira_create_issue",
+        "read_csv_rows",
+        "read_excel_rows"
+      ]
+    },
+    {
+      "name": "bulk-update-tickets",
+      "owners": [
+        "bsa"
+      ],
+      "mentionsTools": [
+        "jira_bulk_update_issues",
+        "jira_search",
+        "jira_transition_issue",
+        "jira_update_issue",
+        "read_csv_rows",
+        "read_excel_rows"
+      ]
+    },
+    {
+      "name": "capture-correction",
+      "owners": [
+        "self-improve"
+      ],
+      "mentionsTools": []
+    },
+    {
+      "name": "capture-learning",
+      "owners": [
+        "self-improve"
+      ],
+      "mentionsTools": [
+        "jira_get_boards",
+        "knowledge_append",
+        "knowledge_search"
+      ]
+    },
+    {
+      "name": "code-review",
+      "owners": [
+        "automation"
+      ],
+      "mentionsTools": [
+        "git_diff",
+        "git_log"
+      ]
+    },
+    {
+      "name": "consolidate-project-report",
+      "owners": [
+        "documenter"
+      ],
+      "mentionsTools": [
+        "allure_summary",
+        "confluence_get_children",
+        "confluence_get_page",
+        "confluence_search",
+        "get_result_json",
+        "jira_get_epic_children",
+        "jira_search",
+        "jtmf_search_tests",
+        "knowledge_append"
+      ]
+    },
+    {
+      "name": "data-visualization",
+      "owners": [
+        "documenter",
+        "reporter"
+      ],
+      "mentionsTools": []
+    },
+    {
+      "name": "detect-execution-convention",
+      "owners": [
+        "automation"
+      ],
+      "mentionsTools": [
+        "detect_conventions",
+        "knowledge_append"
+      ]
+    },
+    {
+      "name": "extract-requirements-from-image",
+      "owners": [
+        "researcher"
+      ],
+      "mentionsTools": [
+        "confluence_download_attachment",
+        "confluence_get_page",
+        "ocr_image",
+        "ocr_pdf",
+        "read_diagram",
+        "read_docx_text",
+        "read_pdf_text"
+      ]
+    },
+    {
+      "name": "extract-requirements-from-video",
+      "owners": [
+        "researcher"
+      ],
+      "mentionsTools": []
+    },
+    {
+      "name": "onboard-project",
+      "owners": [
+        "orchestrator"
+      ],
+      "mentionsTools": [
+        "detect_conventions",
+        "git_log",
+        "git_show"
+      ]
+    },
+    {
+      "name": "qe-test-plan-builder",
+      "owners": [
+        "test-planner"
+      ],
+      "mentionsTools": [
+        "ocr_image",
+        "ocr_pdf"
+      ]
+    },
+    {
+      "name": "review-against-spec",
+      "owners": [
+        "test-planner"
+      ],
+      "mentionsTools": [
+        "git_diff",
+        "git_log",
+        "jira_get_issue"
+      ]
+    },
+    {
+      "name": "review-delegated-work",
+      "owners": [
+        "orchestrator"
+      ],
+      "mentionsTools": []
+    },
+    {
+      "name": "route-assignee",
+      "owners": [
+        "bsa"
+      ],
+      "mentionsTools": [
+        "jira_assign_issue",
+        "jira_search_users",
+        "read_repo_file"
+      ]
+    },
+    {
+      "name": "route-to-specialist",
+      "owners": [
+        "orchestrator"
+      ],
+      "mentionsTools": []
+    },
+    {
+      "name": "search-across-sources",
+      "owners": [
+        "orchestrator",
+        "researcher"
+      ],
+      "mentionsTools": [
+        "confluence_extract_links",
+        "confluence_get_children",
+        "confluence_get_page",
+        "confluence_save_page",
+        "confluence_search",
+        "github_get_file",
+        "github_save_file",
+        "github_search_code",
+        "github_search_commits",
+        "github_search_issues",
+        "github_search_repos",
+        "github_search_topics",
+        "jira_get_issue",
+        "jira_save_issue",
+        "jira_search",
+        "jtmf_get_test_case",
+        "jtmf_search_tests"
+      ]
+    },
+    {
+      "name": "security-review",
+      "owners": [
+        "automation"
+      ],
+      "mentionsTools": []
+    },
+    {
+      "name": "self-check",
+      "owners": [
+        "automation",
+        "bsa",
+        "documenter",
+        "importer",
+        "orchestrator",
+        "planner",
+        "reporter",
+        "researcher",
+        "test-planner"
+      ],
+      "mentionsTools": []
+    },
+    {
+      "name": "ship",
+      "owners": [
+        "reporter"
+      ],
+      "mentionsTools": [
+        "allure_summary",
+        "git_branches",
+        "git_log",
+        "jira_search",
+        "jira_transition_issue",
+        "run_bdd"
+      ]
+    },
+    {
+      "name": "simplify",
+      "owners": [
+        "automation"
+      ],
+      "mentionsTools": [
+        "git_diff",
+        "git_log"
+      ]
+    },
+    {
+      "name": "skillify",
+      "owners": [
+        "self-improve"
+      ],
+      "mentionsTools": []
+    },
+    {
+      "name": "sprint-backlog-report",
+      "owners": [
+        "bsa"
+      ],
+      "mentionsTools": [
+        "jira_get_backlog",
+        "jira_get_boards",
+        "jira_get_sprint_report",
+        "jira_get_sprints",
+        "jira_move_to_sprint",
+        "jira_search"
+      ]
+    },
+    {
+      "name": "structure-project-data",
+      "owners": [
+        "researcher"
+      ],
+      "mentionsTools": [
+        "confluence_get_page",
+        "git_branches",
+        "git_log",
+        "git_search",
+        "git_show",
+        "github_get_file",
+        "github_search_commits",
+        "jira_get_issue",
+        "jira_search"
+      ]
+    },
+    {
+      "name": "test-design-techniques",
+      "owners": [
+        "test-planner"
+      ],
+      "mentionsTools": [
+        "git_log",
+        "git_search"
+      ]
+    },
+    {
+      "name": "update-jira-epic",
+      "owners": [
+        "reporter"
+      ],
+      "mentionsTools": [
+        "jira_transition_issue",
+        "jira_update_issue"
+      ]
+    },
+    {
+      "name": "upload-to-jtmf",
+      "owners": [
+        "test-planner"
+      ],
+      "mentionsTools": [
+        "jtmf_create_test_case",
+        "jtmf_search_tests",
+        "jtmf_update_test_case"
+      ]
+    },
+    {
+      "name": "verify",
+      "owners": [
+        "automation"
+      ],
+      "mentionsTools": [
+        "allure_summary",
+        "get_result_json",
+        "git_diff",
+        "git_log",
+        "run_bdd",
+        "run_playwright"
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "name": "allure_summary",
+      "server": "allure-report",
+      "heldBy": [
+        "automation",
+        "reporter"
+      ],
+      "mentionedBy": [
+        "analyze-test-failures",
+        "consolidate-project-report",
+        "ship",
+        "verify"
+      ]
+    },
+    {
+      "name": "confluence_add_comment",
+      "server": "confluence",
+      "heldBy": [],
+      "mentionedBy": []
+    },
+    {
+      "name": "confluence_create_page",
+      "server": "confluence",
+      "heldBy": [
+        "documenter"
+      ],
+      "mentionedBy": []
+    },
+    {
+      "name": "confluence_delete_page",
+      "server": "confluence",
+      "heldBy": [],
+      "mentionedBy": []
+    },
+    {
+      "name": "confluence_download_attachment",
+      "server": "confluence",
+      "heldBy": [],
+      "mentionedBy": [
+        "extract-requirements-from-image"
+      ]
+    },
+    {
+      "name": "confluence_extract_links",
+      "server": "confluence",
+      "heldBy": [],
+      "mentionedBy": [
+        "search-across-sources"
+      ]
+    },
+    {
+      "name": "confluence_get_attachments",
+      "server": "confluence",
+      "heldBy": [],
+      "mentionedBy": []
+    },
+    {
+      "name": "confluence_get_children",
+      "server": "confluence",
+      "heldBy": [
+        "researcher"
+      ],
+      "mentionedBy": [
+        "consolidate-project-report",
+        "search-across-sources"
+      ]
+    },
+    {
+      "name": "confluence_get_comments",
+      "server": "confluence",
+      "heldBy": [],
+      "mentionedBy": []
+    },
+    {
+      "name": "confluence_get_page",
+      "server": "confluence",
+      "heldBy": [
+        "documenter",
+        "researcher",
+        "test-planner"
+      ],
+      "mentionedBy": [
+        "consolidate-project-report",
+        "extract-requirements-from-image",
+        "search-across-sources",
+        "structure-project-data"
+      ]
+    },
+    {
+      "name": "confluence_save_page",
+      "server": "confluence",
+      "heldBy": [],
+      "mentionedBy": [
+        "search-across-sources"
+      ]
+    },
+    {
+      "name": "confluence_search",
+      "server": "confluence",
+      "heldBy": [
+        "planner",
+        "researcher"
+      ],
+      "mentionedBy": [
+        "consolidate-project-report",
+        "search-across-sources"
+      ]
+    },
+    {
+      "name": "confluence_update_page",
+      "server": "confluence",
+      "heldBy": [
+        "documenter"
+      ],
+      "mentionedBy": []
+    },
+    {
+      "name": "confluence_upload_attachment",
+      "server": "confluence",
+      "heldBy": [
+        "documenter"
+      ],
+      "mentionedBy": []
+    },
+    {
+      "name": "consensus_score",
+      "server": "artifacts",
+      "heldBy": [
+        "orchestrator"
+      ],
+      "mentionedBy": [
+        "adversarial-review"
+      ]
+    },
+    {
+      "name": "create_diagram",
+      "server": "media",
+      "heldBy": [
+        "documenter"
+      ],
+      "mentionedBy": []
+    },
+    {
+      "name": "create_docx",
+      "server": "media",
+      "heldBy": [
+        "documenter"
+      ],
+      "mentionedBy": []
+    },
+    {
+      "name": "create_pdf",
+      "server": "media",
+      "heldBy": [
+        "documenter"
+      ],
+      "mentionedBy": []
+    },
+    {
+      "name": "detect_conventions",
+      "server": "codegen",
+      "heldBy": [
+        "automation",
+        "test-planner"
+      ],
+      "mentionedBy": [
+        "detect-execution-convention",
+        "onboard-project"
+      ]
+    },
+    {
+      "name": "generate_report",
+      "server": "allure-report",
+      "heldBy": [
+        "reporter"
+      ],
+      "mentionedBy": []
+    },
+    {
+      "name": "get_file_metadata",
+      "server": "media",
+      "heldBy": [],
+      "mentionedBy": []
+    },
+    {
+      "name": "get_result_json",
+      "server": "allure-report",
+      "heldBy": [
+        "reporter"
+      ],
+      "mentionedBy": [
+        "consolidate-project-report",
+        "verify"
+      ]
+    },
+    {
+      "name": "get_test_files",
+      "server": "playwright-runner",
+      "heldBy": [
+        "automation",
+        "test-planner"
+      ],
+      "mentionedBy": []
+    },
+    {
+      "name": "git_branches",
+      "server": "git",
+      "heldBy": [
+        "automation",
+        "reporter",
+        "researcher"
+      ],
+      "mentionedBy": [
+        "ship",
+        "structure-project-data"
+      ]
+    },
+    {
+      "name": "git_diff",
+      "server": "git",
+      "heldBy": [
+        "automation",
+        "test-planner"
+      ],
+      "mentionedBy": [
+        "code-review",
+        "review-against-spec",
+        "simplify",
+        "verify"
+      ]
+    },
+    {
+      "name": "git_log",
+      "server": "git",
+      "heldBy": [
+        "automation",
+        "reporter",
+        "researcher",
+        "test-planner"
+      ],
+      "mentionedBy": [
+        "code-review",
+        "onboard-project",
+        "review-against-spec",
+        "ship",
+        "simplify",
+        "structure-project-data",
+        "test-design-techniques",
+        "verify"
+      ]
+    },
+    {
+      "name": "git_search",
+      "server": "git",
+      "heldBy": [
+        "researcher",
+        "test-planner"
+      ],
+      "mentionedBy": [
+        "structure-project-data",
+        "test-design-techniques"
+      ]
+    },
+    {
+      "name": "git_show",
+      "server": "git",
+      "heldBy": [],
+      "mentionedBy": [
+        "onboard-project",
+        "structure-project-data"
+      ]
+    },
+    {
+      "name": "github_get_file",
+      "server": "github",
+      "heldBy": [
+        "researcher"
+      ],
+      "mentionedBy": [
+        "search-across-sources",
+        "structure-project-data"
+      ]
+    },
+    {
+      "name": "github_save_file",
+      "server": "github",
+      "heldBy": [],
+      "mentionedBy": [
+        "search-across-sources"
+      ]
+    },
+    {
+      "name": "github_search_code",
+      "server": "github",
+      "heldBy": [
+        "researcher"
+      ],
+      "mentionedBy": [
+        "build-capability",
+        "search-across-sources"
+      ]
+    },
+    {
+      "name": "github_search_commits",
+      "server": "github",
+      "heldBy": [],
+      "mentionedBy": [
+        "search-across-sources",
+        "structure-project-data"
+      ]
+    },
+    {
+      "name": "github_search_issues",
+      "server": "github",
+      "heldBy": [],
+      "mentionedBy": [
+        "search-across-sources"
+      ]
+    },
+    {
+      "name": "github_search_repos",
+      "server": "github",
+      "heldBy": [],
+      "mentionedBy": [
+        "build-capability",
+        "search-across-sources"
+      ]
+    },
+    {
+      "name": "github_search_topics",
+      "server": "github",
+      "heldBy": [],
+      "mentionedBy": [
+        "search-across-sources"
+      ]
+    },
+    {
+      "name": "jira_add_comment",
+      "server": "jira",
+      "heldBy": [
+        "reporter"
+      ],
+      "mentionedBy": [
+        "bulk-create-tickets"
+      ]
+    },
+    {
+      "name": "jira_assign_issue",
+      "server": "jira",
+      "heldBy": [
+        "bsa"
+      ],
+      "mentionedBy": [
+        "bulk-create-tickets",
+        "route-assignee"
+      ]
+    },
+    {
+      "name": "jira_bulk_create_issues",
+      "server": "jira",
+      "heldBy": [
+        "bsa"
+      ],
+      "mentionedBy": [
+        "bulk-create-tickets"
+      ]
+    },
+    {
+      "name": "jira_bulk_update_issues",
+      "server": "jira",
+      "heldBy": [
+        "bsa"
+      ],
+      "mentionedBy": [
+        "bulk-update-tickets"
+      ]
+    },
+    {
+      "name": "jira_create_issue",
+      "server": "jira",
+      "heldBy": [
+        "bsa"
+      ],
+      "mentionedBy": [
+        "bulk-create-tickets"
+      ]
+    },
+    {
+      "name": "jira_get_backlog",
+      "server": "jira",
+      "heldBy": [
+        "bsa"
+      ],
+      "mentionedBy": [
+        "sprint-backlog-report"
+      ]
+    },
+    {
+      "name": "jira_get_boards",
+      "server": "jira",
+      "heldBy": [
+        "bsa"
+      ],
+      "mentionedBy": [
+        "capture-learning",
+        "sprint-backlog-report"
+      ]
+    },
+    {
+      "name": "jira_get_epic_children",
+      "server": "jira",
+      "heldBy": [
+        "researcher",
+        "test-planner"
+      ],
+      "mentionedBy": [
+        "consolidate-project-report"
+      ]
+    },
+    {
+      "name": "jira_get_issue",
+      "server": "jira",
+      "heldBy": [
+        "documenter",
+        "researcher",
+        "test-planner"
+      ],
+      "mentionedBy": [
+        "analyze-test-failures",
+        "review-against-spec",
+        "search-across-sources",
+        "structure-project-data"
+      ]
+    },
+    {
+      "name": "jira_get_sprint_report",
+      "server": "jira",
+      "heldBy": [
+        "bsa"
+      ],
+      "mentionedBy": [
+        "sprint-backlog-report"
+      ]
+    },
+    {
+      "name": "jira_get_sprints",
+      "server": "jira",
+      "heldBy": [
+        "bsa"
+      ],
+      "mentionedBy": [
+        "sprint-backlog-report"
+      ]
+    },
+    {
+      "name": "jira_move_to_sprint",
+      "server": "jira",
+      "heldBy": [],
+      "mentionedBy": [
+        "sprint-backlog-report"
+      ]
+    },
+    {
+      "name": "jira_save_issue",
+      "server": "jira",
+      "heldBy": [],
+      "mentionedBy": [
+        "search-across-sources"
+      ]
+    },
+    {
+      "name": "jira_search",
+      "server": "jira",
+      "heldBy": [
+        "bsa",
+        "orchestrator",
+        "planner",
+        "reporter",
+        "researcher"
+      ],
+      "mentionedBy": [
+        "bulk-update-tickets",
+        "consolidate-project-report",
+        "search-across-sources",
+        "ship",
+        "sprint-backlog-report",
+        "structure-project-data"
+      ]
+    },
+    {
+      "name": "jira_search_users",
+      "server": "jira",
+      "heldBy": [
+        "bsa"
+      ],
+      "mentionedBy": [
+        "route-assignee"
+      ]
+    },
+    {
+      "name": "jira_transition_issue",
+      "server": "jira",
+      "heldBy": [
+        "bsa",
+        "reporter"
+      ],
+      "mentionedBy": [
+        "bulk-update-tickets",
+        "ship",
+        "update-jira-epic"
+      ]
+    },
+    {
+      "name": "jira_update_issue",
+      "server": "jira",
+      "heldBy": [
+        "bsa",
+        "reporter"
+      ],
+      "mentionedBy": [
+        "bulk-update-tickets",
+        "update-jira-epic"
+      ]
+    },
+    {
+      "name": "jtmf_create_test_case",
+      "server": "jtmf",
+      "heldBy": [
+        "test-planner"
+      ],
+      "mentionedBy": [
+        "upload-to-jtmf"
+      ]
+    },
+    {
+      "name": "jtmf_delete_test_case",
+      "server": "jtmf",
+      "heldBy": [],
+      "mentionedBy": []
+    },
+    {
+      "name": "jtmf_get_test_case",
+      "server": "jtmf",
+      "heldBy": [],
+      "mentionedBy": [
+        "search-across-sources"
+      ]
+    },
+    {
+      "name": "jtmf_get_test_plan",
+      "server": "jtmf",
+      "heldBy": [],
+      "mentionedBy": []
+    },
+    {
+      "name": "jtmf_raw_get",
+      "server": "jtmf",
+      "heldBy": [],
+      "mentionedBy": []
+    },
+    {
+      "name": "jtmf_search_tests",
+      "server": "jtmf",
+      "heldBy": [
+        "researcher",
+        "test-planner"
+      ],
+      "mentionedBy": [
+        "consolidate-project-report",
+        "search-across-sources",
+        "upload-to-jtmf"
+      ]
+    },
+    {
+      "name": "jtmf_update_test_case",
+      "server": "jtmf",
+      "heldBy": [
+        "test-planner"
+      ],
+      "mentionedBy": [
+        "upload-to-jtmf"
+      ]
+    },
+    {
+      "name": "knowledge_append",
+      "server": "artifacts",
+      "heldBy": [
+        "importer",
+        "self-improve"
+      ],
+      "mentionedBy": [
+        "capture-learning",
+        "consolidate-project-report",
+        "detect-execution-convention"
+      ]
+    },
+    {
+      "name": "knowledge_search",
+      "server": "artifacts",
+      "heldBy": [
+        "orchestrator",
+        "planner",
+        "researcher",
+        "self-improve",
+        "test-planner"
+      ],
+      "mentionedBy": [
+        "build-capability",
+        "capture-learning"
+      ]
+    },
+    {
+      "name": "list_files",
+      "server": "artifacts",
+      "heldBy": [],
+      "mentionedBy": []
+    },
+    {
+      "name": "media_extract_requirements",
+      "server": "media",
+      "heldBy": [],
+      "mentionedBy": []
+    },
+    {
+      "name": "notify_email",
+      "server": "notify",
+      "heldBy": [],
+      "mentionedBy": []
+    },
+    {
+      "name": "notify_teams",
+      "server": "notify",
+      "heldBy": [],
+      "mentionedBy": []
+    },
+    {
+      "name": "ocr_image",
+      "server": "media",
+      "heldBy": [
+        "researcher"
+      ],
+      "mentionedBy": [
+        "extract-requirements-from-image",
+        "qe-test-plan-builder"
+      ]
+    },
+    {
+      "name": "ocr_pdf",
+      "server": "media",
+      "heldBy": [
+        "researcher"
+      ],
+      "mentionedBy": [
+        "extract-requirements-from-image",
+        "qe-test-plan-builder"
+      ]
+    },
+    {
+      "name": "read_csv_rows",
+      "server": "media",
+      "heldBy": [
+        "bsa"
+      ],
+      "mentionedBy": [
+        "bulk-create-tickets",
+        "bulk-update-tickets"
+      ]
+    },
+    {
+      "name": "read_diagram",
+      "server": "media",
+      "heldBy": [
+        "researcher"
+      ],
+      "mentionedBy": [
+        "extract-requirements-from-image"
+      ]
+    },
+    {
+      "name": "read_docx_text",
+      "server": "media",
+      "heldBy": [
+        "researcher"
+      ],
+      "mentionedBy": [
+        "extract-requirements-from-image"
+      ]
+    },
+    {
+      "name": "read_excel_rows",
+      "server": "media",
+      "heldBy": [
+        "bsa"
+      ],
+      "mentionedBy": [
+        "bulk-create-tickets",
+        "bulk-update-tickets"
+      ]
+    },
+    {
+      "name": "read_pdf_text",
+      "server": "media",
+      "heldBy": [
+        "researcher"
+      ],
+      "mentionedBy": [
+        "extract-requirements-from-image"
+      ]
+    },
+    {
+      "name": "read_repo_file",
+      "server": "artifacts",
+      "heldBy": [
+        "test-planner"
+      ],
+      "mentionedBy": [
+        "route-assignee"
+      ]
+    },
+    {
+      "name": "run_bdd",
+      "server": "playwright-runner",
+      "heldBy": [
+        "automation",
+        "reporter"
+      ],
+      "mentionedBy": [
+        "ship",
+        "verify"
+      ]
+    },
+    {
+      "name": "run_playwright",
+      "server": "playwright-runner",
+      "heldBy": [],
+      "mentionedBy": [
+        "verify"
+      ]
+    },
+    {
+      "name": "scaffold_feature",
+      "server": "codegen",
+      "heldBy": [
+        "automation",
+        "test-planner"
+      ],
+      "mentionedBy": []
+    },
+    {
+      "name": "scaffold_page",
+      "server": "codegen",
+      "heldBy": [
+        "automation"
+      ],
+      "mentionedBy": []
+    },
+    {
+      "name": "scaffold_step",
+      "server": "codegen",
+      "heldBy": [
+        "automation"
+      ],
+      "mentionedBy": []
+    }
+  ],
+  "phases": [
+    {
+      "phase": "Define",
+      "agents": [
+        "researcher",
+        "bsa"
+      ],
+      "skills": [
+        "search-across-sources",
+        "extract-requirements-from-image",
+        "extract-requirements-from-video",
+        "structure-project-data"
+      ]
+    },
+    {
+      "phase": "Plan",
+      "agents": [
+        "planner",
+        "test-planner"
+      ],
+      "skills": [
+        "qe-test-plan-builder",
+        "build-test-plan-interactive",
+        "test-design-techniques",
+        "route-to-specialist"
+      ]
+    },
+    {
+      "phase": "Build",
+      "agents": [
+        "automation"
+      ],
+      "skills": [
+        "detect-execution-convention",
+        "simplify"
+      ]
+    },
+    {
+      "phase": "Verify",
+      "agents": [
+        "reporter",
+        "automation"
+      ],
+      "skills": [
+        "verify",
+        "analyze-test-failures",
+        "adversarial-review"
+      ]
+    },
+    {
+      "phase": "Review",
+      "agents": [
+        "orchestrator"
+      ],
+      "skills": [
+        "code-review",
+        "security-review",
+        "review-against-spec",
+        "review-delegated-work",
+        "adversarial-review"
+      ]
+    },
+    {
+      "phase": "Ship",
+      "agents": [
+        "reporter"
+      ],
+      "skills": [
+        "ship"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "key": "skill-tool-gap:analyze-test-failures:reporter:jira_get_issue",
+      "kind": "skill-tool-gap",
+      "message": "skill `analyze-test-failures` (owner reporter) names `jira_get_issue`, which reporter does not hold"
+    },
+    {
+      "key": "skill-tool-gap:build-capability:self-improve:github_search_code",
+      "kind": "skill-tool-gap",
+      "message": "skill `build-capability` (owner self-improve) names `github_search_code`, which self-improve does not hold"
+    },
+    {
+      "key": "skill-tool-gap:build-capability:self-improve:github_search_repos",
+      "kind": "skill-tool-gap",
+      "message": "skill `build-capability` (owner self-improve) names `github_search_repos`, which self-improve does not hold"
+    },
+    {
+      "key": "skill-tool-gap:bulk-create-tickets:bsa:jira_add_comment",
+      "kind": "skill-tool-gap",
+      "message": "skill `bulk-create-tickets` (owner bsa) names `jira_add_comment`, which bsa does not hold"
+    },
+    {
+      "key": "skill-tool-gap:capture-learning:self-improve:jira_get_boards",
+      "kind": "skill-tool-gap",
+      "message": "skill `capture-learning` (owner self-improve) names `jira_get_boards`, which self-improve does not hold"
+    },
+    {
+      "key": "skill-tool-gap:consolidate-project-report:documenter:allure_summary",
+      "kind": "skill-tool-gap",
+      "message": "skill `consolidate-project-report` (owner documenter) names `allure_summary`, which documenter does not hold"
+    },
+    {
+      "key": "skill-tool-gap:consolidate-project-report:documenter:confluence_get_children",
+      "kind": "skill-tool-gap",
+      "message": "skill `consolidate-project-report` (owner documenter) names `confluence_get_children`, which documenter does not hold"
+    },
+    {
+      "key": "skill-tool-gap:consolidate-project-report:documenter:confluence_search",
+      "kind": "skill-tool-gap",
+      "message": "skill `consolidate-project-report` (owner documenter) names `confluence_search`, which documenter does not hold"
+    },
+    {
+      "key": "skill-tool-gap:consolidate-project-report:documenter:get_result_json",
+      "kind": "skill-tool-gap",
+      "message": "skill `consolidate-project-report` (owner documenter) names `get_result_json`, which documenter does not hold"
+    },
+    {
+      "key": "skill-tool-gap:consolidate-project-report:documenter:jira_get_epic_children",
+      "kind": "skill-tool-gap",
+      "message": "skill `consolidate-project-report` (owner documenter) names `jira_get_epic_children`, which documenter does not hold"
+    },
+    {
+      "key": "skill-tool-gap:consolidate-project-report:documenter:jira_search",
+      "kind": "skill-tool-gap",
+      "message": "skill `consolidate-project-report` (owner documenter) names `jira_search`, which documenter does not hold"
+    },
+    {
+      "key": "skill-tool-gap:consolidate-project-report:documenter:jtmf_search_tests",
+      "kind": "skill-tool-gap",
+      "message": "skill `consolidate-project-report` (owner documenter) names `jtmf_search_tests`, which documenter does not hold"
+    },
+    {
+      "key": "skill-tool-gap:consolidate-project-report:documenter:knowledge_append",
+      "kind": "skill-tool-gap",
+      "message": "skill `consolidate-project-report` (owner documenter) names `knowledge_append`, which documenter does not hold"
+    },
+    {
+      "key": "skill-tool-gap:detect-execution-convention:automation:knowledge_append",
+      "kind": "skill-tool-gap",
+      "message": "skill `detect-execution-convention` (owner automation) names `knowledge_append`, which automation does not hold"
+    },
+    {
+      "key": "skill-tool-gap:extract-requirements-from-image:researcher:confluence_download_attachment",
+      "kind": "skill-tool-gap",
+      "message": "skill `extract-requirements-from-image` (owner researcher) names `confluence_download_attachment`, which researcher does not hold"
+    },
+    {
+      "key": "skill-tool-gap:onboard-project:orchestrator:detect_conventions",
+      "kind": "skill-tool-gap",
+      "message": "skill `onboard-project` (owner orchestrator) names `detect_conventions`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:onboard-project:orchestrator:git_log",
+      "kind": "skill-tool-gap",
+      "message": "skill `onboard-project` (owner orchestrator) names `git_log`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:onboard-project:orchestrator:git_show",
+      "kind": "skill-tool-gap",
+      "message": "skill `onboard-project` (owner orchestrator) names `git_show`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:qe-test-plan-builder:test-planner:ocr_image",
+      "kind": "skill-tool-gap",
+      "message": "skill `qe-test-plan-builder` (owner test-planner) names `ocr_image`, which test-planner does not hold"
+    },
+    {
+      "key": "skill-tool-gap:qe-test-plan-builder:test-planner:ocr_pdf",
+      "kind": "skill-tool-gap",
+      "message": "skill `qe-test-plan-builder` (owner test-planner) names `ocr_pdf`, which test-planner does not hold"
+    },
+    {
+      "key": "skill-tool-gap:route-assignee:bsa:read_repo_file",
+      "kind": "skill-tool-gap",
+      "message": "skill `route-assignee` (owner bsa) names `read_repo_file`, which bsa does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:confluence_extract_links",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `confluence_extract_links`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:confluence_get_children",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `confluence_get_children`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:confluence_get_page",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `confluence_get_page`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:confluence_save_page",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `confluence_save_page`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:confluence_search",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `confluence_search`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:github_get_file",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `github_get_file`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:github_save_file",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `github_save_file`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:github_search_code",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `github_search_code`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:github_search_commits",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `github_search_commits`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:github_search_issues",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `github_search_issues`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:github_search_repos",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `github_search_repos`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:github_search_topics",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `github_search_topics`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:jira_get_issue",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `jira_get_issue`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:jira_save_issue",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `jira_save_issue`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:jtmf_get_test_case",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `jtmf_get_test_case`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:orchestrator:jtmf_search_tests",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner orchestrator) names `jtmf_search_tests`, which orchestrator does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:researcher:confluence_extract_links",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner researcher) names `confluence_extract_links`, which researcher does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:researcher:confluence_save_page",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner researcher) names `confluence_save_page`, which researcher does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:researcher:github_save_file",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner researcher) names `github_save_file`, which researcher does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:researcher:github_search_commits",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner researcher) names `github_search_commits`, which researcher does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:researcher:github_search_issues",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner researcher) names `github_search_issues`, which researcher does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:researcher:github_search_repos",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner researcher) names `github_search_repos`, which researcher does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:researcher:github_search_topics",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner researcher) names `github_search_topics`, which researcher does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:researcher:jira_save_issue",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner researcher) names `jira_save_issue`, which researcher does not hold"
+    },
+    {
+      "key": "skill-tool-gap:search-across-sources:researcher:jtmf_get_test_case",
+      "kind": "skill-tool-gap",
+      "message": "skill `search-across-sources` (owner researcher) names `jtmf_get_test_case`, which researcher does not hold"
+    },
+    {
+      "key": "skill-tool-gap:sprint-backlog-report:bsa:jira_move_to_sprint",
+      "kind": "skill-tool-gap",
+      "message": "skill `sprint-backlog-report` (owner bsa) names `jira_move_to_sprint`, which bsa does not hold"
+    },
+    {
+      "key": "skill-tool-gap:structure-project-data:researcher:git_show",
+      "kind": "skill-tool-gap",
+      "message": "skill `structure-project-data` (owner researcher) names `git_show`, which researcher does not hold"
+    },
+    {
+      "key": "skill-tool-gap:structure-project-data:researcher:github_search_commits",
+      "kind": "skill-tool-gap",
+      "message": "skill `structure-project-data` (owner researcher) names `github_search_commits`, which researcher does not hold"
+    },
+    {
+      "key": "skill-tool-gap:verify:automation:get_result_json",
+      "kind": "skill-tool-gap",
+      "message": "skill `verify` (owner automation) names `get_result_json`, which automation does not hold"
+    },
+    {
+      "key": "skill-tool-gap:verify:automation:run_playwright",
+      "kind": "skill-tool-gap",
+      "message": "skill `verify` (owner automation) names `run_playwright`, which automation does not hold"
+    },
+    {
+      "key": "unheld-tool:confluence_add_comment",
+      "kind": "unheld-tool",
+      "message": "tool `confluence_add_comment` (confluence) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:confluence_delete_page",
+      "kind": "unheld-tool",
+      "message": "tool `confluence_delete_page` (confluence) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:confluence_download_attachment",
+      "kind": "unheld-tool",
+      "message": "tool `confluence_download_attachment` (confluence) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:confluence_extract_links",
+      "kind": "unheld-tool",
+      "message": "tool `confluence_extract_links` (confluence) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:confluence_get_attachments",
+      "kind": "unheld-tool",
+      "message": "tool `confluence_get_attachments` (confluence) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:confluence_get_comments",
+      "kind": "unheld-tool",
+      "message": "tool `confluence_get_comments` (confluence) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:confluence_save_page",
+      "kind": "unheld-tool",
+      "message": "tool `confluence_save_page` (confluence) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:get_file_metadata",
+      "kind": "unheld-tool",
+      "message": "tool `get_file_metadata` (media) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:git_show",
+      "kind": "unheld-tool",
+      "message": "tool `git_show` (git) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:github_save_file",
+      "kind": "unheld-tool",
+      "message": "tool `github_save_file` (github) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:github_search_commits",
+      "kind": "unheld-tool",
+      "message": "tool `github_search_commits` (github) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:github_search_issues",
+      "kind": "unheld-tool",
+      "message": "tool `github_search_issues` (github) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:github_search_repos",
+      "kind": "unheld-tool",
+      "message": "tool `github_search_repos` (github) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:github_search_topics",
+      "kind": "unheld-tool",
+      "message": "tool `github_search_topics` (github) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:jira_move_to_sprint",
+      "kind": "unheld-tool",
+      "message": "tool `jira_move_to_sprint` (jira) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:jira_save_issue",
+      "kind": "unheld-tool",
+      "message": "tool `jira_save_issue` (jira) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:jtmf_delete_test_case",
+      "kind": "unheld-tool",
+      "message": "tool `jtmf_delete_test_case` (jtmf) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:jtmf_get_test_case",
+      "kind": "unheld-tool",
+      "message": "tool `jtmf_get_test_case` (jtmf) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:jtmf_get_test_plan",
+      "kind": "unheld-tool",
+      "message": "tool `jtmf_get_test_plan` (jtmf) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:jtmf_raw_get",
+      "kind": "unheld-tool",
+      "message": "tool `jtmf_raw_get` (jtmf) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:list_files",
+      "kind": "unheld-tool",
+      "message": "tool `list_files` (artifacts) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:media_extract_requirements",
+      "kind": "unheld-tool",
+      "message": "tool `media_extract_requirements` (media) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:notify_email",
+      "kind": "unheld-tool",
+      "message": "tool `notify_email` (notify) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:notify_teams",
+      "kind": "unheld-tool",
+      "message": "tool `notify_teams` (notify) is held by no agent"
+    },
+    {
+      "key": "unheld-tool:run_playwright",
+      "kind": "unheld-tool",
+      "message": "tool `run_playwright` (playwright-runner) is held by no agent"
+    }
+  ]
+}
