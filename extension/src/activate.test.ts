@@ -7,6 +7,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import Module from "node:module";
 import * as fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -110,11 +111,13 @@ const secrets = {
   onDidChange: () => disposable,
 };
 const executed: Array<[string, unknown[]]> = [];
+const envCollection = { description: "", prepends: [] as Array<[string, string]>, prepend(name: string, value: string) { this.prepends.push([name, value]); } };
 const context = {
   subscriptions: [] as unknown[],
   secrets,
   extensionPath: EXT_DIR,
   globalStorageUri: { fsPath: STORAGE },
+  environmentVariableCollection: envCollection,
 };
 
 before(async () => {
@@ -157,6 +160,26 @@ test("auto-start launches one detached gateway from revab.home and records its p
   const pid = Number(fs.readFileSync(pidFile, "utf8"));
   assert.ok(pid > 1);
   assert.doesNotThrow(() => process.kill(pid, 0), "the recorded process is alive");
+});
+
+test("a `revab` command is installed for terminals, and works from any folder", { skip: process.platform === "win32" }, () => {
+  const bin = path.join(STORAGE, "bin");
+  assert.deepEqual(envCollection.prepends.at(-1), ["PATH", bin + path.delimiter], "terminals get the folder on PATH");
+  const shim = path.join(bin, "revab");
+  assert.ok(fs.statSync(shim).mode & 0o100, "the launcher is executable");
+
+  const elsewhere = fs.mkdtempSync(path.join(os.tmpdir(), "revab-elsewhere-"));
+  try {
+    const help = spawnSync("sh", [shim, "--help"], { cwd: elsewhere, encoding: "utf8", timeout: 60_000 });
+    assert.match(help.stdout, /QE agent framework operator CLI/, help.stderr);
+
+    // doctor reads projects/ from the working directory: it must have been run inside the home folder,
+    // not in `elsewhere`, where there is no manifest.
+    const doctor = spawnSync("sh", [shim, "doctor", "--json"], { cwd: elsewhere, encoding: "utf8", timeout: 60_000, env: { ...process.env, JIRA_BASE_URL: "https://example.atlassian.net" } });
+    assert.match(doctor.stdout, /my-project/, `doctor should have run in the home folder. stderr: ${doctor.stderr}`);
+  } finally {
+    fs.rmSync(elsewhere, { recursive: true, force: true });
+  }
 });
 
 test("a second window reuses the running gateway instead of starting another", async () => {

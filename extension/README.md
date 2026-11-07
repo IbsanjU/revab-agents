@@ -45,11 +45,24 @@ Then, once:
 | `revab: Start / Stop / Restart gateway` | Manage the shared gateway. Stop only affects a gateway this extension started |
 | `revab: Run doctor` | Checks env, auth and ports in a terminal |
 | `revab: Show available tools` | Searchable list of every tool |
-| `revab: Open gateway log` | `<checkout>/.revab/gateway.log` |
+| `revab: Open gateway log` | `<home>/.revab/gateway.log` |
+| `revab: Show terminal command` | How to run `revab` in a terminal, and the folder to add to PATH |
 | `revab: Set credentials` / `Clear credentials` | Store or delete a token. Stored encrypted by VS Code, never in settings |
 | `revab: Show configured credentials (names only)` | Lists what the extension will pass to the gateway; values are never shown |
 | `revab: Choose tools (enable / disable)` | Check or uncheck tools; warns which agents lose a capability |
 | `revab: Auto-approve read-only tools` | Writes approval defaults (see below) |
+
+## Using `revab` in a terminal
+
+Open a **new** integrated terminal after the extension has started, then:
+
+```bash
+revab doctor        # check configuration (runs inside the home folder, whichever folder the terminal is in)
+revab tools         # list every gateway tool
+revab call knowledge_search '{"query":"dry-run"}'
+```
+
+The extension puts a small launcher on the PATH of terminals it opens. Terminals that were already open, and terminals outside VS Code, do not see it: run **revab: Show terminal command** for the folder to add to your PATH. `npx revab` still needs a built checkout (`npm run build`), and `revab` is not a global command: that is why typing it in a plain terminal says "not found". Inside a checkout, `npm run revab -- doctor` works without a build.
 
 ## Settings
 

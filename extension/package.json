@@ -2,7 +2,7 @@
   "name": "revab-agents",
   "displayName": "revab agents (QE)",
   "description": "One install: the revab QE agents, their MCP tools, and a bundled shared gateway, in every VS Code window. No clone needed.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "publisher": "your-org",
   "repository": {
@@ -87,6 +87,11 @@
       {
         "command": "revab.openHome",
         "title": "revab: Open framework home folder",
+        "category": "revab"
+      },
+      {
+        "command": "revab.showTerminalCommand",
+        "title": "revab: Show terminal command (how to run revab)",
         "category": "revab"
       }
     ],
