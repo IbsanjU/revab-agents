@@ -96,7 +96,8 @@ npm run eval                 # check no agent lost a capability it needs
 npm run correction -- list   # open corrections backlog
 npm test                     # unit tests
 npm run typecheck
-npm run check:conventions
+npm run check:conventions   # also fails if docs/graph.md is stale or a new graph finding appears
+npm run build:graph          # regenerate the capability graph (docs/graph.md)
 ```
 
 ## VS Code extension
