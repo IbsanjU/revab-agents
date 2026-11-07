@@ -16,6 +16,7 @@ direct report, not guessing or defaulting to "I'll just do it myself."
 | Turning requirements into a test plan or Gherkin scenarios | "write a plan", "design test cases", "cover" | **test-planner** | researcher (read-only, never authors a plan) |
 | Implementing or running Playwright/Cucumber code | "implement", "scaffold", "automate" | **automation** | test-planner (plans, doesn't implement) |
 | Running a suite and explaining failures | "run", "why did X fail", "classify failures" | **reporter** | automation (implements, doesn't own run+report) |
+| A release go/no-go or readiness check | "can we ship", "release readiness", "go/no-go" | **reporter** via its `ship` skill | automation (implements) and documenter (writes docs, doesn't judge readiness) |
 | Writing or updating Confluence pages / `.md` docs | "document", "write up", "update the page" | **documenter** | researcher (never writes) |
 | A destructive or multi-step change that needs an approved plan before anything executes | "set up", "migrate", "onboard", "roll out" | **planner** first, always, before any of the above are dispatched | any specialist directly — hard rule #13 |
 | Requirements arriving as chat text / Excel / CSV / a doc or image, not existing tickets | "these are the requirements", "turn this into tickets" | **bsa** (standalone entry point, not part of the linear pipeline) | researcher (bsa creates tickets; researcher only reads them) |

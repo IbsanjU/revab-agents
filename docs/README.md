@@ -9,6 +9,7 @@ extend it.
 | --- | --- |
 | [`multi-agent-architecture.md`](./multi-agent-architecture.md) | The multi-agent system itself: what a "persona" is, how delegation is wired on each real host (Claude Code, VS Code), what's real dispatch vs. prose, parallel execution, background/async execution, nesting limits, and the hard numeric limits that apply. Every claim is cited to the primary source it came from and dated; anything not independently re-verified in this repo is labeled as such. |
 | [`code-mode.md`](./code-mode.md) | Code Mode: two tools (`codemode_search`, `codemode_execute`) instead of every tool. What was learned from Cloudflare's Code Mode and Claude's programmatic tool calling, the decision, the safety model (writes are preview-only from code), measured definition size, and what is not yet proven. |
+| [`lifecycle.md`](./lifecycle.md) | Define → Plan → Build → Verify → Review → Ship mapped onto the real agents, skills and tools, with the gaps stated. Ship is a report-only go / no-go via the `ship` skill. |
 | [`extension-roadmap.md`](./extension-roadmap.md) | The VS Code extension: what phase 1 delivers (one install, every window), the planned phase 2 (credentials in `SecretStorage`, enable/disable tools) and the optional no-clone phase 3. |
 | [`RUNBOOK.md`](./RUNBOOK.md) | Operational: first-time setup, how to actually run this framework as-is on each host, a complete worked end-to-end example (dispatch two specialists in parallel and read the result), how to extend the framework (new agent/tool/skill/task type), and troubleshooting. |
 
