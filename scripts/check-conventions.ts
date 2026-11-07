@@ -24,11 +24,15 @@
  *     last-updated/version checks) so plans/tickets/tests/docs never get built from
  *     silently outdated requirements.
  *
+ *  6. No external AI provider: no provider SDK in any package.json and no hosted-model endpoint or
+ *     provider key variable in code/config. The models are whatever the user's own editor runs.
+ *
  * Run with: npm run check:conventions
  * Exits non-zero (and prints every violation) if any rule is broken.
  */
 import { promises as fs } from "fs";
 import path from "path";
+import { findExternalAiUsage } from "../utils/noExternalAi.js";
 
 interface Violation {
   file: string;
@@ -307,6 +311,21 @@ async function checkAgentFreshnessCues(): Promise<Violation[]> {
   return violations;
 }
 
+async function checkNoExternalAi(): Promise<Violation[]> {
+  const files: Array<{ path: string; text: string }> = [];
+  const skip = new Set(["node_modules", "dist", ".git", ".revab", "knowledge", "docs", "evals"]);
+  async function walk(dir: string): Promise<void> {
+    for (const e of await fs.readdir(dir, { withFileTypes: true })) {
+      if (skip.has(e.name) || e.name.endsWith(".test.ts") || e.name === "noExternalAi.ts" || e.name === "package-lock.json") continue;
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) await walk(p);
+      else if (/\.(ts|mjs|js|json|md|example)$/.test(e.name) || e.name === ".env.example") files.push({ path: path.relative(process.cwd(), p), text: await fs.readFile(p, "utf8") });
+    }
+  }
+  await walk(process.cwd());
+  return findExternalAiUsage(files).map((message) => ({ file: message.split(":")[0], message: message.slice(message.indexOf(":") + 2) }));
+}
+
 async function main(): Promise<void> {
   const violations = [
     ...(await checkSkillFrontmatter()),
@@ -314,11 +333,12 @@ async function main(): Promise<void> {
     ...(await checkDocsDrift()),
     ...(await checkInputCoercion()),
     ...(await checkAgentFreshnessCues()),
+    ...(await checkNoExternalAi()),
   ];
 
   if (violations.length === 0) {
     console.log(
-      "check:conventions — OK (skill frontmatter + registry project guards + docs/tool lists + input coercion + agent freshness cues all valid)"
+      "check:conventions — OK (skill frontmatter + registry project guards + docs/tool lists + input coercion + agent freshness cues + no external AI provider all valid)"
     );
     return;
   }

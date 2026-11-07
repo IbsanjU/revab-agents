@@ -30,6 +30,7 @@ import { intEnv, optionalEnv } from "../shared/config.js";
 import { captureAllTools, type CapturedTool } from "./tools.js";
 import { buildCodeModeTools } from "./codemode.js";
 import { filterTools } from "./filter.js";
+import { withCallLog } from "./callLog.js";
 import { classifyTool } from "../../utils/toolClassification.js";
 
 const PORT = intEnv("GATEWAY_MCP_PORT", 7300);
@@ -195,7 +196,9 @@ export function buildApp(tools: CapturedTool[], options: AppOptions = {}): expre
 /** Boot the gateway. Exported so the `revab start` CLI can reuse it. */
 export async function startGateway(): Promise<void> {
   const disabledSpec = optionalEnv("GATEWAY_DISABLED_TOOLS");
-  const { kept: tools, removed, unmatched } = filterTools(await captureAllTools(), disabledSpec);
+  const { kept: captured, removed, unmatched } = filterTools(await captureAllTools(), disabledSpec);
+  // Opt-in call log for behavior evals (names and flags only, never argument values).
+  const tools = withCallLog(captured, optionalEnv("GATEWAY_CALL_LOG"));
   const app = buildApp(tools, { ...(disabledSpec ? { disabled: disabledSpec } : {}), removed: removed.map((t) => ({ name: t.name, server: t.server })) });
   const servers = new Set(tools.map((t) => t.server)).size;
   if (removed.length > 0) console.log(`[gateway] ${removed.length} tool(s) disabled by GATEWAY_DISABLED_TOOLS`);

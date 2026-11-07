@@ -13,6 +13,7 @@
     "test": "node --import tsx --test \"utils/*.test.ts\" \"orchestrator/*.test.ts\" \"scripts/*.test.ts\" \"mcp-servers/shared/*.test.ts\" \"evals/*.test.ts\" \"mcp-servers/gateway/*.test.ts\" \"utils/codemode/*.test.ts\" \"cli/*.test.ts\" \"extension/src/*.test.ts\"",
     "check:conventions": "tsx scripts/check-conventions.ts && tsx scripts/build-graph.ts --check && tsx scripts/lessons.ts check",
     "lessons": "tsx scripts/lessons.ts",
+    "eval:behavior": "tsx scripts/behavior-evals.ts",
     "build:graph": "tsx scripts/build-graph.ts",
     "confluence:sync": "tsx scripts/confluence-sync-project.ts",
     "media:batch-extract": "tsx scripts/batch-media-extract.ts",
