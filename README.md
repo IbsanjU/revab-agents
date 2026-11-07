@@ -57,7 +57,7 @@ npx revab doctor                       # full config + connectivity report
 
 **VS Code extension.** `npm run extension:package` builds one `.vsix` that gives every VS Code window the agents and tools, with the gateway inside it and no clone needed to use it; see [extension/README.md](extension/README.md). `npm run extension:uninstall -- --dry-run --purge-config` previews a clean removal.
 
-**Code Mode.** To load two small tool definitions instead of all of them, register `http://localhost:7300/mcp/code` in place of `/mcp`. The model searches for tools, then writes one script that calls them; writes from code are preview-only. See [docs/code-mode.md](docs/code-mode.md) and run `npm run bench:codemode` for the measured saving.
+**Code Mode.** `http://localhost:7300/mcp/code` (registered as `gateway-code`) serves two small tools instead of all of them; in a client that loads every tool, keep it and drop `gateway` to get the saving. The model searches for tools, then writes one script that calls them; writes from code are preview-only. See [docs/code-mode.md](docs/code-mode.md) and run `npm run bench:codemode` for the measured saving.
 
 If something misbehaves, **run `npx revab doctor` first** — most failures are a missing base URL, a
 token for the wrong service, or a project whose `repoPath` moved. It names the variable and the fix.
