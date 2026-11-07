@@ -55,11 +55,17 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
     mustHave: [
       { tool: "mcp__gateway__jira_get_issue", because: "reading tickets is its core job" },
       { tool: "mcp__gateway__ocr_image", because: "its own flow runs extract-requirements-from-image, which cannot execute at all without this tool" },
+      { tool: "mcp__gateway-code__codemode_search", because: "its always-rule tells it to scan with Code Mode; the rule is dead text without both tools" },
+      { tool: "mcp__gateway-code__codemode_execute", because: "same: search alone cannot run the script it prepares" },
     ],
     mustNotHave: [
       { tool: "Write", because: "researcher is read-only; saving is suggest-then-pull via the save tools" },
       { tool: "mcp__gateway__jira_create_issue", because: "it must never write to a system of record (hard rule: read-only role)" },
       { tool: "mcp__gateway__confluence_update_page", because: "publishing belongs to documenter, dryRun-gated" },
+    ],
+    mustState: [
+      { text: "codemode_execute", because: "the scan-with-Code-Mode rule must name the tool, not just say 'use code'" },
+      { text: "cannot write", because: "the rule must say Code Mode cannot write, so the researcher never reaches for it to modify anything" },
     ],
   },
   {
