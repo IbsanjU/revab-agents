@@ -110,7 +110,7 @@ Effort is a rough range of focused working days for me plus review; it is an est
 ### Phase 7: scale (3–5 days, needs approvals)
 - **Scope:** optional SQLite and graph-database adapters; scheduled ingestion by a GitHub Action or script for the deterministic stages only (including the RAG sync); retrieval evaluation set and gate 11 against your instance; optional gateway read tools.
 - **Acceptance (criterion 8):** swapping in an adapter changes nothing outside the adapter.
-- **Risks:** secrets in Actions, embeddings that must be local; both stop for approval.
+- **Risks:** secrets in Actions (stops for approval).
 
 Total: roughly 28–37 working days of effort across seven reviewable stages. I would stop for your review after each phase.
 
