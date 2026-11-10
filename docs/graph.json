@@ -25,10 +25,8 @@
       ],
       "skills": [
         "adversarial-review",
-        "onboard-project",
         "review-delegated-work",
         "route-to-specialist",
-        "search-across-sources",
         "self-check"
       ],
       "handoffTo": [
@@ -121,6 +119,7 @@
         "git_branches",
         "git_diff",
         "git_log",
+        "git_show",
         "run_bdd",
         "run_playwright",
         "scaffold_feature",
@@ -130,6 +129,7 @@
       "skills": [
         "code-review",
         "detect-execution-convention",
+        "onboard-project",
         "security-review",
         "self-check",
         "simplify",
@@ -410,7 +410,7 @@
     {
       "name": "onboard-project",
       "owners": [
-        "orchestrator"
+        "automation"
       ],
       "mentionsTools": [
         "detect_conventions",
@@ -464,7 +464,6 @@
     {
       "name": "search-across-sources",
       "owners": [
-        "orchestrator",
         "researcher"
       ],
       "mentionsTools": [
@@ -902,6 +901,7 @@
       "name": "git_show",
       "server": "git",
       "heldBy": [
+        "automation",
         "researcher"
       ],
       "mentionedBy": [
@@ -1506,101 +1506,6 @@
       "key": "skill-tool-gap:capture-learning:self-improve:jira_get_boards",
       "kind": "skill-tool-gap",
       "message": "skill `capture-learning` (owner self-improve) names `jira_get_boards`, which self-improve does not hold"
-    },
-    {
-      "key": "skill-tool-gap:onboard-project:orchestrator:detect_conventions",
-      "kind": "skill-tool-gap",
-      "message": "skill `onboard-project` (owner orchestrator) names `detect_conventions`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:onboard-project:orchestrator:git_log",
-      "kind": "skill-tool-gap",
-      "message": "skill `onboard-project` (owner orchestrator) names `git_log`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:onboard-project:orchestrator:git_show",
-      "kind": "skill-tool-gap",
-      "message": "skill `onboard-project` (owner orchestrator) names `git_show`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:confluence_extract_links",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `confluence_extract_links`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:confluence_get_children",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `confluence_get_children`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:confluence_get_page",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `confluence_get_page`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:confluence_save_page",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `confluence_save_page`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:confluence_search",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `confluence_search`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:github_get_file",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `github_get_file`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:github_save_file",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `github_save_file`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:github_search_code",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `github_search_code`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:github_search_commits",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `github_search_commits`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:github_search_issues",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `github_search_issues`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:github_search_repos",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `github_search_repos`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:github_search_topics",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `github_search_topics`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:jira_get_issue",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `jira_get_issue`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:jira_save_issue",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `jira_save_issue`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:jtmf_get_test_case",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `jtmf_get_test_case`, which orchestrator does not hold"
-    },
-    {
-      "key": "skill-tool-gap:search-across-sources:orchestrator:jtmf_search_tests",
-      "kind": "skill-tool-gap",
-      "message": "skill `search-across-sources` (owner orchestrator) names `jtmf_search_tests`, which orchestrator does not hold"
     },
     {
       "key": "skill-tool-gap:search-across-sources:researcher:confluence_save_page",

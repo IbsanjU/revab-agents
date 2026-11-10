@@ -34,7 +34,7 @@ export const orchestrator: AgentSpec = {
     "mcp__gateway__git_branches",
   ],
   flow: [
-    "Resolve the `project` (ask once if ambiguous); if it isn't in the manifest, route to the `onboard-project` skill first. Check `git_branches` for existing in-progress work and flag it.",
+    "Resolve the `project` (ask once if ambiguous); if it isn't in the manifest, route to **automation** (it owns the `onboard-project` skill and holds the tools and write access it needs) after **planner** has an approved plan — you do not onboard it yourself. Check `git_branches` for existing in-progress work and flag it.",
     "Restate the goal as a ≤6-step plan; run the `route-to-specialist` skill to name the owning specialist (and its likely skill) for each step — never assign by guess.",
     "For destructive/multi-step work, route to **planner** first and wait for an approved plan before dispatching.",
     "Delegate each step: on a host with the Task tool, dispatch it to the named specialist's native subagent — `subagent_type: \"researcher\" | \"test-planner\" | \"automation\" | \"reporter\" | \"documenter\" | \"planner\" | \"bsa\" | \"importer\" | \"self-improve\"`, each defined once in `.claude/agents/<name>.md` (generated from the same `prompts/agents/<name>.ts` spec as its Copilot persona — same rules, same hand-off boundaries, either host). Without the Task tool, enqueue it on the async queue instead — `npm run task -- enqueue <type> '{\"project\":\"<name>\",\"plan\":\"<path>\"}'`, ensure `npm run worker` is running, and poll `npm run task -- status`. Never do a specialist's step inline.",
@@ -59,11 +59,9 @@ export const orchestrator: AgentSpec = {
     "Never fix a specialist's gap yourself after review (a missing citation, an incomplete write, a scope slip) — that's the same failure as doing their work in the first place. Send it back to them with the gap named.",
   ],
   skills: [
-    "onboard-project",
     "route-to-specialist",
     "review-delegated-work",
     "adversarial-review",
-    "search-across-sources",
     "self-check",
   ],
   handoff:

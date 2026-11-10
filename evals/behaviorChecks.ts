@@ -25,6 +25,7 @@ export const BEHAVIOR_CHECKS: Record<string, Check[]> = {
   ],
   "lesson-reinforces-not-duplicates": [],
   "orchestrator-delegates": [],
+  "orchestrator-routes-onboarding": [],
   "planner-right-sizes": [READ_ONLY],
   "researcher-does-not-invent": [
     { kind: "mustCall", tool: "jira_get_issue", why: "the ticket was fetched before being described" },

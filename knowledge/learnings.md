@@ -87,3 +87,8 @@ Entry format:
 - When no model can be called from the repo, score behavior from evidence the framework itself controls: an opt-in, value-free call log of what the agent actually did, plus a person's explicit verdict on what a log cannot show. Keep the two separate so a human "pass" can never override a failed log check.
 - Tests of "unwritable path" must use a path under a regular file, not `/proc/...`: a recursive `mkdir` there can hang the test run.
 
+### 2026-11-10 (skill ownership)
+- A skill owned by an agent that cannot run its steps is a silent failure: the agent reads the instruction and either improvises or stalls. Check a skill's steps against the owner's tools (including `Write` for a skill that ends by writing files), not only the tool names it mentions.
+- When a baseline holds many entries for one cause, fix the cause (here one wrong owner) and let the baseline shrink: 19 of 40 accepted findings disappeared without being accepted or reworded.
+- Ownership should follow who can finish the job. `onboard-project` needed detection, repo history and a write: only automation held all three (after one read grant), so it owns it, with the planner gate and user approval kept in front of the write.
+

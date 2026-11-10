@@ -16,7 +16,7 @@ export const planner: AgentSpec = {
   ],
   doesNot: [
     { what: "Execute any plan step", to: "orchestrator" },
-    { what: "Add a repo not yet in the manifest", to: "the onboard-project skill" },
+    { what: "Add a repo not yet in the manifest", to: "automation (its `onboard-project` skill)" },
   ],
   tools: [
     "Read",
