@@ -24,6 +24,9 @@
  *     last-updated/version checks) so plans/tickets/tests/docs never get built from
  *     silently outdated requirements.
  *
+ *  7. No organization-specific terms: if a local, untracked `.revab/denylist.txt` exists, no tracked
+ *     text may contain a listed term (see utils/denylist.ts). Without the file the rule does nothing.
+ *
  *  6. No external AI provider: no provider SDK in any package.json and no hosted-model endpoint or
  *     provider key variable in code/config. The models are whatever the user's own editor runs.
  *
@@ -32,7 +35,9 @@
  */
 import { promises as fs } from "fs";
 import path from "path";
+import { execFileSync } from "child_process";
 import { findExternalAiUsage } from "../utils/noExternalAi.js";
+import { parseDenylist, findDenied } from "../utils/denylist.js";
 
 interface Violation {
   file: string;
@@ -326,6 +331,53 @@ async function checkNoExternalAi(): Promise<Violation[]> {
   return findExternalAiUsage(files).map((message) => ({ file: message.split(":")[0], message: message.slice(message.indexOf(":") + 2) }));
 }
 
+/**
+ * Rule 7: nothing organization-specific in the repo. The terms come from a local, untracked
+ * `.revab/denylist.txt` (they would be identifying if committed). No file, no check.
+ */
+async function checkDenylist(): Promise<Violation[]> {
+  let raw: string;
+  try {
+    raw = await fs.readFile(path.resolve(".revab", "denylist.txt"), "utf8");
+  } catch {
+    return [];
+  }
+  const { entries, errors } = parseDenylist(raw);
+  const out: Violation[] = errors.map((message) => ({ file: ".revab/denylist.txt", message }));
+  if (!entries.length) return out;
+  const files: Array<{ path: string; text: string }> = [];
+  // Tracked files only: generated, ignored build output is not "in the repo".
+  let tracked: string[] | null = null;
+  try {
+    tracked = execFileSync("git", ["ls-files", "-z"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).split("\0").filter(Boolean);
+  } catch {
+    tracked = null;
+  }
+  if (tracked) {
+    for (const rel of tracked) {
+      if (rel === "package-lock.json" || !/\.(ts|mjs|js|json|md|yml|yaml|txt|example|html|css)$/.test(rel) && !path.basename(rel).startsWith(".")) continue;
+      files.push({ path: rel, text: await fs.readFile(path.resolve(rel), "utf8").catch(() => "") });
+    }
+  } else {
+    const skip = new Set(["node_modules", "dist", ".git", ".revab", ".queue", ".workspaces"]);
+    async function walk(dir: string): Promise<void> {
+      for (const e of await fs.readdir(dir, { withFileTypes: true })) {
+        if (skip.has(e.name) || e.name === "package-lock.json") continue;
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) await walk(p);
+        else if (/\.(ts|mjs|js|json|md|yml|yaml|txt|example|html|css)$/.test(e.name) || e.name.startsWith(".")) {
+          files.push({ path: path.relative(process.cwd(), p), text: await fs.readFile(p, "utf8").catch(() => "") });
+        }
+      }
+    }
+    await walk(process.cwd());
+  }
+  for (const h of findDenied(files, entries)) {
+    out.push({ file: h.path, message: `line ${h.line} contains a term from your local denylist (entry: ${h.entry})` });
+  }
+  return out;
+}
+
 async function main(): Promise<void> {
   const violations = [
     ...(await checkSkillFrontmatter()),
@@ -334,6 +386,7 @@ async function main(): Promise<void> {
     ...(await checkInputCoercion()),
     ...(await checkAgentFreshnessCues()),
     ...(await checkNoExternalAi()),
+    ...(await checkDenylist()),
   ];
 
   if (violations.length === 0) {

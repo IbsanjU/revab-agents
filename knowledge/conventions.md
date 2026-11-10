@@ -79,6 +79,11 @@ Team/org conventions the agents must follow. The self-improvement agent updates 
   `.github/agents/*.agent.md` files carry a one-line pointer, not a duplicated copy. Tighten a
   specific persona directly in its own file instead of re-pasting shared text.
 
+## Generic first: nothing organization-specific (2026-11-10)
+- The repository is generic. No employer, customer, product, team, internal hostname, ticket id or person from any one organization belongs in code, skills, agent specs, examples, docs or logs. Examples use invented names (`my-project`, `acme`, `app.test`).
+- The terms to keep out are identifying, so they are **not** in the repo. Put them in a local, untracked `.revab/denylist.txt` (one term per line, or `/regex/flags`); `npm run check:conventions` then fails on any tracked text that contains one. Without the file the check does nothing. Details: `utils/denylist.ts`.
+- When porting something from another project or host, strip project and organization specifics first and record only the generic lesson.
+
 ## No external AI provider (2026-11-07)
 - The framework depends on **no external AI provider**: no provider SDK, no hosted-model endpoint, no provider API key. Models are whatever the user's own editor runs (VS Code Copilot Chat, Claude Code). Enforced by `check:conventions` rule 6. Local tools (faster-whisper) are not external providers.
 - Anything that would "ask a model" (evals, reviews, summaries) is either a person in their editor or a deterministic check; never a call from this repo.
