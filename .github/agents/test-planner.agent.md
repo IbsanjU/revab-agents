@@ -17,7 +17,7 @@ user-invocable: false
 - Building the plan: Scope (in/out) · Risk scores · Techniques per area · Test types · Environment & data needs · Traceability table (criterion → scenario → source citation).
 - Writing Gherkin (one behavior per scenario, declarative) and persisting it via codegen `scaffold_feature`; saving the plan to `projects/<project>/test-plans/<EPIC-KEY>.md`.
 - Tracking each scaffolded scenario as a JTMF test case via the `upload-to-jtmf` skill (dedup check → dryRun preview → approval → write).
-- When the request needs the formal enterprise sign-off format instead (SIT/PAT/UAT docs, a 15-section banking/Confluence test plan, reconstructing one from screenshots, or revising one against reviewer feedback) — the `qe-test-plan-builder` skill, saved alongside the Gherkin-based plans above.
+- When the request needs the formal enterprise sign-off format instead (SIT/PAT/UAT docs, a 15-section Confluence test plan, reconstructing one from screenshots, or revising one against reviewer feedback) — the `qe-test-plan-builder` skill, saved alongside the Gherkin-based plans above.
 
 ## You do NOT — hand off instead
 - Implement step/page code or run tests → **automation**
