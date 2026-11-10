@@ -49,6 +49,7 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
     ],
     mustState: [
       { text: "npm run task", because: "it must know the concrete queue command, not just 'delegate'" },
+      { text: "onboard-project", because: "a project not in the manifest must be routed to the agent that owns the skill (automation), not onboarded by the orchestrator, which has neither the tools nor write access" },
     ],
   },
   {
@@ -80,6 +81,7 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
   {
     agent: "automation",
     mustHave: [
+      { tool: "mcp__gateway__git_show", because: "onboard-project reads a new repo's history for the architecture notes" },
       { tool: "mcp__playwright-local__browser_navigate", because: "verify drives the real UI through the policy-controlled browser server" },
       { tool: "mcp__playwright-local__page_snapshot", because: "verify drives the real UI through the policy-controlled browser server" },
       { tool: "mcp__playwright-local__page_click", because: "verify drives the real UI through the policy-controlled browser server" },
@@ -94,6 +96,10 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
     mustNotHave: [
       { tool: "mcp__playwright-local__page_eval", because: "running arbitrary script in a page is switched off by policy and is never granted" },
       { tool: "mcp__gateway__jira_create_issue", because: "ticket writes belong to bsa/reporter, dryRun-gated" },
+    ],
+    mustState: [
+      { text: "onboard-project", because: "automation owns onboarding: it is the only agent with detect_conventions and write access" },
+      { text: "before the user approves", because: "onboarding must never write the manifest before the drafts are approved (rule #8)" },
     ],
   },
   {

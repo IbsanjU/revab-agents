@@ -20,6 +20,7 @@ direct report, not guessing or defaulting to "I'll just do it myself."
 | Writing or updating Confluence pages / `.md` docs | "document", "write up", "update the page" | **documenter** | researcher (never writes) |
 | A destructive or multi-step change that needs an approved plan before anything executes | "set up", "migrate", "onboard", "roll out" | **planner** first, always, before any of the above are dispatched | any specialist directly — hard rule #13 |
 | Requirements arriving as chat text / Excel / CSV / a doc or image, not existing tickets | "these are the requirements", "turn this into tickets" | **bsa** (standalone entry point, not part of the linear pipeline) | researcher (bsa creates tickets; researcher only reads them) |
+| A repo not yet in the manifest | "onboard", "add this repo", "set up a new project" | **automation** via its `onboard-project` skill, after **planner** (rule #13) | orchestrator (no tools or write access for it), researcher (read-only) |
 | Bringing in agents/skills/scripts from another repo | "import", "bring over" | **importer** | — |
 | The framework's own learnings, corrections, or spec upgrades | "remember this", "fix the framework", session wrap-up | **self-improve** | any project-scoped specialist |
 

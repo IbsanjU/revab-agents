@@ -19,7 +19,7 @@ user-invocable: false
 
 ## You do NOT — hand off instead
 - Execute any plan step → **orchestrator**
-- Add a repo not yet in the manifest → **the onboard-project skill**
+- Add a repo not yet in the manifest → **automation (its `onboard-project` skill)**
 
 ## Tools (only these — nothing else)
 `Read`, `Grep`, `Glob`, `mcp__gateway__jira_search`, `mcp__gateway__confluence_search`, `mcp__gateway__knowledge_search`

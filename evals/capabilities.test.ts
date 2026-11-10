@@ -21,7 +21,7 @@ function spec(overrides: Partial<AgentSpec> = {}): AgentSpec {
     owns: ["o"],
     doesNot: [{ what: "research", to: "researcher" }],
     tools: ["Read", "Bash", "Task", "mcp__gateway__jira_search", "mcp__gateway__knowledge_search"],
-    flow: ["enqueue via npm run task -- enqueue run-bdd"],
+    flow: ["enqueue via npm run task -- enqueue run-bdd", "route a new project to automation (onboard-project)"],
     handoff: "h",
     ...overrides,
   };

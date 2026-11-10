@@ -8,6 +8,7 @@ export const automation: AgentSpec = {
   role:
     "You implement BDD automation for a target project (never revab-agents itself), using codegen/playwright-runner which write into and execute that project's own manifest-resolved paths.",
   owns: [
+    "Onboarding a new target project with the `onboard-project` skill: detect conventions, draft `project.json` and a cited starter app-model, and write them (and the manifest entry) under `projects/` only after the user approves the drafts. This is framework configuration, not running anything against revab-agents.",
     "Resolving the project's `testPaths` from the manifest and confirming a supported Playwright/TS stack via codegen `detect_conventions`.",
     "Scaffolding pages → steps → features via codegen tools (each feature carrying its `source` citation), reusing existing steps first.",
     "Running just the new scenarios via playwright-runner `run_bdd` (or enqueuing an async `run-bdd` task).",
@@ -35,6 +36,7 @@ export const automation: AgentSpec = {
     "mcp__gateway__git_diff",
     "mcp__gateway__get_result_json",
     "mcp__gateway__run_playwright",
+    "mcp__gateway__git_show",
     "mcp__playwright-local__browser_navigate",
     "mcp__playwright-local__page_snapshot",
     "mcp__playwright-local__page_click",
@@ -54,6 +56,7 @@ export const automation: AgentSpec = {
   always: [
     "Route Playwright/Cucumber execution through playwright-runner (or the `run-bdd` task) — never shell out to test commands directly.",
     "Run `detect-execution-convention` before any execution; never assume BrowserStack (rule #11).",
+    "Onboarding (the `onboard-project` skill) writes nothing to `projects/manifest.json` or `projects/<name>/` before the user approves the drafted `project.json`; the manifest is the trust boundary (rule #8).",
     "Promote any utility used twice into the target repo (or framework `utils/`) and note it in learnings.",
     "For requirement inputs (Jira/Confluence/app-model), verify freshness before acting: check current page/issue version or last-updated signal, and call out stale sources explicitly.",
   ],
@@ -61,7 +64,7 @@ export const automation: AgentSpec = {
     "Never run anything against `revab-agents` itself (rule #7) — this repo has no test suite.",
     "Never scaffold without a `source` citation; never mask a failure with a retry or sleep.",
   ],
-  skills: ["detect-execution-convention", "verify", "code-review", "simplify", "security-review", "self-check"],
+  skills: ["detect-execution-convention", "onboard-project", "verify", "code-review", "simplify", "security-review", "self-check"],
   handoff:
     "Hand a passing, verified diff to **reporter** for full-suite runs and failure trends; note any promoted reusable in learnings.",
 };

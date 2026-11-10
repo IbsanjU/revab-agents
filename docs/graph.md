@@ -57,10 +57,10 @@ flowchart LR
 | Agent | Gateway tools | Skills | Hands off to |
 |---|---|---|---|
 | planner | 3 | `self-check`, `size-and-slice` | orchestrator |
-| orchestrator | 4 | `adversarial-review`, `onboard-project`, `review-delegated-work`, `route-to-specialist`, `search-across-sources`, `self-check` | automation, planner, reporter, researcher, test-planner |
+| orchestrator | 4 | `adversarial-review`, `review-delegated-work`, `route-to-specialist`, `self-check` | automation, planner, reporter, researcher, test-planner |
 | researcher | 26 | `extract-requirements-from-image`, `extract-requirements-from-video`, `search-across-sources`, `self-check`, `structure-project-data` | test-planner |
 | test-planner | 14 | `build-test-plan-interactive`, `qe-test-plan-builder`, `review-against-spec`, `self-check`, `test-design-techniques`, `upload-to-jtmf` | automation, researcher |
-| automation | 12 | `code-review`, `detect-execution-convention`, `security-review`, `self-check`, `simplify`, `verify` | reporter, test-planner |
+| automation | 13 | `code-review`, `detect-execution-convention`, `onboard-project`, `security-review`, `self-check`, `simplify`, `verify` | reporter, test-planner |
 | reporter | 12 | `analyze-test-failures`, `data-visualization`, `self-check`, `ship`, `update-jira-epic` | automation, self-improve |
 | documenter | 15 | `consolidate-project-report`, `data-visualization`, `self-check` | planner, self-improve |
 | bsa | 16 | `bulk-create-tickets`, `bulk-update-tickets`, `route-assignee`, `self-check`, `sprint-backlog-report` | reporter |
@@ -115,10 +115,8 @@ flowchart LR
   a_planner --> s_self_check
   a_planner --> s_size_and_slice
   a_orchestrator --> s_adversarial_review
-  a_orchestrator --> s_onboard_project
   a_orchestrator --> s_review_delegated_work
   a_orchestrator --> s_route_to_specialist
-  a_orchestrator --> s_search_across_sources
   a_orchestrator --> s_self_check
   a_researcher --> s_extract_requirements_from_image
   a_researcher --> s_extract_requirements_from_video
@@ -133,6 +131,7 @@ flowchart LR
   a_test_planner --> s_upload_to_jtmf
   a_automation --> s_code_review
   a_automation --> s_detect_execution_convention
+  a_automation --> s_onboard_project
   a_automation --> s_security_review
   a_automation --> s_self_check
   a_automation --> s_simplify
@@ -162,25 +161,6 @@ flowchart LR
 | Kind | Finding | Status |
 |---|---|---|
 | skill-tool-gap | skill `capture-learning` (owner self-improve) names `jira_get_boards`, which self-improve does not hold | accepted: illustrative: the skill uses it as an example of a value to parameterize, not a step it performs |
-| skill-tool-gap | skill `onboard-project` (owner orchestrator) names `detect_conventions`, which orchestrator does not hold | accepted: delegated: onboarding steps that read the repo are dispatched to automation/researcher; the orchestrator only assembles the draft for user review |
-| skill-tool-gap | skill `onboard-project` (owner orchestrator) names `git_log`, which orchestrator does not hold | accepted: delegated: onboarding steps that read the repo are dispatched to automation/researcher; the orchestrator only assembles the draft for user review |
-| skill-tool-gap | skill `onboard-project` (owner orchestrator) names `git_show`, which orchestrator does not hold | accepted: delegated: onboarding steps that read the repo are dispatched to automation/researcher; the orchestrator only assembles the draft for user review |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `confluence_extract_links`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `confluence_get_children`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `confluence_get_page`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `confluence_save_page`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `confluence_search`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `github_get_file`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `github_save_file`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `github_search_code`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `github_search_commits`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `github_search_issues`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `github_search_repos`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `github_search_topics`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `jira_get_issue`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `jira_save_issue`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `jtmf_get_test_case`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
-| skill-tool-gap | skill `search-across-sources` (owner orchestrator) names `jtmf_search_tests`, which orchestrator does not hold | accepted: delegated: the orchestrator routes topic searches to the researcher, which holds these tools; it does not run the searches itself |
 | skill-tool-gap | skill `search-across-sources` (owner researcher) names `confluence_save_page`, which researcher does not hold | accepted: intentional: ask-before-save tools write to disk; the researcher is read-only, so the skill hands a confirmed save to an agent that holds the tool |
 | skill-tool-gap | skill `search-across-sources` (owner researcher) names `github_save_file`, which researcher does not hold | accepted: intentional: ask-before-save tools write to disk; the researcher is read-only, so the skill hands a confirmed save to an agent that holds the tool |
 | skill-tool-gap | skill `search-across-sources` (owner researcher) names `jira_save_issue`, which researcher does not hold | accepted: intentional: ask-before-save tools write to disk; the researcher is read-only, so the skill hands a confirmed save to an agent that holds the tool |
