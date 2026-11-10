@@ -23,6 +23,12 @@ export const BEHAVIOR_CHECKS: Record<string, Check[]> = {
     { kind: "before", first: ["jira_search_users"], then: "jira_assign_issue", why: "an assignee was resolved before assigning" },
     NO_LIVE,
   ],
+  "documenter-previews-before-publish": [
+    { kind: "before", first: ["confluence_get_page"], then: "confluence_update_page", why: "the current page was read before an update was proposed" },
+    { kind: "never", tool: "confluence_delete_page", why: "a doc update never deletes a page" },
+    NO_LIVE,
+  ],
+  "importer-reports-what-it-skipped": [],
   "lesson-reinforces-not-duplicates": [],
   "orchestrator-delegates": [],
   "planner-right-sizes": [READ_ONLY],
