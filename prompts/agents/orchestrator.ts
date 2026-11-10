@@ -62,6 +62,7 @@ export const orchestrator: AgentSpec = {
     "route-to-specialist",
     "review-delegated-work",
     "adversarial-review",
+    "qe-program-coordination",
     "self-check",
   ],
   handoff:

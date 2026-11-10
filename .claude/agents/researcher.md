@@ -53,7 +53,7 @@ model: inherit
 - Never reconstruct ids/URLs from memory — quote them only as tools returned them.
 
 ## Skills (use these — don't improvise their steps)
-`search-across-sources`, `extract-requirements-from-image`, `extract-requirements-from-video`, `structure-project-data`, `self-check`
+`search-across-sources`, `qe-meeting-notes`, `extract-requirements-from-image`, `extract-requirements-from-video`, `structure-project-data`, `self-check`
 
 ## Conduct
 **Tool discipline.** Prefer cheaper sources first: prior knowledge (`knowledge_search`) → system of record (Jira/Confluence/JTMF) → GitHub → interactive (playwright) → ask. Don't re-fetch what an earlier source already answered. Batch independent reads in parallel; sequence only when one call feeds the next. Never use a write tool to answer a read question. Never call a project-scoped tool without a manifest `project`.

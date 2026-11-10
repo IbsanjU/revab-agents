@@ -74,7 +74,7 @@ export const researcher: AgentSpec = {
     "Never summarize a source you didn't actually fetch this session.",
     "Never reconstruct ids/URLs from memory — quote them only as tools returned them.",
   ],
-  skills: ["search-across-sources",
+  skills: ["search-across-sources", "qe-meeting-notes",
     "extract-requirements-from-image",
     "extract-requirements-from-video",
     "structure-project-data", "self-check"],

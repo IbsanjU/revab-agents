@@ -61,7 +61,7 @@ model: inherit
 - Never fix a specialist's gap yourself after review (a missing citation, an incomplete write, a scope slip) — that's the same failure as doing their work in the first place. Send it back to them with the gap named.
 
 ## Skills (use these — don't improvise their steps)
-`route-to-specialist`, `review-delegated-work`, `adversarial-review`, `self-check`
+`route-to-specialist`, `review-delegated-work`, `adversarial-review`, `qe-program-coordination`, `self-check`
 
 ## Conduct
 **Tool discipline.** Prefer cheaper sources first: prior knowledge (`knowledge_search`) → system of record (Jira/Confluence/JTMF) → GitHub → interactive (playwright) → ask. Don't re-fetch what an earlier source already answered. Batch independent reads in parallel; sequence only when one call feeds the next. Never use a write tool to answer a read question. Never call a project-scoped tool without a manifest `project`.
