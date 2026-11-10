@@ -87,3 +87,8 @@ Entry format:
 - When no model can be called from the repo, score behavior from evidence the framework itself controls: an opt-in, value-free call log of what the agent actually did, plus a person's explicit verdict on what a log cannot show. Keep the two separate so a human "pass" can never override a failed log check.
 - Tests of "unwritable path" must use a path under a regular file, not `/proc/...`: a recursive `mkdir` there can hang the test run.
 
+### 2026-11-10 (agent review)
+- An agent spec can drift from the script or convention it describes. The importer promised MCP-server rewriting and `.vscode/mcp.json` registration that no script does and the one-gateway convention forbids. Review a spec against the code it names, not only against other specs.
+- `mustState` evals only read `flow`, `always` and `never`. A rule placed in `owns` is invisible to them; put a rule that must not regress in `always` or `never`.
+- The two agents with the least coverage (importer: none, documenter: one shared case) were also the ones with the least precise specs. Missing evals are a useful pointer to where drift hides.
+

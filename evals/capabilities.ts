@@ -197,8 +197,29 @@ export const EXPECTATIONS: CapabilityExpectation[] = [
       { tool: "mcp__gateway__confluence_search", because: "consolidate-project-report finds the HLRs" },
       { tool: "mcp__gateway__confluence_get_children", because: "consolidate-project-report walks the HLR page tree" },
       { tool: "mcp__gateway__jtmf_search_tests", because: "consolidate-project-report lists current test cases" },
+      { tool: "mcp__gateway__confluence_get_page", because: "a section-level diff preview needs the current page content" },
+      { tool: "mcp__gateway__confluence_update_page", because: "its flow applies a confirmed update to an existing page" },
     ],
-    mustNotHave: [],
+    mustNotHave: [
+      { tool: "mcp__gateway__confluence_delete_page", because: "the framework never deletes: documenter updates or supersedes" },
+      { tool: "mcp__gateway__jira_transition_issue", because: "documenting never changes a ticket's status" },
+    ],
+  },
+  {
+    agent: "importer",
+    mustHave: [
+      { tool: "Edit", because: "normalizing frontmatter and secrets in an imported file is an in-place edit, not a rewrite" },
+      { tool: "Bash", because: "it runs `npm run import:agents` (dry-run first) and the conventions check" },
+      { tool: "mcp__gateway__knowledge_append", because: "its flow records the import in the learnings log" },
+    ],
+    mustNotHave: [
+      { tool: "mcp__gateway__jira_update_issue", because: "importing assets never writes to Jira" },
+      { tool: "mcp__gateway__confluence_update_page", because: "importing assets never writes to Confluence" },
+    ],
+    mustState: [
+      { text: "gateway/tools.ts", because: "an imported MCP server joins the one gateway, not a second .vscode/mcp.json entry" },
+      { text: "check:conventions", because: "an imported skill must pass the frontmatter and graph checks before the import counts as done" },
+    ],
   },
   {
     agent: "self-improve",
