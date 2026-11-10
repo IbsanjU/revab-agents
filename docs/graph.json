@@ -25,6 +25,7 @@
       ],
       "skills": [
         "adversarial-review",
+        "qe-program-coordination",
         "review-delegated-work",
         "route-to-specialist",
         "self-check"
@@ -70,6 +71,7 @@
       "skills": [
         "extract-requirements-from-image",
         "extract-requirements-from-video",
+        "qe-meeting-notes",
         "search-across-sources",
         "self-check",
         "structure-project-data"
@@ -98,6 +100,7 @@
       ],
       "skills": [
         "build-test-plan-interactive",
+        "qe-raci-coverage-matrix",
         "qe-test-plan-builder",
         "review-against-spec",
         "self-check",
@@ -159,6 +162,7 @@
       "skills": [
         "analyze-test-failures",
         "data-visualization",
+        "qe-signoff-report",
         "self-check",
         "ship",
         "update-jira-epic"
@@ -419,6 +423,39 @@
       ]
     },
     {
+      "name": "qe-meeting-notes",
+      "owners": [
+        "researcher"
+      ],
+      "mentionsTools": []
+    },
+    {
+      "name": "qe-program-coordination",
+      "owners": [
+        "orchestrator"
+      ],
+      "mentionsTools": [
+        "knowledge_search"
+      ]
+    },
+    {
+      "name": "qe-raci-coverage-matrix",
+      "owners": [
+        "test-planner"
+      ],
+      "mentionsTools": []
+    },
+    {
+      "name": "qe-signoff-report",
+      "owners": [
+        "reporter"
+      ],
+      "mentionsTools": [
+        "allure_summary",
+        "jira_search"
+      ]
+    },
+    {
       "name": "qe-test-plan-builder",
       "owners": [
         "test-planner"
@@ -635,6 +672,7 @@
       "mentionedBy": [
         "analyze-test-failures",
         "consolidate-project-report",
+        "qe-signoff-report",
         "ship",
         "verify"
       ]
@@ -1134,6 +1172,7 @@
       "mentionedBy": [
         "bulk-update-tickets",
         "consolidate-project-report",
+        "qe-signoff-report",
         "search-across-sources",
         "ship",
         "sprint-backlog-report",
@@ -1260,7 +1299,8 @@
       ],
       "mentionedBy": [
         "build-capability",
-        "capture-learning"
+        "capture-learning",
+        "qe-program-coordination"
       ]
     },
     {
@@ -1437,6 +1477,7 @@
       ],
       "skills": [
         "search-across-sources",
+        "qe-meeting-notes",
         "extract-requirements-from-image",
         "extract-requirements-from-video",
         "structure-project-data"
@@ -1450,6 +1491,8 @@
       ],
       "skills": [
         "size-and-slice",
+        "qe-program-coordination",
+        "qe-raci-coverage-matrix",
         "qe-test-plan-builder",
         "build-test-plan-interactive",
         "test-design-techniques",
@@ -1497,7 +1540,8 @@
         "reporter"
       ],
       "skills": [
-        "ship"
+        "ship",
+        "qe-signoff-report"
       ]
     }
   ],

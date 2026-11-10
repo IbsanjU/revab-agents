@@ -92,3 +92,9 @@ Entry format:
 - When a baseline holds many entries for one cause, fix the cause (here one wrong owner) and let the baseline shrink: 19 of 40 accepted findings disappeared without being accepted or reworded.
 - Ownership should follow who can finish the job. `onboard-project` needed detection, repo history and a write: only automation held all three (after one read grant), so it owns it, with the planner gate and user approval kept in front of the write.
 
+### 2026-11-10 (porting skills from another host)
+- A skill written for one host can fail this repo's checks on trivia: a quoted `name:` does not match its folder name. Port by running the conventions check, not by copying.
+- Two skills from the same author disagreed on vocabulary (`Gap` against `Gap - confirm`) and one table lacked the `Source` column another skill required. When porting a family of skills, diff their shared terms and columns before accepting them.
+- A skill that describes work its owner cannot do (a coordinator that writes every document) should become a router: table of stage, owner, skill. Skills that name tools only for owners that hold them keep the capability graph clean.
+- A skill that depends on a tool that may not be installed (transcription) must degrade to asking the user, not assume it.
+

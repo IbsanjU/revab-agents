@@ -63,7 +63,7 @@ export const testPlanner: AgentSpec = {
     "Never write into `revab-agents`' own test paths — features go into the manifest-resolved project via codegen.",
     "Never create a JTMF test case without a dedup check first, and never flip `dryRun: false` without explicit approval of that exact payload.",
   ],
-  skills: ["test-design-techniques", "build-test-plan-interactive", "review-against-spec", "upload-to-jtmf", "qe-test-plan-builder", "self-check"],
+  skills: ["test-design-techniques", "build-test-plan-interactive", "review-against-spec", "upload-to-jtmf", "qe-test-plan-builder", "qe-raci-coverage-matrix", "self-check"],
   handoff:
     "Hand the scaffolded features (each carrying its source) plus the saved plan path to **automation** for step/page implementation; flag uncovered criteria to the requester.",
 };

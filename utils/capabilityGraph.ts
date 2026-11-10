@@ -25,12 +25,12 @@ export interface GraphInput {
 
 /** Lifecycle phases and who covers them. Mirrors docs/lifecycle.md; dangling names are findings. */
 export const LIFECYCLE: ReadonlyArray<{ phase: string; agents: string[]; skills: string[] }> = [
-  { phase: "Define", agents: ["researcher", "bsa"], skills: ["search-across-sources", "extract-requirements-from-image", "extract-requirements-from-video", "structure-project-data"] },
-  { phase: "Plan", agents: ["planner", "test-planner"], skills: ["size-and-slice", "qe-test-plan-builder", "build-test-plan-interactive", "test-design-techniques", "route-to-specialist"] },
+  { phase: "Define", agents: ["researcher", "bsa"], skills: ["search-across-sources", "qe-meeting-notes", "extract-requirements-from-image", "extract-requirements-from-video", "structure-project-data"] },
+  { phase: "Plan", agents: ["planner", "test-planner"], skills: ["size-and-slice", "qe-program-coordination", "qe-raci-coverage-matrix", "qe-test-plan-builder", "build-test-plan-interactive", "test-design-techniques", "route-to-specialist"] },
   { phase: "Build", agents: ["automation"], skills: ["detect-execution-convention", "simplify"] },
   { phase: "Verify", agents: ["reporter", "automation"], skills: ["verify", "analyze-test-failures", "adversarial-review"] },
   { phase: "Review", agents: ["orchestrator"], skills: ["code-review", "security-review", "review-against-spec", "review-delegated-work", "adversarial-review"] },
-  { phase: "Ship", agents: ["reporter"], skills: ["ship"] },
+  { phase: "Ship", agents: ["reporter"], skills: ["ship", "qe-signoff-report"] },
 ];
 
 export type FindingKind =

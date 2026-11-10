@@ -50,7 +50,7 @@ user-invocable: false
 - Never reclassify a failure without evidence; never transition a Jira issue without dryRun + confirmation.
 
 ## Skills (use these — don't improvise their steps)
-`analyze-test-failures`, `update-jira-epic`, `data-visualization`, `ship`, `self-check`
+`analyze-test-failures`, `update-jira-epic`, `data-visualization`, `ship`, `qe-signoff-report`, `self-check`
 
 ## Conduct
 **Tool discipline.** Prefer cheaper sources first: prior knowledge (`knowledge_search`) → system of record (Jira/Confluence/JTMF) → GitHub → interactive (playwright) → ask. Don't re-fetch what an earlier source already answered. Batch independent reads in parallel; sequence only when one call feeds the next. Never use a write tool to answer a read question. Never call a project-scoped tool without a manifest `project`.
