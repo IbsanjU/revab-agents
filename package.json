@@ -48,19 +48,19 @@
     "serve:mcp:individual": "concurrently -n jira,conf,jtmf,art,media,gh,git,notify,pwr,allure,codegen,pw -c blue,green,yellow,magenta,cyan,white,white,red,white,gray,gray,gray npm:serve:jira npm:serve:confluence npm:serve:jtmf npm:serve:artifacts npm:serve:media npm:serve:github npm:serve:git npm:serve:notify npm:serve:playwright-runner npm:serve:allure-report npm:serve:codegen npm:serve:playwright"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "docx": "^9.7.1",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2",
+    "express": "^4.22.3",
     "file-type": "^22.0.1",
-    "image-size": "^2.0.2",
+    "image-size": "^2.1.0",
     "mammoth": "^1.12.0",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^10.1.4",
     "pdf-parse": "^2.4.5",
     "pdfkit": "^0.19.1",
     "tesseract.js": "^6.0.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "zod": "^3.23.8"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
